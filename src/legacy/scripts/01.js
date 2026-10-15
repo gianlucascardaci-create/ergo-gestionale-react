@@ -1076,7 +1076,7 @@ async function salvaProdotto(modifica,p,nuovaFoto){
  }
  localStorage.setItem('ergo_prodotti',JSON.stringify(salvati));
  chiudiDrawer();
- alert('✅ Prodotto '+(modifica?'aggiornato':'creato')+'!');
+ window.assistentePersonale({testo:'<b>Prodotto '+(modifica?'aggiornato':'aggiunto')+'!</b><br>'+String(nuovo.nome).replace(/</g,'&lt;')+' è nel catalogo.',emoji:'📦',colore:'#a66d24'});
  const pc=document.getElementById('pc');if(pc&&view==='inventario')inv(pc);
 }
 
@@ -1693,7 +1693,7 @@ function apriModaleEvento(){
   EVENTI.push(ev);
   generaNotifEvento(ev);
   chiudiDrawer();
-  alert('✅ Evento creato!');
+  window.assistentePersonale({testo:'<b>Evento creato!</b><br>'+String(ev.titolo).replace(/</g,'&lt;')+' è stato salvato correttamente.',emoji:'📅',colore:'#3e765e'});
   const pc=document.getElementById('pc');
   if(pc){if(view==='calendario')cal(pc);else if(view==='dashboard')dash(pc)}
  };
@@ -2533,7 +2533,6 @@ function apriModaleNoleggio(){
   NOLEGGI.push(nl);
   generaNotifNoleggio(nl);
   chiudiDrawer();
-  alert('✅ Noleggio creato!');
   const pc=document.getElementById('pc');
   if(pc){if(view==='calendario')cal(pc);else if(view==='dashboard')dash(pc)}
  };
@@ -6998,7 +6997,7 @@ window.mostraPopupBenvenuto=function(){
 
  /* Funzione mostra messaggio (uguale a prima) */
  function mostraMessaggio(testo,tipo,emojiExtra){
-  if(!window.user||!user||!user.username)return;
+  if(typeof user==='undefined'||!user||!user.username)return;
   if(document.getElementById('personaggio-attivo'))return;
   var adesso=Date.now();
   var ultimo=parseInt(localStorage.getItem('ergo_ultimo_pers_'+user.username)||'0');
@@ -7048,7 +7047,7 @@ window.mostraPopupBenvenuto=function(){
 
  /* === MESSAGGI PER FASCIA ORARIA === */
  function checkFasciaOraria(){
-  if(!window.user||!user)return;
+  if(typeof user==='undefined'||!user)return;
   var ora=new Date().getHours();
   var min=new Date().getMinutes();
   var oggi=new Date().toISOString().slice(0,10);
@@ -7132,12 +7131,12 @@ window.mostraPopupBenvenuto=function(){
 
  /* === AVVIA === */
  function avviaFasce(){
-  if(!window.user||!user)return;
+  if(typeof user==='undefined'||!user)return;
   /* Check subito dopo 30 sec */
   _t(checkFasciaOraria,30000);
   /* Poi ogni 20 minuti (per catturare i cambi di fascia) */
   _ripeti(function(){
-   if(window.user&&user)checkFasciaOraria();
+   if(typeof user!=='undefined'&&user)checkFasciaOraria();
   },20*60*1000);
  }
 
@@ -7149,7 +7148,7 @@ window.mostraPopupBenvenuto=function(){
   };
  }
 
- if(window.user&&user&&user.username){
+ if(typeof user!=='undefined'&&user&&user.username){
   _t(avviaFasce,5000);
  }
 })();
@@ -7184,7 +7183,7 @@ window.mostraPopupBenvenuto=function(){
  /* Funzione che mostra il personaggio con messaggio E azioni opzionali */
  window.assistentePersonale=function(config){
   /* config = { testo, tipo, emoji, colore, bottoni:[{label,colore,azione}] } */
-  if(!window.user||!user)return;
+  if(typeof user==='undefined'||!user)return;
   if(document.getElementById('assistente-attivo'))return;
 
   var colore=config.colore||'#083278';
@@ -7533,7 +7532,7 @@ window.mostraPopupBenvenuto=function(){
       originalSetItem.call(localStorage,'ergo_noleggi',JSON.stringify(nRows));
       originalSetItem.call(localStorage,'ergo_eventi',JSON.stringify(eRows));
       EVENTI.splice(0,EVENTI.length,...eRows); NOLEGGI.splice(0,NOLEGGI.length,...nRows);
-      if(window.user && typeof app==='function') app();
+      if(typeof user!=='undefined'&&user&&typeof app==='function') app();
     }catch(e){ console.warn('Dati Streamlit/Supabase non disponibili: uso il fallback locale',e); }
     finally{ syncing=false; }
   }
@@ -7546,7 +7545,7 @@ window.mostraPopupBenvenuto=function(){
   };
   /* Gli SVG di ruolo già presenti restano disponibili tramite fallback. */
   window.assistentePersonale = function(config){
-    if(!window.user || !user) return;
+    if(typeof user==='undefined'||!user) return;
     var old=document.getElementById('assistente-attivo'); if(old) old.remove();
     var color=config.colore||'#083278';
     var roleName={'Amministratore':'Amministratore','Wedding':'Wedding Planner','Cucina':'Chef','Sala':'Cameriere','Magazzino':'Magazziniere','Magazzino2':'Autista'}[user.ruolo]||user.ruolo;
