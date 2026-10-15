@@ -856,7 +856,7 @@ function confermaElimEnt(tipo,obj){
    alert('✅ Eliminato da Supabase e dalla memoria locale.');
    const pc=document.getElementById('pc');
    if(pc){if(view==='calendario')cal(pc);else if(view==='dashboard')dash(pc)}
-  }catch(e){if(btn)btn.disabled=false;alert('❌ Eliminazione non completata su Supabase. Il dato locale è stato conservato.');console.warn(e)}
+  }catch(e){if(btn)btn.disabled=false;alert('❌ Eliminazione non completata su Supabase. Il dato locale è stato conservato.\n\n'+String(e&&e.message||e));console.warn(e)}
  };
 }
 /* ============================================================
@@ -7574,10 +7574,12 @@ window.mostraPopupBenvenuto=function(){
       q=obj.id?q.eq('id',obj.id):q.eq('codice',obj.codice);
     }else if(tipo==='evento'){
       q=sb.from('eventi_catering').delete();
-      q=obj.id?q.eq('id',obj.id):q.eq('nome_evento',obj.titolo).eq('data',String(obj.inizio||'').slice(0,10));
+      var eventRemoteId=(typeof obj.id==='number'||/^\d+$/.test(String(obj.id||'')))?obj.id:null;
+      q=eventRemoteId?q.eq('id',eventRemoteId):q.eq('nome_evento',obj.titolo).eq('data',String(obj.inizio||'').slice(0,10));
     }else{
       q=sb.from('noleggi').delete();
-      q=obj.id?q.eq('id',obj.id):q.eq('titolo',obj.titolo).eq('inizio',obj.inizio);
+      var rentalRemoteId=(typeof obj.id==='number'||/^\d+$/.test(String(obj.id||'')))?obj.id:null;
+      q=rentalRemoteId?q.eq('id',rentalRemoteId):q.eq('titolo',obj.titolo).eq('inizio',obj.inizio);
     }
     var r=await q;if(r.error)throw r.error;
     return {remote:true};
@@ -7805,7 +7807,7 @@ window.mostraPopupBenvenuto=function(){
   /* Override diretto del personaggio storico: usa stili inline, quindi servono !important. */
   var visualFix=document.createElement('style');
   visualFix.textContent=`
-    #personaggio-attivo{right:20px !important;bottom:20px !important;max-width:min(760px,calc(100vw - 24px)) !important;transition:right 1.15s cubic-bezier(.34,1.56,.64,1) !important}
+    #personaggio-attivo{right:48px !important;bottom:20px !important;max-width:min(760px,calc(100vw - 24px)) !important;transition:right 1.15s cubic-bezier(.34,1.56,.64,1) !important}
     #personaggio-attivo>div:first-child{width:210px !important;min-width:210px !important;transform:translateY(10px) !important;filter:drop-shadow(0 16px 28px rgba(8,50,120,.30)) !important}
     #personaggio-attivo svg{width:210px !important;height:280px !important}
     #personaggio-attivo>div:last-child{min-width:340px !important;max-width:420px !important;padding:20px 22px !important;border-width:3px !important;border-radius:22px !important;margin-bottom:46px !important}
@@ -7843,6 +7845,7 @@ window.mostraPopupBenvenuto=function(){
       .assistente-card{width:auto !important;flex:1 1 auto;min-width:0 !important;max-width:calc(100vw - 125px) !important}
     }
     @media(min-width:1800px){
+      .assistente-vnext{right:48px !important;max-width:calc(100vw - 72px) !important}
       .assistente-person{width:330px !important;min-width:330px !important}
       .assistente-person .assistant-character-image{width:330px !important;height:495px !important;max-width:none !important}
       .assistente-card{min-width:430px !important;max-width:560px !important;padding:28px 30px !important}
