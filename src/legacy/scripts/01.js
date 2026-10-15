@@ -7656,6 +7656,24 @@ window.mostraPopupBenvenuto=function(){
     if(config.autoClose!==false) wait(function(){if(wrap.parentNode)close();},config.durata||12000);
   };
 
+  /* Benvenuto non invasivo: il saluto iniziale usa lo stesso assistente interattivo
+     dei messaggi operativi, senza bloccare la dashboard con un overlay centrale. */
+  window.mostraPopupBenvenuto=function(){
+    if(typeof user==='undefined'||!user||!window.assistentePersonale)return;
+    var identita=window.ergoAssistantIdentity&&window.ergoAssistantIdentity[user.ruolo];
+    var notifiche=[];
+    try{notifiche=notifichePerUtente(user).filter(function(n){return !isLetta(user.username,n.id)})}catch(e){}
+    var azioneAggiornamenti=function(){
+      view='dashboard';filtroFeed='tutte';app();
+      wait(function(){var feed=document.querySelector('.feed');if(feed)feed.scrollIntoView({behavior:'smooth',block:'start'});},450);
+    };
+    window.assistentePersonale({
+      testo:'<b>'+(identita&&identita.welcome||'Bentornato!')+'</b><br><span style="font-weight:500">Ciao '+String(user.nome||user.username).replace(/[<>]/g,'')+', sono qui per aiutarti.</span>',
+      emoji:'👋',colore:'#083278',autoClose:false,
+      bottoni:[{label:notifiche.length?'🔔 Apri aggiornamenti recenti':'Inizia a lavorare',colore:'#083278',azione:notifiche.length?azioneAggiornamenti:function(){}}]
+    });
+  };
+
   /* Tutti i messaggi passano dal personaggio: nessun alert nativo o toast successivo. */
   window.alert = function(message){
     var text=String(message||'').replace(/\n/g,'<br>');
