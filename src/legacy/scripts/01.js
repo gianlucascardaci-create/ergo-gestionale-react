@@ -7474,31 +7474,25 @@ window.mostraPopupBenvenuto=function(){
   }
   async function upsertCollection(kind, rows){
     if(!sb || !Array.isArray(rows) || syncing) return;
+    var token=sessionStorage.getItem('ergo_session_token')||'';
+    if(!token) throw new Error('SESSIONE_ASSENTE');
     if(kind==='prodotto'){
       var products=rows.filter(function(r){return r && r.codice;}).map(productPayload);
-      for(var i=0;i<products.length;i+=500){
-        var pr=await sb.from('prodotti_noleggio').upsert(products.slice(i,i+500),{onConflict:'codice'});
-        if(pr.error) throw pr.error;
-      }
+      var pr=await sb.rpc('ergo_sync_products',{p_token:token,p_rows:products});
+      if(pr.error) throw pr.error;
       return;
     }
     /* Eventi e noleggi vengono sincronizzati per chiave naturale: così gli ID
        numerici generati da Supabase restano la fonte ufficiale. */
     if(kind==='evento'){
-      for(const e of rows.filter(Boolean)){
-        var ep=eventPayload(e), found=await sb.from('eventi_catering').select('id').eq('nome_evento',ep.nome_evento).eq('data',ep.data).limit(1);
-        if(found.error) throw found.error;
-        var er=found.data&&found.data[0] ? await sb.from('eventi_catering').update(ep).eq('id',found.data[0].id) : await sb.from('eventi_catering').insert(ep);
-        if(er.error) throw er.error;
-      }
+      var eventRows=rows.filter(Boolean).map(eventPayload);
+      var er=await sb.rpc('ergo_sync_events',{p_token:token,p_rows:eventRows});
+      if(er.error) throw er.error;
     }
     if(kind==='noleggio'){
-      for(const n of rows.filter(Boolean)){
-        var np=rentalPayload(n), nf=await sb.from('noleggi').select('id').eq('titolo',np.titolo).eq('inizio',np.inizio).limit(1);
-        if(nf.error) throw nf.error;
-        var nr=nf.data&&nf.data[0] ? await sb.from('noleggi').update(np).eq('id',nf.data[0].id) : await sb.from('noleggi').insert(np);
-        if(nr.error) throw nr.error;
-      }
+      var rentalRows=rows.filter(Boolean).map(rentalPayload);
+      var nr=await sb.rpc('ergo_sync_rentals',{p_token:token,p_rows:rentalRows});
+      if(nr.error) throw nr.error;
     }
   }
   function scheduleSync(key){
@@ -7568,20 +7562,17 @@ window.mostraPopupBenvenuto=function(){
       var paths=files.filter(function(x){return x.bucket===bucket}).map(function(x){return x.path});
       if(paths.length){var removed=await sb.storage.from(bucket).remove(paths);if(removed.error)throw removed.error;}
     }
-    var q;
+    var token=sessionStorage.getItem('ergo_session_token')||'';
+    if(!token)throw new Error('SESSIONE_ASSENTE');
+    var r;
     if(tipo==='prodotto'){
-      q=sb.from('prodotti_noleggio').delete();
-      q=obj.id?q.eq('id',obj.id):q.eq('codice',obj.codice);
+      r=await sb.rpc('ergo_delete_product',{p_token:token,p_id:(typeof obj.id==='number'||/^\d+$/.test(String(obj.id||'')))?Number(obj.id):null,p_code:obj.codice||null});
     }else if(tipo==='evento'){
-      q=sb.from('eventi_catering').delete();
-      var eventRemoteId=(typeof obj.id==='number'||/^\d+$/.test(String(obj.id||'')))?obj.id:null;
-      q=eventRemoteId?q.eq('id',eventRemoteId):q.eq('nome_evento',obj.titolo).eq('data',String(obj.inizio||'').slice(0,10));
+      r=await sb.rpc('ergo_delete_event',{p_token:token,p_id:(typeof obj.id==='number'||/^\d+$/.test(String(obj.id||'')))?Number(obj.id):null,p_title:obj.titolo||null,p_date:String(obj.inizio||'').slice(0,10)||null});
     }else{
-      q=sb.from('noleggi').delete();
-      var rentalRemoteId=(typeof obj.id==='number'||/^\d+$/.test(String(obj.id||'')))?obj.id:null;
-      q=rentalRemoteId?q.eq('id',rentalRemoteId):q.eq('titolo',obj.titolo).eq('inizio',obj.inizio);
+      r=await sb.rpc('ergo_delete_rental',{p_token:token,p_id:(typeof obj.id==='number'||/^\d+$/.test(String(obj.id||'')))?Number(obj.id):null,p_title:obj.titolo||null,p_start:obj.inizio||null});
     }
-    var r=await q;if(r.error)throw r.error;
+    if(r.error)throw r.error;
     return {remote:true};
   };
   function parseJsonList(value){
