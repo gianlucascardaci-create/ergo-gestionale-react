@@ -6316,7 +6316,7 @@ function mostraPopupBenvenuto(){
  var notifiche=notifichePerUtente(user);
  var nuove=notifiche.filter(function(n){return !isLetta(user.username,n.id)});
  var emoji={'Amministratore':'👑','Wedding':'💍','Cucina':'👨‍🍳','Sala':'🤵','Magazzino':'📦','Magazzino2':'🚚'}[user.ruolo]||'👋';
- var saluto={'Amministratore':'Buon lavoro, capo!','Wedding':'Che emozione!','Cucina':'Ai fornelli!','Sala':'Pronti al servizio!','Magazzino':'Tutto in ordine!','Magazzino2':'Si parte!'}[user.ruolo]||'Bentornato!';
+ var saluto=(window.ergoAssistantIdentity&&window.ergoAssistantIdentity[user.ruolo]&&window.ergoAssistantIdentity[user.ruolo].welcome)||'Bentornato!';
  var ov=document.createElement('div');
  ov.className='benvenuto-overlay';
  var html='<div class="benvenuto-card">';
@@ -6894,6 +6894,14 @@ window.mostraPopupBenvenuto=function(){
  window.ergoAssistenteSvg.Cucina='<svg viewBox="0 0 120 160" xmlns="http://www.w3.org/2000/svg"><ellipse cx="60" cy="153" rx="29" ry="4" fill="#152238" opacity=".16"/><rect x="43" y="116" width="14" height="32" rx="6" fill="#334155"/><rect x="63" y="116" width="14" height="32" rx="6" fill="#334155"/><ellipse cx="49" cy="150" rx="11" ry="4" fill="#152238"/><ellipse cx="71" cy="150" rx="11" ry="4" fill="#152238"/><rect x="34" y="57" width="52" height="63" rx="10" fill="#fff" stroke="#cbd5e1" stroke-width="2"/><path d="M32 55Q28 43 39 39Q34 25 47 27Q52 10 60 25Q68 10 73 27Q86 25 81 39Q92 43 88 55Z" fill="#fff" stroke="#cbd5e1" stroke-width="2"/><path d="M32 55h56v10H32z" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2"/><circle cx="60" cy="78" r="3" fill="#94a3b8"/><circle cx="60" cy="91" r="3" fill="#94a3b8"/><rect x="42" y="104" width="36" height="6" fill="#f59e0b"/><circle cx="60" cy="35" r="24" fill="#f4c8a1"/><path d="M36 31Q39 8 60 8t24 23Q76 22 60 22T36 31" fill="#4b2e22"/><circle cx="52" cy="36" r="2.5"/><circle cx="68" cy="36" r="2.5"/><path d="M52 46q8 7 16 0" fill="none" stroke="#152238" stroke-width="2"/></svg>';
  window.ergoAssistenteSvg.Magazzino='<svg viewBox="0 0 120 160" xmlns="http://www.w3.org/2000/svg"><ellipse cx="60" cy="153" rx="29" ry="4" fill="#152238" opacity=".16"/><rect x="43" y="116" width="14" height="32" rx="6" fill="#1e40af"/><rect x="63" y="116" width="14" height="32" rx="6" fill="#1e40af"/><ellipse cx="49" cy="150" rx="11" ry="4" fill="#152238"/><ellipse cx="71" cy="150" rx="11" ry="4" fill="#152238"/><rect x="34" y="57" width="52" height="63" rx="10" fill="#facc15"/><path d="M34 80h52v9H34z" fill="#b45309" opacity=".75"/><path d="M45 57V42h30v15" fill="none" stroke="#92400e" stroke-width="7"/><circle cx="60" cy="34" r="24" fill="#f4c8a1"/><path d="M32 32Q35 9 60 9t28 23H32z" fill="#f59e0b"/><path d="M30 32h60" stroke="#92400e" stroke-width="5"/><circle cx="52" cy="39" r="2.5"/><circle cx="68" cy="39" r="2.5"/><path d="M52 49q8 7 16 0" fill="none" stroke="#152238" stroke-width="2"/></svg>';
  window.ergoAssistenteSvg.Magazzino2='<svg viewBox="0 0 120 160" xmlns="http://www.w3.org/2000/svg"><ellipse cx="60" cy="153" rx="29" ry="4" fill="#152238" opacity=".16"/><rect x="43" y="116" width="14" height="32" rx="6" fill="#374151"/><rect x="63" y="116" width="14" height="32" rx="6" fill="#374151"/><ellipse cx="49" cy="150" rx="11" ry="4" fill="#152238"/><ellipse cx="71" cy="150" rx="11" ry="4" fill="#152238"/><rect x="34" y="57" width="52" height="63" rx="10" fill="#7c3aed"/><path d="M34 80h52" stroke="#c4b5fd" stroke-width="4"/><circle cx="60" cy="34" r="24" fill="#f4c8a1"/><path d="M33 31Q33 7 60 7Q87 7 87 31L84 75Q75 88 60 88Q45 88 36 75Z" fill="#5b3b2e"/><path d="M36 31Q60 22 84 31" fill="none" stroke="#3f2922" stroke-width="6"/><circle cx="60" cy="35" r="24" fill="#f4c8a1"/><path d="M33 31Q33 7 60 7Q87 7 87 31L84 75Q75 88 60 88Q45 88 36 75Z" fill="#5b3b2e"/><path d="M36 31Q60 22 84 31" fill="none" stroke="#3f2922" stroke-width="6"/><rect x="42" y="34" width="15" height="10" rx="4" fill="none" stroke="#152238" stroke-width="2"/><rect x="63" y="34" width="15" height="10" rx="4" fill="none" stroke="#152238" stroke-width="2"/><path d="M57 39h6" stroke="#152238" stroke-width="2"/><path d="M52 49q8 7 16 0" fill="none" stroke="#152238" stroke-width="2"/></svg>';
+ /* Identità degli assistenti personali: nome, saluto e funzione. */
+ window.ergoAssistantIdentity={
+  'Amministratore':{label:'Ciao Capo · Marco',welcome:'Ciao Capo, sono Marco, il tuo assistente personale.'},
+  'Sala':{label:'Ciao maître · Lorenzo',welcome:'Ciao maître, sono Lorenzo, il tuo aiuto sala personale.'},
+  'Cucina':{label:'Ciao Chef · Gigi',welcome:'Ciao Chef, sono Gigi, il tuo assistente cuoco personale.'},
+  'Magazzino':{label:'Ciao Nicola · Pietro',welcome:'Ciao Nicola, sono Pietro, il tuo assistente magazzino personale.'},
+  'Magazzino2':{label:'Ciao Simona · Elena',welcome:'Ciao Simona, sono Elena, la tua assistente magazzino personale.'}
+ };
  /* Nuova serie illustrata: personaggi a corpo intero, leggibili e coerenti per ruolo. */
  window.ergoAssistenteSvg={
   'Amministratore':'<img class=\"assistant-character-image\" src=\"/assistants/admin.webp\" alt=\"Assistente amministratore\">',
@@ -6914,7 +6922,7 @@ window.mostraPopupBenvenuto=function(){
    });
 
    var saluto={'Amministratore':'Buon lavoro, capo!','Wedding':'Che emozione!','Cucina':'Ai fornelli!','Sala':'Pronti al servizio!','Magazzino':'Tutto in ordine!','Magazzino2':'Si parte!'}[user.ruolo]||'Bentornato!';
-   var nomeRuolo={'Amministratore':'Ciao Capo','Wedding':'Ciao Wedding Planner','Cucina':'Ciao Chef','Sala':'Ciao maître','Magazzino':'Ciao Nicola','Magazzino2':'Ciao Simona'}[user.ruolo]||user.ruolo;
+   var nomeRuolo=(window.ergoAssistantIdentity&&window.ergoAssistantIdentity[user.ruolo]&&window.ergoAssistantIdentity[user.ruolo].label)||user.ruolo;
    var svg=window.ergoAssistenteSvg[user.ruolo]||SVG[user.ruolo]||SVG['Amministratore'];
 
    var wrap=document.createElement('div');
@@ -7025,7 +7033,7 @@ window.mostraPopupBenvenuto=function(){
   if(adesso-ultimo<5*60*1000)return;
   localStorage.setItem('ergo_ultimo_pers_'+user.username,adesso.toString());
 
-  var nomeRuolo={'Amministratore':'Ciao Capo','Wedding':'Ciao Wedding Planner','Cucina':'Ciao Chef','Sala':'Ciao maître','Magazzino':'Ciao Nicola','Magazzino2':'Ciao Simona'}[user.ruolo]||user.ruolo;
+  var nomeRuolo=(window.ergoAssistantIdentity&&window.ergoAssistantIdentity[user.ruolo]&&window.ergoAssistantIdentity[user.ruolo].label)||user.ruolo;
   var svg=SVG[user.ruolo]||SVG['Amministratore'];
   var colore=(tipo==='evento'?'#3e765e':tipo==='noleggio'?'#083278':tipo==='meteo'?'#0891b2':tipo==='pausa'?'#a66d24':tipo==='buongiorno'?'#f59e0b':tipo==='buonanotte'?'#4c1d95':tipo==='info'?'#6a5a9a':'#6a5a9a');
 
@@ -7209,7 +7217,7 @@ window.mostraPopupBenvenuto=function(){
 
   var colore=config.colore||'#083278';
   var svg=SVG[user.ruolo]||SVG['Amministratore'];
-  var nomeRuolo={'Amministratore':'Ciao Capo','Wedding':'Ciao Wedding Planner','Cucina':'Ciao Chef','Sala':'Ciao maître','Magazzino':'Ciao Nicola','Magazzino2':'Ciao Simona'}[user.ruolo]||user.ruolo;
+  var nomeRuolo=(window.ergoAssistantIdentity&&window.ergoAssistantIdentity[user.ruolo]&&window.ergoAssistantIdentity[user.ruolo].label)||user.ruolo;
 
   var wrap=document.createElement('div');
   wrap.id='assistente-attivo';
