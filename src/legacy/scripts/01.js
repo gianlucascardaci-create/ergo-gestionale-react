@@ -1492,8 +1492,8 @@ function ruoli(el){
       <div class="ruolo-riga"><span>🔑 Password</span><strong>•••••••••</strong></div>
      </div>
      <div class="ruolo-azioni">
-      <button class="ruolo-btn" data-azione="modifica" data-user="${u.username}">✏️ Modifica</button>
-      ${isAdm?'<span class="ruolo-protetto">🔒 Protetto</span>':'<button class="ruolo-btn pericolo" data-azione="elimina" data-user="'+u.username+'">🗑️</button>'}
+      <button type="button" class="ruolo-btn" data-azione="modifica" data-user="${u.username}">✏️ Modifica</button>
+      ${isAdm?'<span class="ruolo-protetto">🔒 Protetto</span>':'<button type="button" class="ruolo-btn pericolo" data-azione="elimina" data-user="'+u.username+'">🗑️</button>'}
      </div>
     </div>`;
    }).join('')}
@@ -6400,7 +6400,7 @@ function mostraPopupBenvenuto(){
    if(user&&user.username&&!window._benvenutoMostrato){
     window._benvenutoMostrato=true;
     setTimeout(function(){
-     if(typeof mostraPopupBenvenuto==='function')mostraPopupBenvenuto();
+     if(false&&typeof mostraPopupBenvenuto==='function')mostraPopupBenvenuto();
     },2000);
    }
    return r;
@@ -6523,7 +6523,7 @@ window.mostraPopupBenvenuto=function(){
    var r=_origDash.apply(this,arguments);
    if(user&&user.username&&!window._popupMostratoInSessione){
     window._popupMostratoInSessione=true;
-    setTimeout(function(){window.mostraPopupBenvenuto()},2000);
+    setTimeout(function(){if(false)window.mostraPopupBenvenuto()},2000);
    }
    return r;
   };
@@ -6757,7 +6757,7 @@ window.mostraPopupBenvenuto=function(){
    if(user&&user.username&&!window._popupMostrato){
     window._popupMostrato=true;
     _timeoutOriginale(function(){
-     if(typeof mostraPopupBenvenuto==='function'){
+     if(false&&typeof mostraPopupBenvenuto==='function'){
       mostraPopupBenvenuto();
      }
     },2000);
@@ -7032,7 +7032,7 @@ window.mostraPopupBenvenuto=function(){
    var r=_d.apply(this,arguments);
    if(typeof user!=='undefined'&&user&&user.username&&!window._persMostrato){
     window._persMostrato=true;
-    _t(mostraPersonaggio,4000);
+    if(false)_t(mostraPersonaggio,4000);
    }
    return r;
   };
@@ -7870,4 +7870,42 @@ window.mostraPopupBenvenuto=function(){
   if(_qrToken&&sb){wait(async function(){try{var qr=await sb.rpc('get_prodotto_qr',{p_token:_qrToken});if(qr.error)throw qr.error;var row=qr.data&&Array.isArray(qr.data)?qr.data[0]:qr.data;if(row){var prod=mapProduct(row);prod.qrToken=_qrToken;await firmaFotoProdotto(prod);localStorage.setItem('ergo_prodotti',JSON.stringify([prod]));apriQRPubblico(_qrToken,prod);}else{apriQRPubblico(_qrToken);}}catch(e){console.warn('QR remoto non disponibile',e);R.innerHTML='<div class="qr-page"><div class="qr-errore"><div class="emo">⚠️</div><h1>Scheda non disponibile</h1><p>Il QR è valido, ma in questo momento non riesco a recuperare il prodotto.</p></div></div>'; }},250);}else if(_qrToken&&!sb){R.innerHTML='<div class="qr-page"><div class="qr-errore"><div class="emo">⚠️</div><h1>Collegamento non disponibile</h1><p>La scheda privata richiede il collegamento a Supabase.</p></div></div>';}
 
   console.info('Ergo vNext: assistente attivo; Supabase '+(sb?'configurato':'non configurato, fallback localStorage'));
+})();
+
+
+/* Correzione definitiva: un solo assistente all'ingresso e click Ruoli sempre attivi. */
+(function(){
+  var welcomeScheduled=false;
+  var dashOriginal=window.dash;
+  if(dashOriginal){
+    window.dash=function(el){
+      var result=dashOriginal.apply(this,arguments);
+      if(typeof user!=='undefined'&&user&&user.username&&!welcomeScheduled){
+        welcomeScheduled=true;
+        window.setTimeout(function(){
+          if(typeof user!=='undefined'&&user&&user.username&&typeof window.mostraPopupBenvenuto==='function'&&!document.getElementById('assistente-attivo')){
+            window.mostraPopupBenvenuto();
+          }
+        },2000);
+      }
+      return result;
+    };
+  }
+  var loginOriginal=window.login;
+  if(loginOriginal){
+    window.login=function(){welcomeScheduled=false;return loginOriginal.apply(this,arguments);};
+  }
+  if(!window._roleClickFix){
+    window._roleClickFix=true;
+    document.addEventListener('click',function(ev){
+      var button=ev.target&&ev.target.closest?ev.target.closest('.ruolo-btn[data-azione]'):null;
+      if(!button)return;
+      ev.preventDefault();
+      ev.stopImmediatePropagation();
+      var action=button.getAttribute('data-azione');
+      var username=button.getAttribute('data-user');
+      if(action==='modifica'&&typeof modaleUtente==='function')modaleUtente(username);
+      if(action==='elimina'&&typeof eliminaUtente==='function')eliminaUtente(username);
+    },true);
+  }
 })();
