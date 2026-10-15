@@ -1103,6 +1103,10 @@ async function salvaProdotto(modifica,p,nuovaFoto){
  chiudiDrawer();
  window.assistentePersonale({testo:'<b>Prodotto '+(modifica?'aggiornato':'aggiunto')+'!</b><br>'+String(nuovo.nome).replace(/</g,'&lt;')+' è nel catalogo.',emoji:modifica?'🔄':'✅',colore:modifica?'#2563eb':'#a66d24'});
  const pc=document.getElementById('pc');if(pc&&view==='inventario')inv(pc);
+ if(window.ergoSupabaseSyncProducts){
+  try{await window.ergoSupabaseSyncProducts(salvati);}
+  catch(syncErr){console.error('Sincronizzazione prodotto fallita',syncErr);window.assistentePersonale({testo:'<b>Prodotto salvato sul dispositivo</b><br>Attenzione: sincronizzazione Supabase non riuscita. Riproverò automaticamente.',emoji:'⚠️',espressione:'attenzione',colore:'#b91c1c',autoClose:false});}
+ }
 }
 
 function apriSchedaProd(p){
@@ -7499,6 +7503,12 @@ window.mostraPopupBenvenuto=function(){
       }catch(e){ console.warn('Sincronizzazione Supabase rinviata',e); }
     },700);
   }
+  window.ergoSupabaseSyncProducts=async function(rows){
+    if(!sb) throw new Error('Supabase non configurato');
+    var wasSyncing=syncing; syncing=false;
+    try{await upsertCollection('prodotto',Array.isArray(rows)?rows:[]);}
+    finally{syncing=wasSyncing;}
+  };
 
   /* Evita richieste ripetute: una singola operazione batch per collezione. */
   var originalSetItem = Storage.prototype.setItem;
@@ -7621,7 +7631,11 @@ window.mostraPopupBenvenuto=function(){
       if(products.error) throw products.error;
       if(rentals.error) throw rentals.error;
       if(events.error) throw events.error;
-      var pRows=(products.data||[]).map(mapProduct), nRows=(rentals.data||[]).map(mapRental), eRows=(events.data||[]).map(mapEvent);
+      var remoteProducts=(products.data||[]).map(mapProduct);
+      var localProducts=[]; try{localProducts=JSON.parse(localStorage.getItem('ergo_prodotti')||'[]');}catch(e){localProducts=[];}
+      var pRows=remoteProducts.slice();
+      localProducts.forEach(function(lp){if(lp&&lp.codice&&!pRows.some(function(r){return r.codice===lp.codice;}))pRows.push(lp);});
+      var nRows=(rentals.data||[]).map(mapRental), eRows=(events.data||[]).map(mapEvent);
       for(const product of pRows) await firmaFotoProdotto(product);
       if(localCollectionRevision!==loadRevision){
         console.warn('Caricamento Supabase non applicato: sono intervenute modifiche locali più recenti');
@@ -7640,6 +7654,9 @@ window.mostraPopupBenvenuto=function(){
       originalSetItem.call(localStorage,'ergo_eventi',JSON.stringify(eRows));
       PRODOTTI.splice(0,PRODOTTI.length,...pRows);
       EVENTI.splice(0,EVENTI.length,...eRows); NOLEGGI.splice(0,NOLEGGI.length,...nRows);
+      if(localProducts.some(function(lp){return lp&&lp.codice&&!remoteProducts.some(function(r){return r.codice===lp.codice;});})){
+        try{await window.ergoSupabaseSyncProducts(pRows);}catch(syncErr){console.warn('Recupero prodotti locali rinviato',syncErr);}
+      }
       if(typeof user!=='undefined'&&user&&typeof app==='function') app();
     }catch(e){ console.warn('Dati Streamlit/Supabase non disponibili: uso il fallback locale',e); }
     finally{ syncing=false; }
