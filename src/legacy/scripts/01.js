@@ -7649,14 +7649,22 @@ window.mostraPopupBenvenuto=function(){
     var old=document.getElementById('assistente-attivo'); if(old) old.remove();
     var color=config.colore||'#083278';
     var roleName={'Amministratore':'Ciao Capo','Wedding':'Ciao Wedding Planner','Cucina':'Ciao Chef','Sala':'Ciao maître','Magazzino':'Ciao Nicola','Magazzino2':'Ciao Simona'}[user.ruolo]||user.ruolo;
-    var svg=window.ergoAssistenteSvg&&window.ergoAssistenteSvg[user.ruolo] || assistantSvg.Amministratore;
+    var moodIcon=String(config.emoji||'').replace(/[<>]/g,'');
+    var mood=(config.espressione==='attenzione'||moodIcon.indexOf('⚠')>=0||moodIcon.indexOf('❌')>=0)?'attenzione':(config.espressione==='azione'||moodIcon.indexOf('🔄')>=0||moodIcon.indexOf('📥')>=0?'azione':'felice');
+    var assistantVariants={
+      'Amministratore':{felice:'/assistants/admin-happy.webp',attenzione:'/assistants/admin-attention.webp',azione:'/assistants/admin-happy.webp'},
+      'Sala':{felice:'/assistants/sala-happy.webp',attenzione:'/assistants/sala-attention.webp',azione:'/assistants/sala-happy.webp'},
+      'Cucina':{felice:'/assistants/cucina-happy.webp',attenzione:'/assistants/cucina-attention.webp',azione:'/assistants/cucina-happy.webp'},
+      'Magazzino':{felice:'/assistants/magazzino-happy.webp',attenzione:'/assistants/magazzino-attention.webp',azione:'/assistants/magazzino-happy.webp'},
+      'Magazzino2':{felice:'/assistants/magazzino2-happy.webp',attenzione:'/assistants/magazzino2-attention.webp',azione:'/assistants/magazzino2-happy.webp'}
+    };
+    var variant=assistantVariants[user.ruolo]&&assistantVariants[user.ruolo][mood];
+    var svg=variant?'<img class="assistant-character-image" src="'+variant+'" alt="Assistente '+String(user.ruolo).replace(/[<>]/g,'')+'">':(window.ergoAssistenteSvg&&window.ergoAssistenteSvg[user.ruolo] || assistantSvg.Amministratore);
     var wrap=document.createElement('div'); wrap.id='assistente-attivo'; wrap.className='assistente-vnext';
     var card=document.createElement('div'); card.className='assistente-card'; card.style.borderColor=color;
     var buttons=config.bottoni||[{label:'Va bene',colore:color}];
-    card.innerHTML='<button class="assistente-close" aria-label="Chiudi">×</button><div class="assistente-role" style="color:'+color+'">'+roleName+'</div>'+(config.emoji?'<div class="assistente-emoji">'+config.emoji+'</div>':'')+'<div class="assistente-text">'+(config.testo||'Sono qui per aiutarti.')+'</div><div class="assistente-actions">'+buttons.map(function(b,i){return '<button class="assistente-action" data-i="'+i+'" style="background:'+(b.colore||color)+'">'+b.label+'</button>';}).join('')+'</div>';
-    var moodIcon=String(config.emoji||'👋').replace(/[<>]/g,'');
-    var mood=(moodIcon.indexOf('⚠')>=0||moodIcon.indexOf('❌')>=0)?'attenzione':(moodIcon.indexOf('🔄')>=0||moodIcon.indexOf('📥')>=0?'azione':(moodIcon.indexOf('✅')>=0||moodIcon.indexOf('📦')>=0?'felice':'saluto'));
-    var person=document.createElement('div'); person.className='assistente-person assistente-mood-'+mood; person.dataset.moodIcon=moodIcon; person.innerHTML=svg;
+    card.innerHTML='<button class="assistente-close" aria-label="Chiudi">×</button><div class="assistente-role" style="color:'+color+'">'+roleName+'</div><div class="assistente-text">'+(config.testo||'Sono qui per aiutarti.')+'</div><div class="assistente-actions">'+buttons.map(function(b,i){return '<button class="assistente-action" data-i="'+i+'" style="background:'+(b.colore||color)+'">'+b.label+'</button>';}).join('')+'</div>';
+    var person=document.createElement('div'); person.className='assistente-person assistente-mood-'+mood; person.innerHTML=svg;
     wrap.appendChild(person); wrap.appendChild(card); document.body.appendChild(wrap);
     requestAnimationFrame(function(){wrap.classList.add('visibile');});
     function close(cb){wrap.classList.remove('visibile');wait(function(){if(wrap.parentNode)wrap.remove();if(cb)cb();},350);}
@@ -7724,16 +7732,14 @@ window.mostraPopupBenvenuto=function(){
   .assistente-close{position:absolute;right:7px;top:5px;border:0;background:transparent;color:#94a3b8;font-size:20px;cursor:pointer}
   .assistente-role{text-transform:uppercase;letter-spacing:.12em;font-size:.65rem;font-weight:800;margin-bottom:5px}
   .assistente-emoji{font-size:1.55rem;margin-bottom:5px}.assistente-text{font-size:.9rem;line-height:1.45;color:#152238;font-weight:600;margin-bottom:12px}.assistente-actions{display:flex;flex-direction:column;gap:7px}.assistente-action{border:0;color:#fff;border-radius:10px;padding:10px 12px;font-weight:800;font-size:.78rem;cursor:pointer}
-  @media(max-width:560px){.assistente-vnext{right:8px;bottom:8px;max-width:calc(100vw - 16px)}.assistente-person{width:125px;min-width:125px}.assistente-person svg{width:125px;height:167px}.assistente-card{min-width:0;max-width:calc(100vw - 118px);padding:14px}.assistente-text{font-size:.84rem;overflow-wrap:anywhere}.assistente-person::after{font-size:1rem;padding:5px 7px}}
+  @media(max-width:560px){.assistente-vnext{right:8px;bottom:8px;max-width:calc(100vw - 16px)}.assistente-person{width:125px;min-width:125px}.assistente-person svg,.assistente-person .assistant-character-image{width:125px;height:188px}.assistente-card{min-width:0;max-width:calc(100vw - 118px);padding:14px}.assistente-text{font-size:.84rem;overflow-wrap:anywhere}}
   /* Correzione visibilità: il personaggio deve essere riconoscibile a colpo d'occhio. */
   .assistente-vnext{right:22px;bottom:22px;max-width:min(700px,calc(100vw - 24px))}
   .assistente-person{width:210px;min-width:210px;transform:translateY(8px);filter:drop-shadow(0 14px 26px rgba(8,50,120,.28));position:relative;transform-origin:bottom center;transition:transform .3s ease}
-  .assistente-person svg,.assistente-person .assistant-character-image{width:210px;height:280px;display:block;object-fit:contain}
-  .assistente-person::after{content:attr(data-mood-icon);position:absolute;right:-2px;top:8px;background:#fff;border:2px solid #d7e7fa;border-radius:999px;padding:7px 9px;font-size:1.25rem;line-height:1;box-shadow:0 8px 18px rgba(21,34,56,.16);animation:assistente-mood-pop .45s ease-out both}
+  .assistente-person svg,.assistente-person .assistant-character-image{width:210px;height:315px;display:block;object-fit:contain}
   .assistente-mood-felice{animation:assistente-happy .9s ease-in-out .1s 2}
   .assistente-mood-azione{animation:assistente-action .8s ease-in-out .1s 2}
   .assistente-mood-attenzione{animation:assistente-attention .5s ease-in-out .1s 2}
-  @keyframes assistente-mood-pop{from{opacity:0;transform:scale(.6) translateY(8px)}to{opacity:1;transform:scale(1) translateY(0)}}
   @keyframes assistente-happy{0%,100%{transform:translateY(8px) rotate(0)}50%{transform:translateY(2px) rotate(-2deg)}}
   @keyframes assistente-action{0%,100%{transform:translateY(8px) rotate(0)}50%{transform:translateY(0) rotate(2deg)}}
   @keyframes assistente-attention{0%,100%{transform:translateY(8px) rotate(0)}50%{transform:translateY(8px) rotate(-3deg)}}
@@ -7750,7 +7756,7 @@ window.mostraPopupBenvenuto=function(){
   .dash-anim .feed-item:nth-child(1){animation-delay:2.35s !important}.dash-anim .feed-item:nth-child(2){animation-delay:2.55s !important}.dash-anim .feed-item:nth-child(3){animation-delay:2.75s !important}.dash-anim .feed-item:nth-child(4){animation-delay:2.95s !important}.dash-anim .feed-item:nth-child(5){animation-delay:3.15s !important}.dash-anim .feed-item:nth-child(6){animation-delay:3.35s !important}.dash-anim .feed-item:nth-child(7){animation-delay:3.55s !important}
   .dash-anim h1.title{animation-duration:1.8s !important;animation-delay:1.45s !important}
   .dash-anim .eyebrow{animation-duration:.9s !important;animation-delay:1.1s !important}.dash-anim .lede{animation-duration:.9s !important;animation-delay:1.7s !important}
-  @media(max-width:560px){.assistente-vnext{right:8px;bottom:8px}.assistente-person{width:125px;min-width:125px}.assistente-person svg{width:125px;height:167px}.assistente-card{min-width:0;max-width:calc(100vw - 118px);padding:14px}.assistente-text{font-size:.84rem;overflow-wrap:anywhere}.assistente-person::after{font-size:1rem;padding:5px 7px}}
+  @media(max-width:560px){.assistente-vnext{right:8px;bottom:8px}.assistente-person{width:125px;min-width:125px}.assistente-person svg,.assistente-person .assistant-character-image{width:125px;height:188px}.assistente-card{min-width:0;max-width:calc(100vw - 118px);padding:14px}.assistente-text{font-size:.84rem;overflow-wrap:anywhere}}
   `;
   document.head.appendChild(style);
 
@@ -7781,6 +7787,19 @@ window.mostraPopupBenvenuto=function(){
     #pc.dash-anim .feed-item:nth-child(1){animation-delay:.98s !important}.dash-anim .feed-item:nth-child(2){animation-delay:1.08s !important}.dash-anim .feed-item:nth-child(3){animation-delay:1.18s !important}.dash-anim .feed-item:nth-child(4){animation-delay:1.28s !important}.dash-anim .feed-item:nth-child(5){animation-delay:1.38s !important}.dash-anim .feed-item:nth-child(6){animation-delay:1.48s !important}.dash-anim .feed-item:nth-child(7){animation-delay:1.58s !important}
     #pc.dash-anim h1.title,#pc.dash-anim .eyebrow,#pc.dash-anim .lede{animation:none !important;filter:none !important}
     @media(max-width:560px){#personaggio-attivo{right:8px !important;bottom:8px !important}#personaggio-attivo>div:first-child{width:125px !important;min-width:125px !important}#personaggio-attivo svg{width:125px !important;height:167px !important}#personaggio-attivo>div:last-child{min-width:0 !important;max-width:calc(100vw - 118px) !important;padding:14px !important;margin-bottom:18px !important}}
+    /* Layout intermedio: il fumetto non può uscire a destra quando il personaggio
+       e la scheda hanno ancora le dimensioni desktop. */
+    @media (min-width:561px) and (max-width:1100px){
+      .assistente-vnext{right:8px !important;bottom:12px !important;width:calc(100vw - 16px) !important;max-width:calc(100vw - 16px) !important;justify-content:flex-end}
+      .assistente-person{width:clamp(105px,24vw,170px) !important;min-width:clamp(105px,24vw,170px) !important;flex:0 1 auto}
+      .assistente-person svg,.assistente-person .assistant-character-image{width:100% !important;height:auto !important;max-height:255px}
+      .assistente-card{min-width:0 !important;width:auto !important;max-width:min(410px,calc(100vw - 145px)) !important;flex:1 1 auto;padding:16px 18px !important}
+      .assistente-text{overflow-wrap:anywhere}
+    }
+    @media (max-width:560px){
+      .assistente-vnext{right:8px !important;bottom:8px !important;width:calc(100vw - 16px) !important;max-width:calc(100vw - 16px) !important;justify-content:flex-end}
+      .assistente-card{width:auto !important;flex:1 1 auto;min-width:0 !important;max-width:calc(100vw - 125px) !important}
+    }
     @media(min-width:1800px){
       .assistente-person{width:330px !important;min-width:330px !important}
       .assistente-person .assistant-character-image{width:330px !important;height:495px !important;max-width:none !important}
