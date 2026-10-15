@@ -6207,7 +6207,7 @@ window.cal=function(el){
 window.scaricaUnicoPdf=async function(lista,sezione){
  if(!window.PDFLib){
   alert('Attendi 2 secondi e riprova (libreria PDF in caricamento).');
-  return;
+  return false;
  }
  try{
   var PDFDocument=window.PDFLib.PDFDocument;
@@ -6243,13 +6243,13 @@ window.scaricaUnicoPdf=async function(lista,sezione){
   var uniti=0;
   for(var j=0;j<lista.length;j++){
    var al=lista[j];
-   if(!al||!al.data)continue;
+   if(!al||!(al.data||al.url))continue;
    var mime=al.mime||'';
    var nomeFile=(al.nome||'').toLowerCase();
    /* PDF */
    if(mime.indexOf('pdf')>=0||nomeFile.endsWith('.pdf')){
     try{
-     var pdfBytes=dataURLtoUint8(al.data);
+     var pdfBytes=al.data?dataURLtoUint8(al.data):new Uint8Array(await fetch(al.url).then(function(r){if(!r.ok)throw new Error('URL allegato non raggiungibile');return r.arrayBuffer();}));
      var srcDoc=await PDFDocument.load(pdfBytes,{ignoreEncryption:true});
      var copie=await mergedPdf.copyPages(srcDoc,srcDoc.getPageIndices());
      for(var ci=0;ci<copie.length;ci++)mergedPdf.addPage(copie[ci]);
@@ -6258,7 +6258,7 @@ window.scaricaUnicoPdf=async function(lista,sezione){
    }else if(mime.indexOf('image/')===0){
     /* Immagine → pagina */
     try{
-     var imgBytes=dataURLtoUint8(al.data);
+     var imgBytes=al.data?dataURLtoUint8(al.data):new Uint8Array(await fetch(al.url).then(function(r){if(!r.ok)throw new Error('URL allegato non raggiungibile');return r.arrayBuffer();}));
      var img;
      if(mime.indexOf('png')>=0)img=await mergedPdf.embedPng(imgBytes);
      else img=await mergedPdf.embedJpg(imgBytes);
@@ -6272,7 +6272,7 @@ window.scaricaUnicoPdf=async function(lista,sezione){
 
   if(uniti===0){
    alert('Nessun allegato unibile in questa sezione.');
-   return;
+   return false;
   }
 
   /* SALVA */
@@ -6286,8 +6286,10 @@ window.scaricaUnicoPdf=async function(lista,sezione){
   a.click();
   document.body.removeChild(a);
   setTimeout(function(){URL.revokeObjectURL(url)},5000);
+  return true;
  }catch(err){
   alert('Errore: '+err.message);
+  return false;
  }
 };
   /* === ALLEGATI PIÙ CHIARI === */
@@ -7767,7 +7769,7 @@ window.mostraPopupBenvenuto=function(){
   if(oldPdf){
     window.scaricaUnicoPdf=async function(lista,sezione){
       var result=await oldPdf.apply(this,arguments);
-      window.assistentePersonale({testo:'<b>PDF unito pronto</b><br>'+String(sezione||'Allegati').replace(/</g,'&lt;'),emoji:'📚',colore:'#083278'});
+      if(result!==false)window.assistentePersonale({testo:'<b>PDF unito pronto</b><br>'+String(sezione||'Allegati').replace(/</g,'&lt;'),emoji:'📚',colore:'#083278'});
       return result;
     };
   }
