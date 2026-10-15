@@ -518,10 +518,27 @@ function mostraPann(d){
 /* ============================================================
    LEGGI ALLEGATI (base64)
    ============================================================ */
+window._ergoFileAccumulati=window._ergoFileAccumulati||{};
+function agganciaSelezioneAllegatiMultipla(ids){
+ ids.forEach(function(id){
+  const inp=document.getElementById(id);
+  if(!inp)return;
+  window._ergoFileAccumulati[id]=[];
+  if(inp._multiAgganciato)return;
+  inp._multiAgganciato=true;
+  inp.addEventListener('change',function(){
+   const precedenti=window._ergoFileAccumulati[id]||[];
+   window._ergoFileAccumulati[id]=precedenti.concat(Array.from(inp.files||[]));
+   const info=document.getElementById(id+'-conteggio');
+   if(info)info.textContent=window._ergoFileAccumulati[id].length+' allegat'+(window._ergoFileAccumulati[id].length===1?'o':'i')+' selezionati';
+   inp.value='';
+  });
+ });
+}
 async function leggiAllegati(inputId,folder){
  const inp=document.getElementById(inputId);
- if(!inp||!inp.files||inp.files.length===0)return [];
- const files=Array.from(inp.files);
+ const files=window._ergoFileAccumulati[inputId]||Array.from((inp&&inp.files)||[]);
+ if(!inp||files.length===0)return [];
  const risultati=[];
  for(const f of files){
   try{
@@ -560,6 +577,13 @@ function apriModaleEvento(){
   ${isAdmin?`<div class="divisore-modale">🔒 Cartella privata Admin</div><div class="campo"><textarea id="ev-n-priv" style="background:#fdf4ff;border-color:#f5d0fe"></textarea><input type="file" id="ev-f-priv" multiple accept="image/*,.pdf" style="margin-top:8px"></div>`:''}
  `;
  document.getElementById('d-foot').innerHTML=`<button class="btn-ghost" onclick="chiudiDrawer()">Annulla</button><button class="btn-primary" id="ev-salva" style="background:#3e765e">💾 Crea Evento</button>`;
+ ['ev-f-tutti','ev-f-sala','ev-f-cucina','ev-f-mag','ev-f-priv'].forEach(function(id){
+  const input=document.getElementById(id);
+  if(input){
+   const info=document.createElement('small'); info.id=id+'-conteggio'; info.textContent='Puoi selezionare più file insieme o aggiungerli con più clic.'; info.style='display:block;color:#64748b;font-size:.7rem;margin-top:5px'; input.insertAdjacentElement('afterend',info);
+  }
+ });
+ agganciaSelezioneAllegatiMultipla(['ev-f-tutti','ev-f-sala','ev-f-cucina','ev-f-mag','ev-f-priv']);
  d.classList.add('open');bg.classList.add('open');
  document.getElementById('d-close').onclick=chiudiDrawer;
  bg.onclick=chiudiDrawer;
@@ -1833,17 +1857,24 @@ function apriDrawerEnt(tipo,obj){
   if(vediSala&&obj.noteSala)h+=`<h4>🍽️ Note per la sala</h4><div class="note-box sala">${obj.noteSala}</div>`;
   if(vediCucina&&obj.noteCucina)h+=`<h4>👨‍🍳 Note per la cucina</h4><div class="note-box cucina">${obj.noteCucina}</div>`;
   if(vediMag&&obj.noteMagazzino)h+=`<h4>📦 Note per il magazzino</h4><div class="note-box magazzino">${obj.noteMagazzino}</div>`;
-  /* Allegati visibili per ogni sezione */
+  /* Allegati raggruppati per reparto: ogni file resta vicino alla propria sezione */
+  const gruppiAllegati=[];
+  const aggiungiGruppo=function(titolo,arr,visibile){if(visibile&&arr&&arr.length)gruppiAllegati.push({titolo:titolo,arr:arr});};
+  aggiungiGruppo('🔒 Cartella privata Admin',obj.allegatiPrivata,isAdmin);
+  aggiungiGruppo('📝 Note per tutti',obj.allegatiTutti,true);
+  aggiungiGruppo('🍽️ Note per la sala',obj.allegatiSala,vediSala);
+  aggiungiGruppo('👨‍🍳 Note per la cucina',obj.allegatiCucina,vediCucina);
+  aggiungiGruppo('📦 Note per il magazzino',obj.allegatiMagazzino,vediMag);
   const tuttiAllegati=[];
-  (obj.allegatiPrivata||[]).forEach(a=>{if(isAdmin)tuttiAllegati.push({...a,sezione:'🔒 Cartella privata'})});
-  (obj.allegatiTutti||[]).forEach(a=>tuttiAllegati.push({...a,sezione:'Note per tutti'}));
-  (obj.allegatiSala||[]).forEach(a=>{if(vediSala)tuttiAllegati.push({...a,sezione:'Note per la sala'})});
-  (obj.allegatiCucina||[]).forEach(a=>{if(vediCucina)tuttiAllegati.push({...a,sezione:'Note per la cucina'})});
-  (obj.allegatiMagazzino||[]).forEach(a=>{if(vediMag)tuttiAllegati.push({...a,sezione:'Note per il magazzino'})});
-  if(tuttiAllegati.length>0){
-   h+=`<h4>📎 Allegati (${tuttiAllegati.length})</h4>`;
-   tuttiAllegati.forEach((a,i)=>{
-    h+=`<div class="allegato-riga"><div class="allegato-info"><span class="allegato-icona">${iconaAllegato(a.mime)}</span><div><strong>${a.nome}</strong><small>${a.sezione}</small></div></div><div class="allegato-azioni"><button class="allegato-btn anteprima" data-allega-idx="${i}">👁️ Anteprima</button><button class="allegato-btn" data-allega-down="${i}">⬇️</button></div></div>`;
+  if(gruppiAllegati.length){
+   h+=`<h4>📎 Allegati organizzati per reparto</h4>`;
+   gruppiAllegati.forEach(function(g){
+    h+=`<div class="allegati-gruppo"><div class="allegati-gruppo-titolo">${g.titolo} <span>(${g.arr.length})</span></div>`;
+    g.arr.forEach(function(a){
+     const indice=tuttiAllegati.length; tuttiAllegati.push({...a,sezione:g.titolo});
+     h+=`<div class="allegato-riga"><div class="allegato-info"><span class="allegato-icona">${iconaAllegato(a.mime)}</span><div><strong>${a.nome}</strong><small>Allegato ${g.titolo}</small></div></div><div class="allegato-azioni"><button class="allegato-btn anteprima" data-allega-idx="${indice}">👁️ Anteprima</button><button class="allegato-btn" data-allega-down="${indice}">⬇️</button></div></div>`;
+    });
+    h+='</div>';
    });
   }else{
    h+=`<h4>📎 Allegati</h4><p style="color:#94a3b8;font-size:.82rem;padding:8px 0">Nessun allegato per questo evento.</p>`;
@@ -1962,8 +1993,12 @@ function apriModaleModificaEvento(ev){
   const idx=salv.findIndex(e=>e.id===ev.id);
   if(idx>=0)salv[idx]=ev;else salv.push(ev);
   localStorage.setItem('ergo_eventi',JSON.stringify(salv));
+  if(window.ergoSupabaseSyncEvents){
+   try{ await window.ergoSupabaseSyncEvents(salv); }
+   catch(syncErr){ console.error('Aggiornamento evento Supabase fallito',syncErr); alert('❌ Modifica non salvata su Supabase. Nessuna conferma è stata registrata.\n\n'+String(syncErr&&syncErr.message||syncErr)); return; }
+  }
   chiudiDrawer();
-  alert('✅ Evento aggiornato!');
+  alert('✅ Evento aggiornato su Supabase!');
   const pc=document.getElementById('pc');
   if(pc){if(view==='calendario')cal(pc);else if(view==='dashboard')dash(pc)}
  };
@@ -2443,6 +2478,11 @@ function apriModaleEventoCitta(){
   ${isAdmin?`<div class="divisore-modale">🔒 Cartella privata Admin</div><div class="campo"><textarea id="ev-n-priv" style="background:#fdf4ff;border-color:#f5d0fe"></textarea><input type="file" id="ev-f-priv" multiple accept="image/*,.pdf" style="margin-top:8px"></div>`:''}
  `;
  document.getElementById('d-foot').innerHTML=`<button class="btn-ghost" onclick="chiudiDrawer()">Annulla</button><button class="btn-primary" id="ev-salva" style="background:#3e765e">💾 Crea Evento</button>`;
+ ['ev-f-tutti','ev-f-sala','ev-f-cucina','ev-f-mag','ev-f-priv'].forEach(function(id){
+  const input=document.getElementById(id);
+  if(input){ const info=document.createElement('small'); info.id=id+'-conteggio'; info.textContent='Puoi aggiungere più allegati anche con più clic.'; info.style='display:block;color:#64748b;font-size:.7rem;margin-top:5px'; input.insertAdjacentElement('afterend',info); }
+ });
+ agganciaSelezioneAllegatiMultipla(['ev-f-tutti','ev-f-sala','ev-f-cucina','ev-f-mag','ev-f-priv']);
  d.classList.add('open');bg.classList.add('open');
  document.getElementById('d-close').onclick=chiudiDrawer;
  bg.onclick=chiudiDrawer;
@@ -3286,7 +3326,7 @@ function eseguiAggiornamentoLista(ev){
  try{
   const pdfBlob=generaPdfLista(ev,listaAttrezzature);
   const reader=new FileReader();
-  reader.onload=function(){
+  reader.onload=async function(){
    const dataUrl=reader.result;
    const nomePdf='Lista_Attrezzature_'+(ev.titolo||'evento').replace(/\s+/g,'_')+'.pdf';
    if(!ev.allegatiTutti)ev.allegatiTutti=[];
@@ -3298,9 +3338,13 @@ function eseguiAggiornamentoLista(ev){
    const idx=salvati.findIndex(e=>e.id===ev.id);
    if(idx>=0)salvati[idx]=ev;else salvati.push(ev);
    localStorage.setItem('ergo_eventi',JSON.stringify(salvati));
+   if(window.ergoSupabaseSyncEvents){
+    try{ await window.ergoSupabaseSyncEvents(salvati); }
+    catch(syncErr){ console.error('Aggiornamento lista Supabase fallito',syncErr); alert('❌ Lista modificata localmente ma non salvata su Supabase.\n\n'+String(syncErr&&syncErr.message||syncErr)); return; }
+   }
    _eventoListaCorrente=null;
    listaAttrezzature=[];
-   alert('✅ Lista aggiornata per "'+ev.titolo+'"!');
+   alert('✅ Lista aggiornata su Supabase per "'+ev.titolo+'"!');
    view='calendario';
    app();
   };
@@ -7428,7 +7472,7 @@ window.mostraPopupBenvenuto=function(){
     return {qr_token:assicuraQrToken(p),codice:p.codice,nome:p.nome,categoria:p.categoria||'',quantita:Number(p.quantita||0),posizione:p.posizione||'',costo_noleggio:Number(p.prezzo||p.costo_noleggio||0),note:p.note||'',foto_path:p.foto_path||((p.foto&&/^https?:/.test(p.foto))?'':p.foto)||'',scheda_materiale:sh.materiale||'',scheda_colore:sh.colore||'',scheda_dimensione:sh.dimensione||'',scheda_note:sh.note||''};
   }
   function eventPayload(e){
-    return {nome_evento:e.titolo,data:(e.inizio||'').slice(0,10),data_display:e.data_display||e.inizio||'',location:e.location||'',ospiti:Number(e.ospiti||0),bambini:Number(e.bambini||0),staff:Number(e.staff||0),note_tutti:e.noteTutti||'',allegati_tutti:e.allegatiTutti||[],note_sala:e.noteSala||'',allegati_sala:e.allegatiSala||[],note_cucina:e.noteCucina||'',allegati_cucina:e.allegatiCucina||[],note_magazzino:e.noteMagazzino||'',allegati_magazzino:e.allegatiMagazzino||[],allegati_privati:e.allegatiPrivata||[]};
+    return {nome_evento:e.titolo,data:(e.inizio||'').slice(0,10),data_display:e.data_display||e.inizio||'',location:e.location||'',ospiti:Number(e.ospiti||0),bambini:Number(e.bambini||0),staff:Number(e.staff||0),note_tutti:e.noteTutti||'',allegati_tutti:e.allegatiTutti||[],note_sala:e.noteSala||'',allegati_sala:e.allegatiSala||[],note_cucina:e.noteCucina||'',allegati_cucina:e.allegatiCucina||[],note_magazzino:e.noteMagazzino||'',allegati_magazzino:e.allegatiMagazzino||[],allegati_privati:e.allegatiPrivata||[],lista_attrezzature:e.listaAttrezzature||[]};
   }
   function firstAttachment(n,key){var a=(n[key]||[])[0]||{};return {name:a.nome||'',url:a.url||'',mime:a.mime||'',path:a.path||''};}
   function rentalPayload(n){
@@ -7563,7 +7607,7 @@ window.mostraPopupBenvenuto=function(){
     return prod;
   }
   function mapEvent(row){
-    return {id:String(row.id),tipo:'evento',titolo:row.nome_evento,inizio:row.inizio||((row.data||'')+'T12:00:00'),fine:row.fine||((row.data||'')+'T23:59:00'),location:row.location||'',ospiti:Number(row.ospiti||0),bambini:Number(row.bambini||0),staff:Number(row.staff||0),noteTutti:row.note_tutti||'',noteSala:row.note_sala||'',noteCucina:row.note_cucina||'',noteMagazzino:row.note_magazzino||'',allegatiTutti:mapFileList(row.allegati_tutti),allegatiSala:mapFileList(row.allegati_sala),allegatiCucina:mapFileList(row.allegati_cucina),allegatiMagazzino:mapFileList(row.allegati_magazzino),allegatiPrivata:mapFileList(row.allegati_privati),stato:'confermato'};
+    return {id:String(row.id),tipo:'evento',titolo:row.nome_evento,inizio:row.inizio||((row.data||'')+'T12:00:00'),fine:row.fine||((row.data||'')+'T23:59:00'),location:row.location||'',ospiti:Number(row.ospiti||0),bambini:Number(row.bambini||0),staff:Number(row.staff||0),noteTutti:row.note_tutti||'',noteSala:row.note_sala||'',noteCucina:row.note_cucina||'',noteMagazzino:row.note_magazzino||'',allegatiTutti:mapFileList(row.allegati_tutti),allegatiSala:mapFileList(row.allegati_sala),allegatiCucina:mapFileList(row.allegati_cucina),allegatiMagazzino:mapFileList(row.allegati_magazzino),allegatiPrivata:mapFileList(row.allegati_privati),listaAttrezzature:Array.isArray(row.lista_attrezzature)?row.lista_attrezzature:[],stato:'confermato'};
   }
   function mapRental(row){
     return {id:String(row.id),tipo:'noleggio',titolo:row.titolo,inizio:row.inizio,fine:row.fine,stato:row.stato||'confermato',location:row.location||'',referente:row.referente||'',telefono:row.telefono||'',note:row.note||'',bolla_path:row.bolla_path||'',ddt_path:row.ddt_path||'',vario_path:row.vario_path||'',allegatiBolla:mapFileList(row.bolla_url||row.bolla),allegatiDDT:mapFileList(row.ddt_url||row.ddt),allegatiVario:mapFileList(row.vario_url||row.vario)};
