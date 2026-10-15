@@ -1,14 +1,7 @@
 /* ============================================================
    UTENTI E RUOLI
    ============================================================ */
-const UTENTI={
- admin:{password:'123',ruolo:'Amministratore',nome:'Gianluca',iniziali:'GS'},
- wedding:{password:'wedding123',ruolo:'Wedding',nome:'Cristina',iniziali:'CR'},
- cucina:{password:'cucina123',ruolo:'Cucina',nome:'Chef',iniziali:'CH'},
- sala:{password:'sala123',ruolo:'Sala',nome:'Sala',iniziali:'SL'},
- magazzino:{password:'mag123',ruolo:'Magazzino',nome:'Magazzino',iniziali:'MG'},
- magazzino2:{password:'mag2123',ruolo:'Magazzino2',nome:'Mag.2',iniziali:'M2'}
-};
+const UTENTI={};
 
 const CATEGORIE_INV=['TAVOLI','SEDIE','CALTAGIRONE','COMPLEMENTI VARI','PIATTI E SOTTOPIATTI','BICCHIERI','CUCINA','ARREDO','TOVAGLIATO','ARGENTERIA','POSATERIA','VASSOI','LUCI E CANDELABRI'];
 
@@ -164,16 +157,32 @@ function login(){
   <label class="field">Password</label>
   <input class="inp" id="p" type="password" value="" placeholder="Inserisci password" autocomplete="current-password">
   <button class="btn-login" id="go">Accedi al gestionale</button>
-  
+  <button class="btn-ghost" id="bootstrap" style="width:100%;margin-top:12px">Prima configurazione amministratore</button>
+  <div id="bootstrap-box" style="display:none;margin-top:16px;text-align:left"></div>
  </div></div>`;
  document.getElementById('go').onclick=doLogin;
+ document.getElementById('bootstrap').onclick=mostraBootstrap;
  document.getElementById('p').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
 }
 
-function doLogin(){
- const u=document.getElementById('u').value.trim(),p=document.getElementById('p').value,f=UTENTI[u];
- if(f&&f.password===p){user={username:u,...f};view='dashboard';filtroFeed='tutte';app()}
- else{document.getElementById('e').innerHTML='<div class="err">Credenziali non corrette.</div>'}
+async function doLogin(){
+ const u=document.getElementById('u').value.trim(),p=document.getElementById('p').value;
+ const btn=document.getElementById('go'); if(btn)btn.disabled=true;
+ try{
+  if(window.ergoSupabaseLogin){
+   const f=await window.ergoSupabaseLogin(u,p);
+   if(f){user=f;UTENTI[f.username]={ruolo:f.ruolo,nome:f.nome,email:f.email,iniziali:(f.nome||f.username).split(' ').map(x=>x[0]).slice(0,2).join('').toUpperCase()};view='dashboard';filtroFeed='tutte';app();if(window.ergoSupabaseLoad)window.ergoSupabaseLoad();return;}
+  }
+  const f=UTENTI[u];
+  if(f&&f.password&&f.password===p){user={username:u,...f};view='dashboard';filtroFeed='tutte';app();}
+  else document.getElementById('e').innerHTML='<div class="err">Credenziali non corrette.</div>';
+ }catch(err){document.getElementById('e').innerHTML='<div class="err">Accesso non disponibile. Riprova.</div>';console.warn(err)}
+ finally{if(btn)btn.disabled=false;}
+}
+function mostraBootstrap(){
+ const box=document.getElementById('bootstrap-box'); if(!box)return;
+ box.style.display='block'; box.innerHTML='<div class="divisore-modale">🔐 Prima configurazione</div><p style="font-size:.78rem;color:#667085">Crea il primo amministratore. La password verrà salvata solo come hash in Supabase.</p><input class="inp" id="boot-user" placeholder="Username amministratore" autocomplete="username"><input class="inp" id="boot-name" placeholder="Nome visualizzato" style="margin-top:8px"><input class="inp" id="boot-pass" type="password" placeholder="Password (almeno 8 caratteri)" style="margin-top:8px" autocomplete="new-password"><input class="inp" id="boot-pass2" type="password" placeholder="Conferma password" style="margin-top:8px" autocomplete="new-password"><button class="btn-login" id="boot-go" style="margin-top:10px">Crea amministratore</button>';
+ document.getElementById('boot-go').onclick=async function(){const u=document.getElementById('boot-user').value.trim(),n=document.getElementById('boot-name').value.trim(),a=document.getElementById('boot-pass').value,b=document.getElementById('boot-pass2').value;if(!u||a.length<8||a!==b){document.getElementById('e').innerHTML='<div class="err">Inserisci username e password di almeno 8 caratteri uguali.</div>';return}try{await window.ergoSupabaseBootstrap(u,a,n);document.getElementById('u').value=u;document.getElementById('p').value=a;box.style.display='none';await doLogin()}catch(e){document.getElementById('e').innerHTML='<div class="err">Configurazione già completata o non disponibile.</div>';console.warn(e)}};
 }
 
 /* ============================================================
@@ -1434,6 +1443,7 @@ function ruoli(el){
   return;
  }
  const listaUtenti=Object.keys(UTENTI).map(k=>({username:k,...UTENTI[k]}));
+ if(window.ergoSupabaseListUsers&&!el._remoteUsersLoading){el._remoteUsersLoading=true;window.ergoSupabaseListUsers().then(list=>{Object.keys(UTENTI).forEach(k=>delete UTENTI[k]);(list||[]).forEach(u=>{UTENTI[u.username]={ruolo:u.ruolo,nome:u.nome,email:u.email,iniziali:(u.nome||u.username).split(' ').map(x=>x[0]).slice(0,2).join('').toUpperCase()}});el._remoteUsersLoading=false;ruoli(el)}).catch(()=>{el._remoteUsersLoading=false})}
  el.innerHTML=`<div class="page">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:24px;flex-wrap:wrap">
    <div><p class="eyebrow">Amministrazione</p><h1 class="title">Sistema Ruoli</h1><p class="lede">${listaUtenti.length} utenti autorizzati.</p></div>
@@ -1441,7 +1451,7 @@ function ruoli(el){
   </div>
   <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px">
    ${listaUtenti.map(u=>{
-    const isAdm=u.username==='admin';
+    const isAdm=u.ruolo==='Amministratore';
     const col=coloreRuolo(u.ruolo);
     const ini=(u.nome||u.username).split(' ').map(x=>x[0]).slice(0,2).join('').toUpperCase();
     return `<div class="ruolo-card">
@@ -1486,7 +1496,7 @@ function modaleUtente(username){
   <div class="campo"><label>Email</label><input id="usr-email" type="email" value="${(u.email||'').replace(/"/g,'&quot;')}"></div>
   <div class="campo"><label>Ruolo <span style="color:#dc2626">*</span></label>
    <select id="usr-ruolo" style="width:100%;padding:12px 14px;border:1.5px solid var(--line);border-radius:11px;font-size:.88rem;background:#fff">
-    ${['Amministratore','Wedding','Cucina','Sala','Magazzino','Magazzino2'].map(r=>`<option value="${r}" ${u.ruolo===r?'selected':''}>${r}</option>`).join('')}
+    ${['Amministratore','Cucina','Sala','Magazzino','Magazzino2'].map(r=>`<option value="${r}" ${u.ruolo===r?'selected':''}>${r}</option>`).join('')}
    </select>
   </div>
   <div class="divisore-modale">🔑 Password</div>
@@ -1507,25 +1517,15 @@ function modaleUtente(username){
   if(!username2){alert('Username obbligatorio.');return}
   if(!modifica&&!p1){alert('Password obbligatoria.');return}
   if((p1||p2)&&p1!==p2){alert('Le password non coincidono.');return}
-  if(!modifica&&UTENTI[username2]){alert('Username esistente.');return}
-  if(modifica){
-   const u2=UTENTI[username];
-   u2.nome=nome||username;
-   u2.email=email;
-   u2.ruolo=ruolo;
-   if(p1)u2.password=p1;
-  }else{
-   UTENTI[username2]={password:p1,ruolo,nome:nome||username2,email,iniziali:(nome||username2).split(' ').map(x=>x[0]).slice(0,2).join('').toUpperCase()};
-  }
-  let salvati=[];
-  try{salvati=JSON.parse(localStorage.getItem('ergo_utenti'))||[]}catch(e){}
-  const nuovo={username:modifica?username:username2,password:p1||(modifica?UTENTI[username].password:''),ruolo,nome:nome||username2,email};
-  const idx=salvati.findIndex(x=>x.username===nuovo.username);
-  if(idx>=0)salvati[idx]=nuovo;else salvati.push(nuovo);
-  localStorage.setItem('ergo_utenti',JSON.stringify(salvati));
-  chiudiDrawer();
-  alert('✅ Utente '+(modifica?'aggiornato':'creato')+'!');
-  ruoli(document.getElementById('pc'));
+  try{
+   await window.ergoSupabaseSaveUser({username:username2,originalUsername:modifica?username:null,password:p1,ruolo,nome:nome||username2,email});
+   if(modifica&&username===user.username)user.username=username2;
+   UTENTI[username2]={ruolo,nome:nome||username2,email,iniziali:(nome||username2).split(' ').map(x=>x[0]).slice(0,2).join('').toUpperCase()};
+   if(modifica&&username!==username2)delete UTENTI[username];
+   chiudiDrawer();
+   alert('✅ Utente '+(modifica?'aggiornato':'creato')+' su Supabase.');
+   ruoli(document.getElementById('pc'));
+  }catch(e){alert('Errore: utente non salvato su Supabase.');console.warn(e)}
  };
 }
 
@@ -1540,14 +1540,7 @@ function eliminaUtente(username){
  document.getElementById('d-close').onclick=chiudiDrawer;
  bg.onclick=chiudiDrawer;
  document.getElementById('conf-del').onclick=()=>{
-  delete UTENTI[username];
-  let salvati=[];
-  try{salvati=JSON.parse(localStorage.getItem('ergo_utenti'))||[]}catch(e){}
-  salvati=salvati.filter(x=>x.username!==username);
-  localStorage.setItem('ergo_utenti',JSON.stringify(salvati));
-  chiudiDrawer();
-  alert('✅ Utente eliminato.');
-  ruoli(document.getElementById('pc'));
+  window.ergoSupabaseDeleteUser(username).then(()=>{delete UTENTI[username];chiudiDrawer();alert('✅ Utente eliminato da Supabase.');ruoli(document.getElementById('pc'));}).catch(e=>{alert('Errore: utente non eliminato.');console.warn(e)});
  };
 }
 /* ============================================================
@@ -1567,17 +1560,7 @@ function caricaDaLocalStorage(){
   const nfLS=JSON.parse(localStorage.getItem('ergo_notifiche'))||[];
   nfLS.forEach(n=>{if(!NOTIFICHE.find(x=>x.id===n.id))NOTIFICHE.unshift(n)});
  }catch(e){}
- try{
-  const usLS=JSON.parse(localStorage.getItem('ergo_utenti'))||[];
-  usLS.forEach(u=>{
-   if(!UTENTI[u.username]){
-    UTENTI[u.username]={
-     password:u.password,ruolo:u.ruolo,nome:u.nome,email:u.email,
-     iniziali:(u.nome||u.username).split(' ').map(x=>x[0]).slice(0,2).join('').toUpperCase()
-    };
-   }
-  });
- }catch(e){}
+ try{localStorage.removeItem('ergo_utenti')}catch(e){}
 }
 
 /* ============================================================
@@ -7401,6 +7384,16 @@ window.mostraPopupBenvenuto=function(){
     }
   }catch(e){ console.warn('Supabase non inizializzato',e); }
   window.ergoSupabase = sb;
+  function setErgoSessionHeader(token){
+    try{if(sb&&sb.rest&&sb.rest.headers)sb.rest.headers['x-ergo-session']=token||'';if(sb&&sb.storage&&sb.storage.headers)sb.storage.headers['x-ergo-session']=token||'';}catch(e){}
+    if(token)sessionStorage.setItem('ergo_session_token',token);else sessionStorage.removeItem('ergo_session_token');
+  }
+  if(sb){try{setErgoSessionHeader(sessionStorage.getItem('ergo_session_token')||'')}catch(e){}}
+  window.ergoSupabaseLogin=async function(username,password){if(!sb)throw new Error('Supabase non configurato');var r=await sb.rpc('ergo_login_username',{p_username:username,p_password:password});if(r.error)throw r.error;var row=(r.data||[])[0];if(!row)return null;setErgoSessionHeader(row.token);return {username:row.username,ruolo:row.ruolo,nome:row.nome,email:row.email||'',iniziali:(row.nome||row.username).split(' ').map(function(x){return x[0]}).slice(0,2).join('').toUpperCase()};};
+  window.ergoSupabaseBootstrap=async function(username,password,nome){if(!sb)throw new Error('Supabase non configurato');var r=await sb.rpc('ergo_bootstrap_admin',{p_username:username,p_password:password,p_nome:nome||'Amministratore'});if(r.error)throw r.error;return r.data;};
+  window.ergoSupabaseListUsers=async function(){if(!sb) return [];var r=await sb.from('utenti_autorizzati').select('username,ruolo,nome,email,attivo').eq('attivo',true).order('username');if(r.error)throw r.error;return r.data||[];};
+  window.ergoSupabaseSaveUser=async function(x){if(!sb)throw new Error('Supabase non configurato');var token=sessionStorage.getItem('ergo_session_token')||'';var r=await sb.rpc('ergo_admin_save_user',{p_token:token,p_username:x.username,p_password:x.password||'',p_ruolo:x.ruolo,p_nome:x.nome||x.username,p_email:x.email||null,p_original_username:x.originalUsername||null});if(r.error)throw r.error;return r.data;};
+  window.ergoSupabaseDeleteUser=async function(username){if(!sb)throw new Error('Supabase non configurato');var r=await sb.rpc('ergo_admin_delete_user',{p_token:sessionStorage.getItem('ergo_session_token')||'',p_username:username});if(r.error)throw r.error;return r.data;};
 
   var syncTimer = null;
   var syncing = false;
