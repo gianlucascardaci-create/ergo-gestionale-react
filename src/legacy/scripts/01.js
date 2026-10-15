@@ -1032,7 +1032,10 @@ function apriModaleProdotto(prod){
  if(qtaInput){
   qtaInput.addEventListener('focus',function(){this.select()});
   qtaInput.addEventListener('keydown',function(e){if(/^\d$/.test(e.key)&&this.value==='0'){e.preventDefault();this.value=e.key;this.dispatchEvent(new Event('input',{bubbles:true}))}});
-  qtaInput.addEventListener('input',function(){this.value=this.value.replace(/^0+(?=\d)/,'')});
+  qtaInput.addEventListener('input',function(){
+   var normalized=String(this.value||'').replace(/\D/g,'').replace(/^0+(?=\d)/,'');
+   this.value=normalized===''?'0':normalized;
+  });
  }
  document.querySelectorAll('.pr-cat-check').forEach(cb=>{
   cb.addEventListener('change',()=>{cb.closest('label').classList.toggle('on',cb.checked)});
@@ -1105,7 +1108,7 @@ async function salvaProdotto(modifica,p,nuovaFoto){
  const pc=document.getElementById('pc');if(pc&&view==='inventario')inv(pc);
  if(window.ergoSupabaseSyncProducts){
   try{await window.ergoSupabaseSyncProducts(salvati);}
-  catch(syncErr){console.error('Sincronizzazione prodotto fallita',syncErr);window.assistentePersonale({testo:'<b>Prodotto salvato solo sul dispositivo</b><br>Supabase: '+String(syncErr&&syncErr.message||syncErr).replace(/[<>]/g,''),emoji:'⚠️',espressione:'attenzione',colore:'#b91c1c',autoClose:false});}
+  catch(syncErr){console.error('Sincronizzazione prodotto fallita',syncErr);window.assistentePersonale({testo:'<b>Prodotto salvato solo sul dispositivo</b><br>Supabase: '+String(syncErr&&syncErr.message||syncErr).replace(/[<>]/g,''),emoji:'⚠️',espressione:'attenzione',colore:'#b91c1c',autoClose:true,durata:10000});}
  }
 }
 
@@ -1587,11 +1590,11 @@ function caricaDaLocalStorage(){
 /* ============================================================
    QR PUBBLICO (accesso senza login)
    ============================================================ */
-function apriQRPubblico(token){
+function apriQRPubblico(token,prodottoRemoto){
  let salvati=[];
  try{salvati=JSON.parse(localStorage.getItem('ergo_prodotti'))||[]}catch(e){}
  const tutti=tuttiProds(salvati);
- const prod=tutti.find(p=>p.qrToken===token);
+ const prod=prodottoRemoto||tutti.find(p=>p.qrToken===token);
  R.innerHTML='';
  if(!prod){
   R.innerHTML='<div class="qr-page"><div class="qr-errore"><div class="emo">🔍</div><h1>Prodotto non trovato</h1><p>Il codice "<b>'+codice+'</b>" non corrisponde a nessun prodotto in catalogo.</p></div></div>';
@@ -1601,7 +1604,7 @@ function apriQRPubblico(token){
  const hasFoto=!!prod.foto;
  const fotoHtml=hasFoto?'<img src="'+prod.foto+'">':'<div style="font-size:4rem;opacity:.4">📦</div>';
  let techHtml='';
- [['Materiale',scheda.materiale],['Colore',scheda.colore],['Dimensione',scheda.dimensione]].forEach(([k,v])=>{
+ [['Dimensione',scheda.dimensione]].forEach(([k,v])=>{
   if(v&&v.trim())techHtml+='<div class="qr-tech-item"><span>'+k+'</span><b>'+v+'</b></div>';
  });
  if(scheda.note&&scheda.note.trim())techHtml+='<div class="qr-tech-item"><span>Note tecniche</span><b>'+scheda.note+'</b></div>';
@@ -7061,52 +7064,11 @@ window.mostraPopupBenvenuto=function(){
 
  /* Funzione mostra messaggio (uguale a prima) */
  function mostraMessaggio(testo,tipo,emojiExtra){
-  if(typeof user==='undefined'||!user||!user.username)return;
-  if(document.getElementById('personaggio-attivo'))return;
-  var adesso=Date.now();
-  var ultimo=parseInt(localStorage.getItem('ergo_ultimo_pers_'+user.username)||'0');
+  if(typeof user==='undefined'||!user||!user.username||!window.assistentePersonale)return;
+  var adesso=Date.now(), ultimo=parseInt(localStorage.getItem('ergo_ultimo_pers_'+user.username)||'0');
   if(adesso-ultimo<5*60*1000)return;
-  localStorage.setItem('ergo_ultimo_pers_'+user.username,adesso.toString());
-
-  var nomeRuolo=(window.ergoAssistantIdentity&&window.ergoAssistantIdentity[user.ruolo]&&window.ergoAssistantIdentity[user.ruolo].label)||user.ruolo;
-  var svg=SVG[user.ruolo]||SVG['Amministratore'];
-  var colore=(tipo==='evento'?'#3e765e':tipo==='noleggio'?'#083278':tipo==='meteo'?'#0891b2':tipo==='pausa'?'#a66d24':tipo==='buongiorno'?'#f59e0b':tipo==='buonanotte'?'#4c1d95':tipo==='info'?'#6a5a9a':'#6a5a9a');
-
-  var wrap=document.createElement('div');
-  wrap.id='personaggio-attivo';
-  wrap.style.cssText='position:fixed;right:-320px;bottom:24px;z-index:99999;display:flex;align-items:flex-end;gap:0;transition:right .6s cubic-bezier(0.34,1.56,0.64,1);pointer-events:none;max-width:calc(100vw - 24px)';
-
-  var pers=document.createElement('div');
-  pers.style.cssText='flex-shrink:0;filter:drop-shadow(0 8px 20px rgba(8,50,120,0.25));transform:translateY(6px)';
-  pers.innerHTML=svg;
-
-  var cartello=document.createElement('div');
-  cartello.style.cssText='background:#fff;border:2px solid '+colore+';border-radius:16px;padding:14px 18px;margin-left:-8px;margin-bottom:30px;box-shadow:0 12px 30px rgba(8,50,120,0.2);min-width:220px;max-width:300px;position:relative;pointer-events:auto';
-
-  var html='';
-  html+='<div style="position:absolute;left:-11px;top:24px;width:0;height:0;border-style:solid;border-width:9px 11px 9px 0;border-color:transparent '+colore+' transparent transparent"></div>';
-  html+='<div style="position:absolute;left:-8px;top:24px;width:0;height:0;border-style:solid;border-width:9px 11px 9px 0;border-color:transparent #fff transparent transparent"></div>';
-  html+='<div style="font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:'+colore+';margin-bottom:6px">'+nomeRuolo+'</div>';
-  html+=emojiExtra?'<div style="font-size:1.5rem;margin-bottom:6px">'+emojiExtra+'</div>':'';
-  html+='<div style="font-size:.88rem;color:#152238;line-height:1.45;font-weight:600;margin-bottom:12px">'+testo+'</div>';
-  html+='<button type="button" id="pers-ok" style="width:100%;padding:9px;background:'+colore+';color:#fff;border:0;border-radius:9px;font-weight:700;font-size:.78rem;cursor:pointer">Ok, capito!</button>';
-  html+='<button type="button" id="pers-x" style="position:absolute;top:6px;right:6px;background:transparent;border:0;color:#94a3b8;font-size:1rem;cursor:pointer;padding:2px 6px">✕</button>';
-  cartello.innerHTML=html;
-
-  wrap.appendChild(pers);
-  wrap.appendChild(cartello);
-  document.body.appendChild(wrap);
-
-  _t(function(){wrap.style.right='24px';wrap.style.pointerEvents='auto';},50);
-
-  function chiudi(){
-   wrap.style.right='-320px';
-   wrap.style.pointerEvents='none';
-   _t(function(){if(wrap.parentNode)wrap.parentNode.removeChild(wrap)},700);
-  }
-  document.getElementById('pers-ok').onclick=chiudi;
-  document.getElementById('pers-x').onclick=chiudi;
-  _t(function(){if(wrap.parentNode)chiudi()},25000);
+  localStorage.setItem('ergo_ultimo_pers_'+user.username,String(adesso));
+  window.assistentePersonale({testo:testo,emoji:emojiExtra||'👋',espressione:'felice',colore:tipo==='pausa'?'#a66d24':'#f59e0b',durata:10000});
  }
 
  /* === MESSAGGI PER FASCIA ORARIA === */
@@ -7146,7 +7108,7 @@ window.mostraPopupBenvenuto=function(){
    tipo='info';emoji='🍎';
   }
   /* 12:30 - 13:30 → Pranzo */
-  else if((ora===12&&min>=30)||(ora===13&&min<=30)){
+  else if((ora===12)||(ora===13)||(ora===14&&min<=30)){
    chiave='pranzo';
    messaggio='È ora di pranzo! Buon appetito 🍝';
    tipo='pausa';emoji='🍝';
@@ -7351,7 +7313,7 @@ window.mostraPopupBenvenuto=function(){
     testo:'<b>Sei sicuro?</b><br>Vuoi davvero eliminare "'+obj.nome+'"?',
     emoji:'⚠️',
     colore:'#dc2626',
-    autoClose:false,
+    autoClose:true,durata:10000,
     bottoni:[
      {label:'Sì, elimina',colore:'#dc2626',azione:function(){_origConfElim.call(window,obj)}},
      {label:'No, annulla',colore:'#94a3b8'}
@@ -7374,7 +7336,7 @@ window.mostraPopupBenvenuto=function(){
     testo:'<b>'+lista.length+' allegati</b> in "'+sezione+'"<br>Come vuoi scaricarli?',
     emoji:'📥',
     colore:'#0891b2',
-    autoClose:false,
+    autoClose:true,durata:10000,
     bottoni:[
      {label:'📄 Singoli (uno per file)',colore:'#0891b2',azione:function(){
       lista.forEach(function(a,i){_t(function(){scaricaAllega(a)},i*300)});
@@ -7396,7 +7358,7 @@ window.mostraPopupBenvenuto=function(){
     testo:'<b>Sei sicuro?</b><br>Vuoi eliminare '+(tipo==='evento'?'l\'evento':'il noleggio')+' "'+obj.titolo+'"?',
     emoji:'⚠️',
     colore:'#dc2626',
-    autoClose:false,
+    autoClose:true,durata:10000,
     bottoni:[
      {label:'Sì, elimina',colore:'#dc2626',azione:function(){_origConfElimEnt.call(window,tipo,obj)}},
      {label:'No, annulla',colore:'#94a3b8'}
@@ -7706,7 +7668,7 @@ window.mostraPopupBenvenuto=function(){
     function close(cb){wrap.classList.remove('visibile');wait(function(){if(wrap.parentNode)wrap.remove();if(cb)cb();},350);}
     card.querySelector('.assistente-close').onclick=function(){close();};
     card.querySelectorAll('.assistente-action').forEach(function(btn){btn.onclick=function(){var b=buttons[Number(btn.dataset.i)];close(function(){if(b.azione)b.azione();});};});
-    if(config.autoClose!==false) wait(function(){if(wrap.parentNode)close();},config.durata||12000);
+    if(config.autoClose!==false) wait(function(){if(wrap.parentNode)close();},Math.min(Number(config.durata)||10000,10000));
   };
 
   /* Benvenuto non invasivo: il saluto iniziale usa lo stesso assistente interattivo
@@ -7722,7 +7684,7 @@ window.mostraPopupBenvenuto=function(){
     };
     window.assistentePersonale({
       testo:'<b>'+(identita&&identita.welcome||'Bentornato!')+'</b><br><span style="font-weight:500">Ciao '+String(user.nome||user.username).replace(/[<>]/g,'')+', sono qui per aiutarti.</span>',
-      emoji:'👋',colore:'#083278',autoClose:false,
+      emoji:'👋',colore:'#083278',autoClose:true,durata:10000,
       bottoni:[{label:notifiche.length?'🔔 Apri aggiornamenti recenti':'Inizia a lavorare',colore:'#083278',azione:notifiche.length?azioneAggiornamenti:function(){}}]
     });
   };
@@ -7735,7 +7697,7 @@ window.mostraPopupBenvenuto=function(){
       testo:text,
       emoji:error?'⚠️':'✅',
       colore:error?'#b91c1c':'#3e765e',
-      autoClose:false,
+      autoClose:true,durata:10000,
       bottoni:[{label:'Ho capito',colore:error?'#b91c1c':'#3e765e'}]
     });
   };
@@ -7874,7 +7836,7 @@ window.mostraPopupBenvenuto=function(){
     window._assistentePdfChoiceWrapped=true;
     window.scaricaAllegatiConScelta=function(lista,sezione){
       if(!Array.isArray(lista)||lista.length===0){
-        window.assistentePersonale({testo:'<b>Nessun allegato disponibile</b><br>Non ci sono file da scaricare in questa sezione.',emoji:'📎',colore:'#b91c1c',autoClose:false});
+        window.assistentePersonale({testo:'<b>Nessun allegato disponibile</b><br>Non ci sono file da scaricare in questa sezione.',emoji:'📎',colore:'#b91c1c',autoClose:true,durata:10000});
         return;
       }
       if(lista.length===1){
@@ -7884,7 +7846,7 @@ window.mostraPopupBenvenuto=function(){
       var nomeSezione=String(sezione||'questa sezione').replace(/[<>]/g,'');
       window.assistentePersonale({
         testo:'<b>Ho trovato '+lista.length+' allegati</b><br>Come vuoi scaricarli da <b>'+nomeSezione+'</b>?',
-        emoji:'📥',colore:'#0891b2',autoClose:false,
+        emoji:'📥',colore:'#0891b2',autoClose:true,durata:10000,
         bottoni:[
           {label:'📄 Uno alla volta',colore:'#0891b2',azione:function(){
             lista.forEach(function(allegato,i){wait(function(){window.scaricaAllega(allegato);},i*350);});
@@ -7903,7 +7865,7 @@ window.mostraPopupBenvenuto=function(){
     window.login=function(){window._dashVnextShown=false;return previousLogin.apply(this,arguments);};
   }
 
-  if(_qrToken&&sb){wait(async function(){try{var qr=await sb.rpc('get_prodotto_qr',{p_token:_qrToken});if(qr.error)throw qr.error;var row=qr.data&&Array.isArray(qr.data)?qr.data[0]:qr.data;if(row){var prod=mapProduct(row);prod.qrToken=_qrToken;await firmaFotoProdotto(prod);localStorage.setItem('ergo_prodotti',JSON.stringify([prod]));apriQRPubblico(_qrToken);}else{apriQRPubblico(_qrToken);}}catch(e){console.warn('QR remoto non disponibile',e);R.innerHTML='<div class="qr-page"><div class="qr-errore"><div class="emo">⚠️</div><h1>Scheda non disponibile</h1><p>Il QR è valido, ma in questo momento non riesco a recuperare il prodotto.</p></div></div>'; }},250);}else if(_qrToken&&!sb){R.innerHTML='<div class="qr-page"><div class="qr-errore"><div class="emo">⚠️</div><h1>Collegamento non disponibile</h1><p>La scheda privata richiede il collegamento a Supabase.</p></div></div>';}
+  if(_qrToken&&sb){wait(async function(){try{var qr=await sb.rpc('get_prodotto_qr',{p_token:_qrToken});if(qr.error)throw qr.error;var row=qr.data&&Array.isArray(qr.data)?qr.data[0]:qr.data;if(row){var prod=mapProduct(row);prod.qrToken=_qrToken;await firmaFotoProdotto(prod);localStorage.setItem('ergo_prodotti',JSON.stringify([prod]));apriQRPubblico(_qrToken,prod);}else{apriQRPubblico(_qrToken);}}catch(e){console.warn('QR remoto non disponibile',e);R.innerHTML='<div class="qr-page"><div class="qr-errore"><div class="emo">⚠️</div><h1>Scheda non disponibile</h1><p>Il QR è valido, ma in questo momento non riesco a recuperare il prodotto.</p></div></div>'; }},250);}else if(_qrToken&&!sb){R.innerHTML='<div class="qr-page"><div class="qr-errore"><div class="emo">⚠️</div><h1>Collegamento non disponibile</h1><p>La scheda privata richiede il collegamento a Supabase.</p></div></div>';}
 
   console.info('Ergo vNext: assistente attivo; Supabase '+(sb?'configurato':'non configurato, fallback localStorage'));
 })();
