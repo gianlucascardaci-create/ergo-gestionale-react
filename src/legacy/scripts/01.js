@@ -157,12 +157,12 @@ function login(){
   <label class="field">Password</label>
   <input class="inp" id="p" type="password" value="" placeholder="Inserisci password" autocomplete="current-password">
   <button class="btn-login" id="go">Accedi al gestionale</button>
-  <button class="btn-ghost" id="bootstrap" style="display:none;width:100%;margin-top:12px">Prima configurazione amministratore</button>
+  <button class="btn-ghost" id="bootstrap" style="display:block;width:100%;margin-top:12px">Prima configurazione amministratore</button>
   <div id="bootstrap-box" style="display:none;margin-top:16px;text-align:left"></div>
  </div></div>`;
  document.getElementById('go').onclick=doLogin;
  document.getElementById('bootstrap').onclick=mostraBootstrap;
- if(window.ergoSupabaseBootstrapAvailable){window.ergoSupabaseBootstrapAvailable().then(function(available){var b=document.getElementById('bootstrap');if(b&&available)b.style.display='block';}).catch(function(){})}
+ if(window.ergoSupabaseBootstrapAvailable){window.ergoSupabaseBootstrapAvailable().then(function(available){var b=document.getElementById('bootstrap');if(b&&!available)b.style.display='none';}).catch(function(){/* Se la verifica è temporaneamente indisponibile, il pulsante resta visibile. */})}
  document.getElementById('p').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
 }
 
