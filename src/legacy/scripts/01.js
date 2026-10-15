@@ -835,25 +835,28 @@ function confermaElimEnt(tipo,obj){
  d.classList.add('open');bg.classList.add('open');
  document.getElementById('d-close').onclick=chiudiDrawer;
  bg.onclick=chiudiDrawer;
- document.getElementById('d-conf').onclick=()=>{
-  if(window.ergoSupabaseDeleteEntity)window.ergoSupabaseDeleteEntity(tipo,obj);
-  if(tipo==='evento'){
-   const idx=EVENTI.findIndex(e=>e.id===obj.id);
-   if(idx>=0)EVENTI.splice(idx,1);
-   let salv=[];try{salv=JSON.parse(localStorage.getItem('ergo_eventi'))||[]}catch(e){}
-   salv=salv.filter(e=>e.id!==obj.id);
-   localStorage.setItem('ergo_eventi',JSON.stringify(salv));
-  }else{
-   const idx=NOLEGGI.findIndex(n=>n.id===obj.id);
-   if(idx>=0)NOLEGGI.splice(idx,1);
-   let salv=[];try{salv=JSON.parse(localStorage.getItem('ergo_noleggi'))||[]}catch(e){}
-   salv=salv.filter(n=>n.id!==obj.id);
-   localStorage.setItem('ergo_noleggi',JSON.stringify(salv));
-  }
-  chiudiDrawer();
-  alert('✅ Eliminato.');
-  const pc=document.getElementById('pc');
-  if(pc){if(view==='calendario')cal(pc);else if(view==='dashboard')dash(pc)}
+ document.getElementById('d-conf').onclick=async()=>{
+  const btn=document.getElementById('d-conf');if(btn)btn.disabled=true;
+  try{
+   if(window.ergoSupabaseDeleteEntity)await window.ergoSupabaseDeleteEntity(tipo,obj);
+   if(tipo==='evento'){
+    const idx=EVENTI.findIndex(e=>e.id===obj.id);
+    if(idx>=0)EVENTI.splice(idx,1);
+    let salv=[];try{salv=JSON.parse(localStorage.getItem('ergo_eventi'))||[]}catch(e){}
+    salv=salv.filter(e=>e.id!==obj.id);
+    localStorage.setItem('ergo_eventi',JSON.stringify(salv));
+   }else{
+    const idx=NOLEGGI.findIndex(n=>n.id===obj.id);
+    if(idx>=0)NOLEGGI.splice(idx,1);
+    let salv=[];try{salv=JSON.parse(localStorage.getItem('ergo_noleggi'))||[]}catch(e){}
+    salv=salv.filter(n=>n.id!==obj.id);
+    localStorage.setItem('ergo_noleggi',JSON.stringify(salv));
+   }
+   chiudiDrawer();
+   alert('✅ Eliminato da Supabase e dalla memoria locale.');
+   const pc=document.getElementById('pc');
+   if(pc){if(view==='calendario')cal(pc);else if(view==='dashboard')dash(pc)}
+  }catch(e){if(btn)btn.disabled=false;alert('❌ Eliminazione non completata su Supabase. Il dato locale è stato conservato.');console.warn(e)}
  };
 }
 /* ============================================================
@@ -1143,15 +1146,19 @@ function confermaElim(obj){
  d.classList.add('open');bg.classList.add('open');
  document.getElementById('d-close').onclick=chiudiDrawer;
  bg.onclick=chiudiDrawer;
- document.getElementById('d-conf').onclick=()=>{
-  let salvati=[];
-  try{salvati=JSON.parse(localStorage.getItem('ergo_prodotti'))||[]}catch(e){}
-  const iB=PRODOTTI.findIndex(x=>x.codice===obj.codice);
-  if(iB>=0)PRODOTTI.splice(iB,1);
-  const iS=salvati.findIndex(x=>x.codice===obj.codice);
-  if(iS>=0){salvati.splice(iS,1);localStorage.setItem('ergo_prodotti',JSON.stringify(salvati))}
-  chiudiDrawer();
-  const pc=document.getElementById('pc');if(pc&&view==='inventario')inv(pc);
+ document.getElementById('d-conf').onclick=async()=>{
+  const btn=document.getElementById('d-conf');if(btn)btn.disabled=true;
+  try{
+   if(window.ergoSupabaseDeleteEntity)await window.ergoSupabaseDeleteEntity('prodotto',obj);
+   let salvati=[];
+   try{salvati=JSON.parse(localStorage.getItem('ergo_prodotti'))||[]}catch(e){}
+   const iB=PRODOTTI.findIndex(x=>x.codice===obj.codice);
+   if(iB>=0)PRODOTTI.splice(iB,1);
+   const iS=salvati.findIndex(x=>x.codice===obj.codice);
+   if(iS>=0){salvati.splice(iS,1);localStorage.setItem('ergo_prodotti',JSON.stringify(salvati))}
+   chiudiDrawer();
+   const pc=document.getElementById('pc');if(pc&&view==='inventario')inv(pc);
+  }catch(e){if(btn)btn.disabled=false;alert('❌ Eliminazione non completata su Supabase. Nessun dato locale è stato rimosso.');console.warn(e)}
  };
 }
 /* ============================================================
@@ -7507,14 +7514,28 @@ window.mostraPopupBenvenuto=function(){
     try{var r=await sb.storage.from(bucket).remove([a.path]);if(r.error)console.warn('File non rimosso da Storage',a.path,r.error)}catch(e){console.warn('Rimozione allegato rinviata',e)}
   };
   window.ergoSupabaseDeleteEntity=async function(tipo,obj){
-    if(!sb||!obj)return;
-    var lists=tipo==='evento'?['allegatiTutti','allegatiSala','allegatiCucina','allegatiMagazzino','allegatiPrivata']:['allegatiBolla','allegatiDDT','allegatiVario'];
-    var files=[];lists.forEach(function(k){(obj[k]||[]).forEach(function(a){if(a&&a.path)files.push({bucket:a.bucket||'allegati_noleggi',path:a.path})})});
-    for(const bucket of ['allegati_noleggi','immagini_prodotti']){var paths=files.filter(function(x){return x.bucket===bucket}).map(function(x){return x.path});if(paths.length)try{await sb.storage.from(bucket).remove(paths)}catch(e){console.warn('File non rimossi da Storage',e)}}
-    try{
-      var q=tipo==='evento'?sb.from('eventi_catering').delete().eq('nome_evento',obj.titolo).eq('data',String(obj.inizio||'').slice(0,10)):sb.from('noleggi').delete().eq('titolo',obj.titolo).eq('inizio',obj.inizio);
-      var r=await q;if(r.error)console.warn('Record remoto non eliminato',r.error);
-    }catch(e){console.warn('Eliminazione remota rinviata',e)}
+    if(!sb||!obj)return {remote:false};
+    var lists=tipo==='prodotto'?[]:tipo==='evento'?['allegatiTutti','allegatiSala','allegatiCucina','allegatiMagazzino','allegatiPrivata']:['allegatiBolla','allegatiDDT','allegatiVario'];
+    var files=[];
+    lists.forEach(function(k){(obj[k]||[]).forEach(function(a){if(a&&a.path)files.push({bucket:a.bucket||'allegati_noleggi',path:a.path})})});
+    if(tipo==='prodotto'&&obj.foto_path)files.push({bucket:'immagini_prodotti',path:obj.foto_path});
+    for(const bucket of ['allegati_noleggi','immagini_prodotti']){
+      var paths=files.filter(function(x){return x.bucket===bucket}).map(function(x){return x.path});
+      if(paths.length){var removed=await sb.storage.from(bucket).remove(paths);if(removed.error)throw removed.error;}
+    }
+    var q;
+    if(tipo==='prodotto'){
+      q=sb.from('prodotti_noleggio').delete();
+      q=obj.id?q.eq('id',obj.id):q.eq('codice',obj.codice);
+    }else if(tipo==='evento'){
+      q=sb.from('eventi_catering').delete();
+      q=obj.id?q.eq('id',obj.id):q.eq('nome_evento',obj.titolo).eq('data',String(obj.inizio||'').slice(0,10));
+    }else{
+      q=sb.from('noleggi').delete();
+      q=obj.id?q.eq('id',obj.id):q.eq('titolo',obj.titolo).eq('inizio',obj.inizio);
+    }
+    var r=await q;if(r.error)throw r.error;
+    return {remote:true};
   };
   function parseJsonList(value){
     if(Array.isArray(value)) return value;
