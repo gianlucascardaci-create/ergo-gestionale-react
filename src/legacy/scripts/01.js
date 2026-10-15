@@ -247,6 +247,9 @@ function dash(el){
  const visibili=notifichePerUtente(user);
  const nuove=visibili.filter(n=>!isLetta(user.username,n.id));
  const daMostrare=filtroFeed==='nuove'?nuove:visibili;
+ const gruppiFeed=raggruppaNotificheFeed(daMostrare);
+ window._feedNotifGroups={};
+ gruppiFeed.forEach(function(g){window._feedNotifGroups[g.id]=g});
 
  let prossimoEv=null;
  const oggi=new Date();oggi.setHours(0,0,0,0);
@@ -304,14 +307,18 @@ function dash(el){
    </div>
    ${daMostrare.length===0
      ?`<div class="feed-empty"><span class="emo">✨</span>${filtroFeed==='nuove'?'Nessuna notifica nuova.':'Nessuna novità per ora.'}</div>`
-     :daMostrare.map(notifRow).join('')}
+     :gruppiFeed.map(notifGroupRow).join('')}
   </div>
  </div>`;
  document.getElementById('f-tutte').onclick=()=>{filtroFeed='tutte';dash(el)};
  document.getElementById('f-nuove').onclick=()=>{filtroFeed='nuove';dash(el)};
  const st=document.getElementById('segna-tutte');
  if(st)st.onclick=()=>{segnaTutteLette(user.username,visibili.map(n=>n.id));dash(el)};
- document.querySelectorAll('.feed-item').forEach(elm=>{elm.onclick=()=>apriDrawerNotif(elm.dataset.notif)});
+ document.querySelectorAll('.feed-item').forEach(elm=>{elm.onclick=()=>{
+   const gid=elm.dataset.group;
+   if(gid&&window._feedNotifGroups&&window._feedNotifGroups[gid])apriDrawerNotifGruppo(gid);
+   else if(elm.dataset.notif)apriDrawerNotif(elm.dataset.notif);
+  }});
  avviaCD();
 }
 
@@ -324,6 +331,45 @@ function notifRow(n){
   <div class="feed-txt"><strong>${n.titolo}${n.reparto==='admin'?' <span class="admin-only">🔒 ADMIN</span>':''}</strong><span>${n.sottotitolo}</span></div>
   <div class="feed-time">${tempoFa(n.quando)}</div>
  </div>`;
+}
+
+function raggruppaNotificheFeed(lista){
+ const out=[],byKey={};
+ (lista||[]).forEach(function(n){
+  const evento=n.dettagli&&n.dettagli.evento;
+  const raggruppabile=evento&&(n.tipo==='evento'||n.tipo==='nota'||n.tipo==='allegato');
+  const key=raggruppabile?'evento:'+evento:'singolo:'+n.id;
+  if(!byKey[key]){byKey[key]={id:'feed-'+out.length,eventName:evento||'',items:[],latest:n.quando};byKey[key].items.push(n);out.push(byKey[key]);}
+  else{byKey[key].items.push(n);if(new Date(n.quando)>new Date(byKey[key].latest))byKey[key].latest=n.quando;}
+ });
+ return out;
+}
+function notifGroupRow(g){
+ const items=g.items||[];
+ const unread=items.some(function(n){return !isLetta(user.username,n.id)});
+ if(items.length===1)return notifRow(items[0]).replace('data-notif="'+items[0].id+'"','data-group="'+g.id+'"');
+ const counts={evento:0,nota:0,allegato:0,noleggio:0};
+ items.forEach(function(n){counts[n.tipo]=(counts[n.tipo]||0)+1});
+ const parti=[];
+ if(counts.evento)parti.push('evento');
+ if(counts.nota)parti.push(counts.nota+' '+(counts.nota===1?'nota':'note'));
+ if(counts.allegato)parti.push(counts.allegato+' '+(counts.allegato===1?'allegato':'allegati'));
+ return `<div class="feed-item ${unread?'unread':''}" data-group="${g.id}">
+  <div class="feed-ico sage">📅</div>
+  <div class="feed-txt"><strong>Aggiornamenti evento: ${g.eventName||'Evento'}</strong><span>${items.length} aggiornamenti · ${parti.join(' · ')}</span></div>
+  <div class="feed-time">${tempoFa(g.latest)} <span class="feed-expand">›</span></div>
+ </div>`;
+}
+function apriDrawerNotifGruppo(gid){
+ const g=window._feedNotifGroups&&window._feedNotifGroups[gid];if(!g)return;
+ (g.items||[]).forEach(function(n){segnaLetta(user.username,n.id)});
+ const d=document.getElementById('d-panel'),bg=document.getElementById('d-bg');
+ document.getElementById('d-eyebrow').textContent='Aggiornamenti evento';
+ document.getElementById('d-titolo').textContent=g.eventName||'Evento';
+ document.getElementById('d-body').innerHTML='<div class="notif-gruppo-dettagli">'+g.items.map(function(n){return '<div class="notif-aggiornamento"><div class="notif-aggiornamento-head"><strong>'+n.titolo+'</strong><small>'+tempoFa(n.quando)+'</small></div>'+renderDetNotif(n)+'</div>'}).join('')+'</div>';
+ document.getElementById('d-foot').innerHTML='<button class="btn-ghost" onclick="chiudiDrawer()">Chiudi</button>';
+ d.classList.add('open');bg.classList.add('open');document.getElementById('d-close').onclick=chiudiDrawer;bg.onclick=chiudiDrawer;
+ setTimeout(function(){if(view==='dashboard'){const pc=document.getElementById('pc');if(pc)dash(pc)}},200);
 }
 
 function avviaCD(){
@@ -3554,7 +3600,7 @@ function notifichePerUtente(utente){
   'Wedding':['tutti','sala','cucina','magazzino'],
   'Cucina':['tutti','cucina'],
   'Sala':['tutti','sala'],
-  'Magazzino':['tutti','magazzino','admin'],
+  'Magazzino':['tutti','magazzino'],
   'Magazzino2':['magazzino']
  };
  const rep=mappa[utente.ruolo]||['tutti'];
@@ -4329,7 +4375,7 @@ function notifichePerUtente(utente){
   'Wedding':['tutti','sala','cucina','magazzino'],
   'Cucina':['tutti','cucina'],
   'Sala':['tutti','sala'],
-  'Magazzino':['tutti','magazzino','admin'],
+  'Magazzino':['tutti','magazzino'],
   'Magazzino2':['magazzino']
  };
  const rep=mappa[utente.ruolo]||['tutti'];
@@ -4339,6 +4385,8 @@ function notifichePerUtente(utente){
   if(utente.ruolo==='Magazzino2'){
    return n.tipo==='noleggio';
   }
+  /* Nessun reparto operativo vede la cartella privata Admin. */
+  if(utente.ruolo!=='Amministratore'&&n.reparto==='admin')return false;
   /* Sala e Cucina NON vedono notifiche di tipo "noleggio" */
   if(utente.ruolo==='Sala'||utente.ruolo==='Cucina'){
    return n.tipo!=='noleggio';

@@ -551,3 +551,12 @@ h1.title{font-size:clamp(1.8rem,3vw,2.6rem);margin-top:8px;line-height:1.08}
 .allegati-gruppo{margin:8px 0 12px;padding:8px 10px;border:1px solid #e2e8f0;border-radius:10px;background:#fbfdff}
 .allegati-gruppo-titolo{font-size:.73rem;font-weight:800;color:#334155;margin-bottom:5px}
 .allegati-gruppo-titolo span{font-weight:600;color:#64748b}
+
+
+/* Feed aggiornamenti: gruppi evento e dettaglio leggibile */
+.feed-expand{font-size:1.25rem;color:#2563eb;margin-left:5px;vertical-align:-1px}
+.notif-gruppo-dettagli{display:flex;flex-direction:column;gap:14px}
+.notif-aggiornamento{padding:12px;border:1px solid #e5eaf2;border-radius:12px;background:#fbfdff}
+.notif-aggiornamento-head{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:7px;color:#083278}
+.notif-aggiornamento-head small{color:#94a3b8;font-size:.72rem;white-space:nowrap}
+.notif-aggiornamento h4{margin-top:8px}
