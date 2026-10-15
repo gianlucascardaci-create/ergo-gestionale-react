@@ -40,6 +40,11 @@ create table if not exists public.eventi_catering (
   note_magazzino text,
   allegati_magazzino jsonb not null default '[]'::jsonb,
   allegati_privati jsonb not null default '[]'::jsonb,
+  note_storico_tutti jsonb not null default '[]'::jsonb,
+  note_storico_sala jsonb not null default '[]'::jsonb,
+  note_storico_cucina jsonb not null default '[]'::jsonb,
+  note_storico_magazzino jsonb not null default '[]'::jsonb,
+  note_storico_admin jsonb not null default '[]'::jsonb,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

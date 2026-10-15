@@ -560,3 +560,12 @@ h1.title{font-size:clamp(1.8rem,3vw,2.6rem);margin-top:8px;line-height:1.08}
 .notif-aggiornamento-head{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:7px;color:#083278}
 .notif-aggiornamento-head small{color:#94a3b8;font-size:.72rem;white-space:nowrap}
 .notif-aggiornamento h4{margin-top:8px}
+
+/* Conversazioni delle note per reparto */
+.note-thread{display:flex;flex-direction:column;gap:8px;margin:0 0 10px;padding:2px 0;max-height:260px;overflow:auto}
+.note-thread-msg{border:1px solid #dbe5ee;border-radius:11px;background:#fff;padding:9px 11px;box-shadow:0 2px 8px rgba(15,43,70,.04)}
+.note-thread-meta{display:flex;justify-content:space-between;gap:12px;color:#334155;font-size:.72rem}
+.note-thread-meta span{color:#94a3b8;font-weight:600;white-space:nowrap}
+.note-thread-text{margin-top:5px;color:#1f2937;font-size:.84rem;line-height:1.45;white-space:pre-wrap;word-break:break-word}
+.note-thread-state{margin-top:5px;color:#3e765e;font-size:.66rem;font-weight:800;text-transform:uppercase;letter-spacing:.03em}
+.note-thread-empty{margin:0 0 10px;padding:10px 12px;border:1px dashed #cbd5e1;border-radius:10px;color:#64748b;font-size:.76rem;background:#f8fafc}

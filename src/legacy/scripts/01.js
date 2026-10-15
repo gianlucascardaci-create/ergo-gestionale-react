@@ -78,6 +78,31 @@ const NAV=[
    UTILITÀ TESTO
    ============================================================ */
 function escapeAttr(t){return String(t||'').replace(/"/g,'&quot;').replace(/</g,'&lt;')}
+
+function escapeHtml(t){return String(t||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+const CAMPI_STORICO_NOTE={tutti:'noteStoricoTutti',sala:'noteStoricoSala',cucina:'noteStoricoCucina',magazzino:'noteStoricoMagazzino',admin:'noteStoricoAdmin'};
+function storicoNote(ev,reparto){
+ const campo=CAMPI_STORICO_NOTE[reparto];let arr=ev&&campo&&Array.isArray(ev[campo])?ev[campo].slice():[];
+ const legacy=ev&&ev['note'+(reparto==='tutti'?'Tutti':reparto==='sala'?'Sala':reparto==='cucina'?'Cucina':reparto==='magazzino'?'Magazzino':'Privata')];
+ if(!arr.length&&legacy&&String(legacy).trim())arr=[{id:'legacy-'+reparto,testo:String(legacy),da:'Nota originale',ruolo:'',quando:ev.updated_at||ev.creato_il||new Date().toISOString(),legacy:true}];
+ return arr;
+}
+function renderStoricoNote(ev,reparto){
+ const arr=storicoNote(ev,reparto);if(!arr.length)return '<div class="note-thread-empty">Nessun messaggio ancora. Scrivi il primo aggiornamento qui sotto.</div>';
+ return '<div class="note-thread">'+arr.map(function(m,i){return '<div class="note-thread-msg"><div class="note-thread-meta"><strong>'+escapeHtml(m.da||'Utente')+'</strong><span>'+new Date(m.quando||Date.now()).toLocaleString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})+'</span></div><div class="note-thread-text">'+escapeHtml(m.testo||'')+'</div><div class="note-thread-state">'+(m.letto?'✓ Visualizzato':'Nuovo messaggio')+'</div></div>';}).join('')+'</div>';
+}
+function aggiungiNotaStorica(ev,reparto,testo){
+ const testoPulito=String(testo||'').trim(),campo=CAMPI_STORICO_NOTE[reparto];if(!campo||!testoPulito)return null;
+ const arr=storicoNote(ev,reparto);const msg={id:'nota-'+Date.now()+'-'+Math.random().toString(36).slice(2,7),testo:testoPulito,da:user?user.nome:'Utente',ruolo:user?user.ruolo:'',quando:new Date().toISOString(),letto:false};arr.push(msg);ev[campo]=arr;
+ const legacyCampo='note'+(reparto==='tutti'?'Tutti':reparto==='sala'?'Sala':reparto==='cucina'?'Cucina':reparto==='magazzino'?'Magazzino':'Privata');ev[legacyCampo]=testoPulito;
+ return msg;
+}
+function creaNotificaNotaStorica(ev,reparto,msg){
+ if(!msg)return;
+ const nomi={tutti:'tutti',sala:'sala',cucina:'cucina',magazzino:'magazzino',admin:'Admin'};
+ const n={id:'nf-'+Date.now()+'-nota-'+Math.random().toString(36).slice(2,7),tipo:'nota',reparto:reparto==='admin'?'admin':reparto,titolo:'Nuovo messaggio per la '+nomi[reparto],sottotitolo:'Da '+(msg.da||'utente')+' · '+ev.titolo,quando:msg.quando,da:msg.da,dettagli:{evento:ev.titolo,data:formattaDataIt(ev.inizio),testoNota:msg.testo,sezione:'Conversazione · '+nomi[reparto],messaggioId:msg.id}};
+ NOTIFICHE.unshift(n);let salvate=[];try{salvate=JSON.parse(localStorage.getItem('ergo_notifiche')||'[]')}catch(e){};salvate.unshift(n);localStorage.setItem('ergo_notifiche',JSON.stringify(salvate.slice(0,200)));
+}
 function nuovoQrToken(){try{if(window.crypto&&crypto.getRandomValues){const a=new Uint8Array(18);crypto.getRandomValues(a);return Array.from(a).map(x=>x.toString(16).padStart(2,'0')).join('')}}catch(e){}return 'qr_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,14)}
 function assicuraQrToken(p){if(p&&!p.qrToken)p.qrToken=nuovoQrToken();return p&&p.qrToken||''}
 
@@ -2002,11 +2027,11 @@ function apriModaleModificaEvento(ev){
    <div class="campo"><label>Bambini</label><input id="me-bam" type="number" min="0" value="${ev.bambini||0}" style="font-size:1rem;font-weight:700;text-align:center;color:#083278"></div>
    <div class="campo"><label>Staff</label><input id="me-stf" type="number" min="0" value="${ev.staff||0}" style="font-size:1rem;font-weight:700;text-align:center;color:#083278"></div>
   </div>
-  <div class="divisore-modale">📝 Note per tutti</div><div class="campo"><textarea id="me-n-tutti" style="background:#eef2ff;border-color:#c7d2fe">${(ev.noteTutti||'').replace(/</g,'&lt;')}</textarea></div>
-  <div class="divisore-modale">🍽️ Note per la sala</div><div class="campo"><textarea id="me-n-sala" style="background:#f0fdf4;border-color:#bbf7d0">${(ev.noteSala||'').replace(/</g,'&lt;')}</textarea></div>
-  <div class="divisore-modale">👨‍🍳 Note per la cucina</div><div class="campo"><textarea id="me-n-cucina" style="background:#fff7ed;border-color:#fed7aa">${(ev.noteCucina||'').replace(/</g,'&lt;')}</textarea></div>
-  <div class="divisore-modale">📦 Note per il magazzino</div><div class="campo"><textarea id="me-n-mag" style="background:#f5f3ff;border-color:#ddd6fe">${(ev.noteMagazzino||'').replace(/</g,'&lt;')}</textarea></div>
-  ${isAdmin?`<div class="divisore-modale">🔒 Cartella privata Admin</div><div class="campo"><textarea id="me-n-priv" style="background:#fdf4ff;border-color:#f5d0fe">${(ev.notePrivata||'').replace(/</g,'&lt;')}</textarea></div>`:''}
+  <div class="divisore-modale">📝 Note per tutti</div><div class="campo">${renderStoricoNote(ev,'tutti')}<textarea id="me-n-tutti" placeholder="Scrivi un nuovo messaggio per tutti…" style="background:#eef2ff;border-color:#c7d2fe"></textarea></div>
+  <div class="divisore-modale">🍽️ Note per la sala</div><div class="campo">${renderStoricoNote(ev,'sala')}<textarea id="me-n-sala" placeholder="Scrivi un nuovo messaggio per la sala…" style="background:#f0fdf4;border-color:#bbf7d0"></textarea></div>
+  <div class="divisore-modale">👨‍🍳 Note per la cucina</div><div class="campo">${renderStoricoNote(ev,'cucina')}<textarea id="me-n-cucina" placeholder="Scrivi un nuovo messaggio per la cucina…" style="background:#fff7ed;border-color:#fed7aa"></textarea></div>
+  <div class="divisore-modale">📦 Note per il magazzino</div><div class="campo">${renderStoricoNote(ev,'magazzino')}<textarea id="me-n-mag" placeholder="Scrivi un nuovo messaggio per il magazzino…" style="background:#f5f3ff;border-color:#ddd6fe"></textarea></div>
+  ${isAdmin?`<div class="divisore-modale">🔒 Cartella privata Admin</div><div class="campo">${renderStoricoNote(ev,'admin')}<textarea id="me-n-priv" placeholder="Scrivi un nuovo messaggio privato…" style="background:#fdf4ff;border-color:#f5d0fe"></textarea></div>`:''}
  `;
  document.getElementById('d-foot').innerHTML=`<button class="btn-ghost" onclick="chiudiDrawer()">Annulla</button><button class="btn-primary" id="me-salva" style="background:#3e765e">💾 Salva modifiche</button>`;
  d.classList.add('open');bg.classList.add('open');
@@ -2029,11 +2054,10 @@ function apriModaleModificaEvento(ev){
   ev.ospiti=parseInt(document.getElementById('me-osp').value)||0;
   ev.bambini=parseInt(document.getElementById('me-bam').value)||0;
   ev.staff=parseInt(document.getElementById('me-stf').value)||0;
-  ev.noteTutti=document.getElementById('me-n-tutti').value;
-  ev.noteSala=document.getElementById('me-n-sala').value;
-  ev.noteCucina=document.getElementById('me-n-cucina').value;
-  ev.noteMagazzino=document.getElementById('me-n-mag').value;
-  if(isAdmin&&document.getElementById('me-n-priv'))ev.notePrivata=document.getElementById('me-n-priv').value;
+  const nuoviMessaggi=[];
+  [['tutti','me-n-tutti'],['sala','me-n-sala'],['cucina','me-n-cucina'],['magazzino','me-n-mag']].forEach(function(x){const msg=aggiungiNotaStorica(ev,x[0],document.getElementById(x[1]).value);if(msg)nuoviMessaggi.push([x[0],msg]);});
+  if(isAdmin&&document.getElementById('me-n-priv')){const msg=aggiungiNotaStorica(ev,'admin',document.getElementById('me-n-priv').value);if(msg)nuoviMessaggi.push(['admin',msg]);}
+  nuoviMessaggi.forEach(function(x){creaNotificaNotaStorica(ev,x[0],x[1]);});
   let salv=[];
   try{salv=JSON.parse(localStorage.getItem('ergo_eventi'))||[]}catch(e){}
   const idx=salv.findIndex(e=>e.id===ev.id);
@@ -7522,7 +7546,7 @@ window.mostraPopupBenvenuto=function(){
     return {qr_token:assicuraQrToken(p),codice:p.codice,nome:p.nome,categoria:p.categoria||'',quantita:Number(p.quantita||0),posizione:p.posizione||'',costo_noleggio:Number(p.prezzo||p.costo_noleggio||0),note:p.note||'',foto_path:p.foto_path||((p.foto&&/^https?:/.test(p.foto))?'':p.foto)||'',scheda_materiale:sh.materiale||'',scheda_colore:sh.colore||'',scheda_dimensione:sh.dimensione||'',scheda_note:sh.note||''};
   }
   function eventPayload(e){
-    return {nome_evento:e.titolo,data:(e.inizio||'').slice(0,10),data_display:e.data_display||e.inizio||'',location:e.location||'',ospiti:Number(e.ospiti||0),bambini:Number(e.bambini||0),staff:Number(e.staff||0),note_tutti:e.noteTutti||'',allegati_tutti:e.allegatiTutti||[],note_sala:e.noteSala||'',allegati_sala:e.allegatiSala||[],note_cucina:e.noteCucina||'',allegati_cucina:e.allegatiCucina||[],note_magazzino:e.noteMagazzino||'',allegati_magazzino:e.allegatiMagazzino||[],allegati_privati:e.allegatiPrivata||[],lista_attrezzature:e.listaAttrezzature||[]};
+    return {nome_evento:e.titolo,data:(e.inizio||'').slice(0,10),data_display:e.data_display||e.inizio||'',location:e.location||'',ospiti:Number(e.ospiti||0),bambini:Number(e.bambini||0),staff:Number(e.staff||0),note_tutti:e.noteTutti||'',allegati_tutti:e.allegatiTutti||[],note_sala:e.noteSala||'',allegati_sala:e.allegatiSala||[],note_cucina:e.noteCucina||'',allegati_cucina:e.allegatiCucina||[],note_magazzino:e.noteMagazzino||'',allegati_magazzino:e.allegatiMagazzino||[],allegati_privati:e.allegatiPrivata||[],lista_attrezzature:e.listaAttrezzature||[],note_storico_tutti:e.noteStoricoTutti||[],note_storico_sala:e.noteStoricoSala||[],note_storico_cucina:e.noteStoricoCucina||[],note_storico_magazzino:e.noteStoricoMagazzino||[],note_storico_admin:e.noteStoricoAdmin||[]};
   }
   function firstAttachment(n,key){var a=(n[key]||[])[0]||{};return {name:a.nome||'',url:a.url||'',mime:a.mime||'',path:a.path||''};}
   function rentalPayload(n){
@@ -7657,7 +7681,7 @@ window.mostraPopupBenvenuto=function(){
     return prod;
   }
   function mapEvent(row){
-    return {id:String(row.id),tipo:'evento',titolo:row.nome_evento,inizio:row.inizio||((row.data||'')+'T12:00:00'),fine:row.fine||((row.data||'')+'T23:59:00'),location:row.location||'',ospiti:Number(row.ospiti||0),bambini:Number(row.bambini||0),staff:Number(row.staff||0),noteTutti:row.note_tutti||'',noteSala:row.note_sala||'',noteCucina:row.note_cucina||'',noteMagazzino:row.note_magazzino||'',allegatiTutti:mapFileList(row.allegati_tutti),allegatiSala:mapFileList(row.allegati_sala),allegatiCucina:mapFileList(row.allegati_cucina),allegatiMagazzino:mapFileList(row.allegati_magazzino),allegatiPrivata:mapFileList(row.allegati_privati),listaAttrezzature:Array.isArray(row.lista_attrezzature)?row.lista_attrezzature:[],stato:'confermato'};
+    return {id:String(row.id),tipo:'evento',titolo:row.nome_evento,inizio:row.inizio||((row.data||'')+'T12:00:00'),fine:row.fine||((row.data||'')+'T23:59:00'),location:row.location||'',ospiti:Number(row.ospiti||0),bambini:Number(row.bambini||0),staff:Number(row.staff||0),noteTutti:row.note_tutti||'',noteSala:row.note_sala||'',noteCucina:row.note_cucina||'',noteMagazzino:row.note_magazzino||'',noteStoricoTutti:Array.isArray(row.note_storico_tutti)?row.note_storico_tutti:[],noteStoricoSala:Array.isArray(row.note_storico_sala)?row.note_storico_sala:[],noteStoricoCucina:Array.isArray(row.note_storico_cucina)?row.note_storico_cucina:[],noteStoricoMagazzino:Array.isArray(row.note_storico_magazzino)?row.note_storico_magazzino:[],noteStoricoAdmin:Array.isArray(row.note_storico_admin)?row.note_storico_admin:[],allegatiTutti:mapFileList(row.allegati_tutti),allegatiSala:mapFileList(row.allegati_sala),allegatiCucina:mapFileList(row.allegati_cucina),allegatiMagazzino:mapFileList(row.allegati_magazzino),allegatiPrivata:mapFileList(row.allegati_privati),listaAttrezzature:Array.isArray(row.lista_attrezzature)?row.lista_attrezzature:[],stato:'confermato'};
   }
   function mapRental(row){
     return {id:String(row.id),tipo:'noleggio',titolo:row.titolo,inizio:row.inizio,fine:row.fine,stato:row.stato||'confermato',location:row.location||'',referente:row.referente||'',telefono:row.telefono||'',note:row.note||'',bolla_path:row.bolla_path||'',ddt_path:row.ddt_path||'',vario_path:row.vario_path||'',allegatiBolla:mapFileList(row.bolla_url||row.bolla),allegatiDDT:mapFileList(row.ddt_url||row.ddt),allegatiVario:mapFileList(row.vario_url||row.vario)};
