@@ -6888,6 +6888,13 @@ window.mostraPopupBenvenuto=function(){
   '</svg>'
  };
 
+ /* Grafiche personalizzate richieste per Cucina, Magazzino e Magazzino2. */
+ window.ergoAssistenteSvg={
+  'Cucina':'<svg viewBox="0 0 120 160" xmlns="http://www.w3.org/2000/svg" style="width:110px;height:145px"><ellipse cx="60" cy="152" rx="30" ry="5" fill="#152238" opacity=".15"/><rect x="35" y="58" width="50" height="62" rx="10" fill="#fff" stroke="#e2e8f0" stroke-width="2"/><path d="M35 62Q35 44 47 44Q50 27 60 38Q70 27 73 44Q85 44 85 62Z" fill="#fff" stroke="#cbd5e1" stroke-width="2"/><path d="M43 75h34v8H43z" fill="#f59e0b"/><circle cx="60" cy="35" r="24" fill="#f4c8a1"/><path d="M36 31Q39 8 60 8t24 23Q76 22 60 22T36 31" fill="#4b2e22"/><circle cx="52" cy="36" r="2.5"/><circle cx="68" cy="36" r="2.5"/><path d="M52 46q8 7 16 0" fill="none" stroke="#152238" stroke-width="2" stroke-linecap="round"/></svg>',
+  'Magazzino':'<svg viewBox="0 0 120 160" xmlns="http://www.w3.org/2000/svg" style="width:110px;height:145px"><ellipse cx="60" cy="152" rx="30" ry="5" fill="#152238" opacity=".15"/><rect x="34" y="58" width="52" height="63" rx="10" fill="#f59e0b"/><path d="M34 80h52v9H34z" fill="#b45309" opacity=".7"/><path d="M45 58V43h30v15" fill="none" stroke="#92400e" stroke-width="7"/><circle cx="60" cy="34" r="24" fill="#f4c8a1"/><path d="M33 32Q35 10 60 10t27 22H33z" fill="#f59e0b"/><path d="M31 31h58" stroke="#92400e" stroke-width="5"/><circle cx="52" cy="38" r="2.5"/><circle cx="68" cy="38" r="2.5"/><path d="M52 48q8 7 16 0" fill="none" stroke="#152238" stroke-width="2" stroke-linecap="round"/></svg>',
+  'Magazzino2':'<svg viewBox="0 0 120 160" xmlns="http://www.w3.org/2000/svg" style="width:110px;height:145px"><ellipse cx="60" cy="152" rx="30" ry="5" fill="#152238" opacity=".15"/><rect x="35" y="58" width="50" height="63" rx="10" fill="#7c3aed"/><path d="M35 75h50" stroke="#c4b5fd" stroke-width="4"/><circle cx="60" cy="34" r="24" fill="#f4c8a1"/><path d="M35 32Q36 9 60 9t25 23" fill="#5b3b2e"/><path d="M34 31Q60 22 86 31" fill="none" stroke="#5b3b2e" stroke-width="6"/><rect x="43" y="34" width="14" height="9" rx="4" fill="none" stroke="#152238" stroke-width="2"/><rect x="63" y="34" width="14" height="9" rx="4" fill="none" stroke="#152238" stroke-width="2"/><path d="M57 38h6" stroke="#152238" stroke-width="2"/><path d="M52 49q8 7 16 0" fill="none" stroke="#152238" stroke-width="2" stroke-linecap="round"/></svg>'
+ };
+
  function mostraPersonaggio(){
   try{
    if(typeof user==='undefined'||!user||!user.username)return;
@@ -6900,8 +6907,8 @@ window.mostraPopupBenvenuto=function(){
    });
 
    var saluto={'Amministratore':'Buon lavoro, capo!','Wedding':'Che emozione!','Cucina':'Ai fornelli!','Sala':'Pronti al servizio!','Magazzino':'Tutto in ordine!','Magazzino2':'Si parte!'}[user.ruolo]||'Bentornato!';
-   var nomeRuolo={'Amministratore':'Amministratore','Wedding':'Wedding Planner','Cucina':'Chef','Sala':'Cameriere','Magazzino':'Magazziniere','Magazzino2':'Autista'}[user.ruolo]||user.ruolo;
-   var svg=SVG[user.ruolo]||SVG['Amministratore'];
+   var nomeRuolo={'Amministratore':'Ciao Capo','Wedding':'Ciao Wedding Planner','Cucina':'Ciao Chef','Sala':'Ciao maître','Magazzino':'Ciao Nicola','Magazzino2':'Ciao Simona'}[user.ruolo]||user.ruolo;
+   var svg=window.ergoAssistenteSvg[user.ruolo]||SVG[user.ruolo]||SVG['Amministratore'];
 
    var wrap=document.createElement('div');
    wrap.id='personaggio-attivo';
@@ -6928,7 +6935,7 @@ window.mostraPopupBenvenuto=function(){
    }else{
     html+='<div style="background:#f0fdf4;border:1px solid #86efac;border-radius:9px;padding:7px 10px;font-size:.75rem;color:#166534;font-weight:700;margin-bottom:10px">✓ Tutto a posto</div>';
    }
-   html+='<button type="button" id="pers-inizia" style="width:100%;padding:9px;background:#083278;color:#fff;border:0;border-radius:9px;font-weight:700;font-size:.78rem;cursor:pointer">Inizia a lavorare</button>';
+   html+='<button type="button" id="pers-inizia" style="width:100%;padding:9px;background:#083278;color:#fff;border:0;border-radius:9px;font-weight:700;font-size:.78rem;cursor:pointer">'+(nuove.length>0?'Apri aggiornamenti recenti':'Inizia a lavorare')+'</button>';
    html+='<button type="button" id="pers-x" style="position:absolute;top:6px;right:6px;background:transparent;border:0;color:#94a3b8;font-size:1rem;cursor:pointer;padding:2px 6px">✕</button>';
    cartello.innerHTML=html;
 
@@ -6947,7 +6954,14 @@ window.mostraPopupBenvenuto=function(){
     wrap.style.pointerEvents='none';
     _t(function(){if(wrap.parentNode)wrap.parentNode.removeChild(wrap)},700);
    }
-   document.getElementById('pers-inizia').onclick=chiudi;
+   document.getElementById('pers-inizia').onclick=function(){
+    var vaiAlleNotifiche=nuove.length>0;
+    chiudi();
+    if(vaiAlleNotifiche){
+     view='dashboard';filtroFeed='tutte';app();
+     _t(function(){var feed=document.querySelector('.feed');if(feed)feed.scrollIntoView({behavior:'smooth',block:'start'});},450);
+    }
+   };
    document.getElementById('pers-x').onclick=chiudi;
 
    /* Auto-chiusura dopo 20 sec */
@@ -7004,7 +7018,7 @@ window.mostraPopupBenvenuto=function(){
   if(adesso-ultimo<5*60*1000)return;
   localStorage.setItem('ergo_ultimo_pers_'+user.username,adesso.toString());
 
-  var nomeRuolo={'Amministratore':'Amministratore','Wedding':'Wedding Planner','Cucina':'Chef','Sala':'Cameriere','Magazzino':'Magazziniere','Magazzino2':'Autista'}[user.ruolo]||user.ruolo;
+  var nomeRuolo={'Amministratore':'Ciao Capo','Wedding':'Ciao Wedding Planner','Cucina':'Ciao Chef','Sala':'Ciao maître','Magazzino':'Ciao Nicola','Magazzino2':'Ciao Simona'}[user.ruolo]||user.ruolo;
   var svg=SVG[user.ruolo]||SVG['Amministratore'];
   var colore=(tipo==='evento'?'#3e765e':tipo==='noleggio'?'#083278':tipo==='meteo'?'#0891b2':tipo==='pausa'?'#a66d24':tipo==='buongiorno'?'#f59e0b':tipo==='buonanotte'?'#4c1d95':tipo==='info'?'#6a5a9a':'#6a5a9a');
 
@@ -7188,7 +7202,7 @@ window.mostraPopupBenvenuto=function(){
 
   var colore=config.colore||'#083278';
   var svg=SVG[user.ruolo]||SVG['Amministratore'];
-  var nomeRuolo={'Amministratore':'Amministratore','Wedding':'Wedding Planner','Cucina':'Chef','Sala':'Cameriere','Magazzino':'Magazziniere','Magazzino2':'Autista'}[user.ruolo]||user.ruolo;
+  var nomeRuolo={'Amministratore':'Ciao Capo','Wedding':'Ciao Wedding Planner','Cucina':'Ciao Chef','Sala':'Ciao maître','Magazzino':'Ciao Nicola','Magazzino2':'Ciao Simona'}[user.ruolo]||user.ruolo;
 
   var wrap=document.createElement('div');
   wrap.id='assistente-attivo';
@@ -7548,8 +7562,8 @@ window.mostraPopupBenvenuto=function(){
     if(typeof user==='undefined'||!user) return;
     var old=document.getElementById('assistente-attivo'); if(old) old.remove();
     var color=config.colore||'#083278';
-    var roleName={'Amministratore':'Amministratore','Wedding':'Wedding Planner','Cucina':'Chef','Sala':'Cameriere','Magazzino':'Magazziniere','Magazzino2':'Autista'}[user.ruolo]||user.ruolo;
-    var svg=(typeof SVG!=='undefined'&&SVG[user.ruolo]) || assistantSvg.Amministratore;
+    var roleName={'Amministratore':'Ciao Capo','Wedding':'Ciao Wedding Planner','Cucina':'Ciao Chef','Sala':'Ciao maître','Magazzino':'Ciao Nicola','Magazzino2':'Ciao Simona'}[user.ruolo]||user.ruolo;
+    var svg=window.ergoAssistenteSvg&&window.ergoAssistenteSvg[user.ruolo] || assistantSvg.Amministratore;
     var wrap=document.createElement('div'); wrap.id='assistente-attivo'; wrap.className='assistente-vnext';
     var card=document.createElement('div'); card.className='assistente-card'; card.style.borderColor=color;
     var buttons=config.bottoni||[{label:'Va bene',colore:color}];
