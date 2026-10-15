@@ -6401,7 +6401,7 @@ window.mostraPopupBenvenuto=function(){
  var notifiche=notifichePerUtente(user);
  var nuove=notifiche.filter(function(n){return !isLetta(user.username,n.id)});
  var emoji={'Amministratore':'👑','Wedding':'💍','Cucina':'👨‍🍳','Sala':'🤵','Magazzino':'📦','Magazzino2':'🚚'}[user.ruolo]||'👋';
- var saluto={'Amministratore':'Buon lavoro, capo!','Wedding':'Che emozione!','Cucina':'Ai fornelli!','Sala':'Pronti al servizio!','Magazzino':'Tutto in ordine!','Magazzino2':'Si parte!'}[user.ruolo]||'Bentornato!';
+ var saluto=(window.ergoAssistantIdentity&&window.ergoAssistantIdentity[user.ruolo]&&window.ergoAssistantIdentity[user.ruolo].welcome)||'Bentornato!';
 
  var ov=document.createElement('div');
  ov.className='benvenuto-overlay';
@@ -6462,7 +6462,7 @@ window.mostraPopupBenvenuto=function(){
   var notifiche=notifichePerUtente(user);
   var nuove=notifiche.filter(function(n){return !isLetta(user.username,n.id)});
   var emoji={'Amministratore':'👑','Wedding':'💍','Cucina':'👨‍🍳','Sala':'🤵','Magazzino':'📦','Magazzino2':'🚚'}[user.ruolo]||'👋';
-  var saluto={'Amministratore':'Buon lavoro, capo!','Wedding':'Che emozione!','Cucina':'Ai fornelli!','Sala':'Pronti al servizio!','Magazzino':'Tutto in ordine!','Magazzino2':'Si parte!'}[user.ruolo]||'Bentornato!';
+  var saluto=(window.ergoAssistantIdentity&&window.ergoAssistantIdentity[user.ruolo]&&window.ergoAssistantIdentity[user.ruolo].welcome)||'Bentornato!';
 
   var ov=document.createElement('div');
   ov.className='benvenuto-overlay';
@@ -6935,8 +6935,7 @@ window.mostraPopupBenvenuto=function(){
 
    var identita=window.ergoAssistantIdentity&&window.ergoAssistantIdentity[user.ruolo];
    var introKey='ergo_assistente_intro_'+user.username;
-   var primaApertura=!sessionStorage.getItem(introKey);
-   var saluto=primaApertura&&identita&&identita.welcome?identita.welcome:({'Amministratore':'Buon lavoro, capo!','Wedding':'Che emozione!','Cucina':'Ai fornelli!','Sala':'Pronti al servizio!','Magazzino':'Tutto in ordine!','Magazzino2':'Si parte!'}[user.ruolo]||'Bentornato!');
+   var saluto=(identita&&identita.welcome)||({'Amministratore':'Buon lavoro, capo!','Wedding':'Che emozione!','Cucina':'Ai fornelli!','Sala':'Pronti al servizio!','Magazzino':'Tutto in ordine!','Magazzino2':'Si parte!'}[user.ruolo]||'Bentornato!');
    var nomeRuolo=(identita&&identita.label)||user.ruolo;
    var svg=window.ergoAssistenteSvg[user.ruolo]||SVG[user.ruolo]||SVG['Amministratore'];
 
@@ -6972,8 +6971,7 @@ window.mostraPopupBenvenuto=function(){
    wrap.appendChild(pers);
    wrap.appendChild(cartello);
    document.body.appendChild(wrap);
-   if(primaApertura){try{sessionStorage.setItem(introKey,'1')}catch(e){}}
-
+   
    /* Anima ingresso */
    _t(function(){
     wrap.style.right='24px';
