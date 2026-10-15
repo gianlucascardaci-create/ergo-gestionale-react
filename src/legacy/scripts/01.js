@@ -7566,7 +7566,8 @@ window.mostraPopupBenvenuto=function(){
     finally{ syncing=false; }
   }
   window.ergoSupabaseLoad = loadSupabase;
-  wait(async function(){await loadSupabase();await purgeExpiredAttachments();},120);
+  /* Conservazione permanente: nessuna pulizia automatica di eventi, noleggi o allegati. */
+  wait(async function(){await loadSupabase();},120);
 
   /* Assistente: una sola istanza, più leggibile e con azioni reali. */
   var assistantSvg = {
