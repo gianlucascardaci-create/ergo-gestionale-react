@@ -1452,7 +1452,7 @@ function ruoli(el){
  }
  if(user&&user.username&&!UTENTI[user.username])UTENTI[user.username]={ruolo:user.ruolo,nome:user.nome,email:user.email,iniziali:user.iniziali};
  const listaUtenti=Object.keys(UTENTI).map(k=>({username:k,...UTENTI[k]}));
- if(window.ergoSupabaseListUsers&&!el._remoteUsersLoading){el._remoteUsersLoading=true;window.ergoSupabaseListUsers().then(list=>{const corrente=user&&user.username?{username:user.username,ruolo:user.ruolo,nome:user.nome,email:user.email,iniziali:user.iniziali}:null;Object.keys(UTENTI).forEach(k=>delete UTENTI[k]);(list||[]).forEach(u=>{UTENTI[u.username]={ruolo:u.ruolo,nome:u.nome,email:u.email,iniziali:(u.nome||u.username).split(' ').map(x=>x[0]).slice(0,2).join('').toUpperCase()}});if(corrente&&!UTENTI[corrente.username])UTENTI[corrente.username]={ruolo:corrente.ruolo,nome:corrente.nome,email:corrente.email,iniziali:corrente.iniziali};el._remoteUsersLoading=false;ruoli(el)}).catch(()=>{el._remoteUsersLoading=false})}
+ if(window.ergoSupabaseListUsers&&!el._remoteUsersLoading&&!el._remoteUsersLoaded){el._remoteUsersLoading=true;window.ergoSupabaseListUsers().then(list=>{const corrente=user&&user.username?{username:user.username,ruolo:user.ruolo,nome:user.nome,email:user.email,iniziali:user.iniziali}:null;Object.keys(UTENTI).forEach(k=>delete UTENTI[k]);(list||[]).forEach(u=>{UTENTI[u.username]={ruolo:u.ruolo,nome:u.nome,email:u.email,iniziali:(u.nome||u.username).split(' ').map(x=>x[0]).slice(0,2).join('').toUpperCase()}});if(corrente&&!UTENTI[corrente.username])UTENTI[corrente.username]={ruolo:corrente.ruolo,nome:corrente.nome,email:corrente.email,iniziali:corrente.iniziali};el._remoteUsersLoading=false;el._remoteUsersLoaded=true;ruoli(el)}).catch(()=>{el._remoteUsersLoading=false;el._remoteUsersLoaded=true})}
  el.innerHTML=`<div class="page">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:24px;flex-wrap:wrap">
    <div><p class="eyebrow">Amministrazione</p><h1 class="title">Sistema Ruoli</h1><p class="lede">${listaUtenti.length} utenti autorizzati.</p></div>
@@ -7729,12 +7729,34 @@ window.mostraPopupBenvenuto=function(){
     #personaggio-attivo>div:last-child{min-width:340px !important;max-width:420px !important;padding:20px 22px !important;border-width:3px !important;border-radius:22px !important;margin-bottom:46px !important}
     #personaggio-attivo>div:last-child div{font-size:1rem !important;line-height:1.5 !important}
     #personaggio-attivo>div:last-child button{padding:12px 14px !important;font-size:.86rem !important}
-    /* Apertura pulita: niente scansione, lampeggi o rimbalzi. */
+    /* Apertura dashboard: sequenza leggibile, senza lampeggi o rimbalzi aggressivi. */
     #pc.dash-anim:before{display:none !important;content:none !important}
-    @keyframes ergo-dashboard-soft-open{0%{opacity:0;transform:translateY(10px)}100%{opacity:1;transform:translateY(0)}}
-    #pc.dash-anim .page{animation:ergo-dashboard-soft-open .62s cubic-bezier(.22,.8,.32,1) both !important;filter:none !important}
-    #pc.dash-anim .sidebar,#pc.dash-anim .topbar,#pc.dash-anim .cd-card,#pc.dash-anim .feed,#pc.dash-anim .feed-item,#pc.dash-anim h1.title,#pc.dash-anim .eyebrow,#pc.dash-anim .lede,#pc.dash-anim .metric-icon,#pc.dash-anim .cd-icon{animation:none !important;filter:none !important}
+    @keyframes dash-sidebar{0%{transform:translateX(-28px);opacity:0}100%{transform:translateX(0);opacity:1}}
+    @keyframes dash-topbar{0%{transform:translateY(-18px);opacity:0}100%{transform:translateY(0);opacity:1}}
+    @keyframes dash-card-su{0%{transform:translateY(22px);opacity:0}100%{transform:translateY(0);opacity:1}}
+    @keyframes dash-card-giu{0%{transform:translateY(18px);opacity:0}100%{transform:translateY(0);opacity:1}}
+    @keyframes dash-notifica{0%{transform:translateX(-12px);opacity:0}100%{transform:translateX(0);opacity:1}}
+    @keyframes dash-page-soft{0%{opacity:.35}100%{opacity:1}}
+    #pc.dash-anim .page{animation:dash-page-soft .9s ease-out both !important;filter:none !important}
+    #pc.dash-anim .sidebar{animation:dash-sidebar .75s ease-out .05s both !important}
+    #pc.dash-anim .topbar{animation:dash-topbar .65s ease-out .12s both !important}
+    #pc.dash-anim .cd-card:nth-child(1){animation:dash-card-su .7s ease-out .35s both !important}
+    #pc.dash-anim .cd-card:nth-child(2){animation:dash-card-su .7s ease-out .52s both !important}
+    #pc.dash-anim .feed{animation:dash-card-giu .7s ease-out .7s both !important}
+    #pc.dash-anim .feed-item{animation:dash-notifica .42s ease-out both !important}
+    #pc.dash-anim .feed-item:nth-child(1){animation-delay:.98s !important}.dash-anim .feed-item:nth-child(2){animation-delay:1.08s !important}.dash-anim .feed-item:nth-child(3){animation-delay:1.18s !important}.dash-anim .feed-item:nth-child(4){animation-delay:1.28s !important}.dash-anim .feed-item:nth-child(5){animation-delay:1.38s !important}.dash-anim .feed-item:nth-child(6){animation-delay:1.48s !important}.dash-anim .feed-item:nth-child(7){animation-delay:1.58s !important}
+    #pc.dash-anim h1.title,#pc.dash-anim .eyebrow,#pc.dash-anim .lede{animation:none !important;filter:none !important}
     @media(max-width:560px){#personaggio-attivo{right:8px !important;bottom:8px !important}#personaggio-attivo>div:first-child{width:125px !important;min-width:125px !important}#personaggio-attivo svg{width:125px !important;height:167px !important}#personaggio-attivo>div:last-child{min-width:0 !important;max-width:calc(100vw - 118px) !important;padding:14px !important;margin-bottom:18px !important}}
+    @media(min-width:1800px){
+      .assistente-person{width:330px !important;min-width:330px !important}
+      .assistente-person .assistant-character-image{width:330px !important;height:495px !important;max-width:none !important}
+      .assistente-card{min-width:430px !important;max-width:560px !important;padding:28px 30px !important}
+      .assistente-text{font-size:1.2rem !important;line-height:1.55 !important}
+      #personaggio-attivo>div:first-child{width:330px !important;min-width:330px !important}
+      #personaggio-attivo .assistant-character-image{width:330px !important;height:495px !important;max-width:none !important}
+      #personaggio-attivo>div:last-child{min-width:430px !important;max-width:560px !important;padding:28px 30px !important}
+      #personaggio-attivo>div:last-child div{font-size:1.18rem !important}
+    }
   `;
   document.head.appendChild(visualFix);
 
