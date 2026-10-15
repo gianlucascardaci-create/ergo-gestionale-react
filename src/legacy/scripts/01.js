@@ -7645,10 +7645,11 @@ window.mostraPopupBenvenuto=function(){
   window.assistentePersonale = function(config){
     if(typeof user==='undefined'||!user) return;
     var old=document.getElementById('assistente-attivo'); if(old) old.remove();
-    var color=config.colore||'#083278';
-    var roleName={'Amministratore':'Ciao Capo','Wedding':'Ciao Wedding Planner','Cucina':'Ciao Chef','Sala':'Ciao maître','Magazzino':'Ciao Nicola','Magazzino2':'Ciao Simona'}[user.ruolo]||user.ruolo;
     var moodIcon=String(config.emoji||'').replace(/[<>]/g,'');
-    var mood=(config.espressione==='attenzione'||moodIcon.indexOf('⚠')>=0||moodIcon.indexOf('❌')>=0)?'attenzione':(config.espressione==='azione'||moodIcon.indexOf('🔄')>=0||moodIcon.indexOf('📥')>=0?'azione':'felice');
+    var negative=config.negativo===true||config.espressione==='attenzione'||moodIcon.indexOf('⚠')>=0||moodIcon.indexOf('❌')>=0||/b91c1c|dc2626|991b1b/i.test(String(config.colore||''));
+    var color=negative?'#b91c1c':'#3e765e';
+    var roleName={'Amministratore':'Ciao Capo','Wedding':'Ciao Wedding Planner','Cucina':'Ciao Chef','Sala':'Ciao maître','Magazzino':'Ciao Nicola','Magazzino2':'Ciao Simona'}[user.ruolo]||user.ruolo;
+    var mood=negative?'attenzione':(config.espressione==='azione'||moodIcon.indexOf('🔄')>=0||moodIcon.indexOf('📥')>=0?'azione':'felice');
     var assistantVariants={
       'Amministratore':{felice:'/assistants/admin-happy.webp',attenzione:'/assistants/admin-attention.webp',azione:'/assistants/admin-happy.webp'},
       'Sala':{felice:'/assistants/sala-happy.webp',attenzione:'/assistants/sala-attention.webp',azione:'/assistants/sala-happy.webp'},
@@ -7692,10 +7693,11 @@ window.mostraPopupBenvenuto=function(){
   /* Tutti i messaggi passano dal personaggio: nessun alert nativo o toast successivo. */
   window.alert = function(message){
     var text=String(message||'').replace(/\n/g,'<br>');
-    var error=/errore|obbligatorio|non trovato|non disponibile|non corrette|massimo|nessun/i.test(text);
+    var error=/errore|obbligatorio|non trovato|non disponibile|non corrette|non completat|non accettat|massimo|nessun|fallit|impossibile|mancant|manca/i.test(text);
     window.assistentePersonale({
       testo:text,
       emoji:error?'⚠️':'✅',
+      negativo:error,
       colore:error?'#b91c1c':'#3e765e',
       autoClose:true,durata:10000,
       bottoni:[{label:'Ho capito',colore:error?'#b91c1c':'#3e765e'}]
@@ -7836,7 +7838,7 @@ window.mostraPopupBenvenuto=function(){
     window._assistentePdfChoiceWrapped=true;
     window.scaricaAllegatiConScelta=function(lista,sezione){
       if(!Array.isArray(lista)||lista.length===0){
-        window.assistentePersonale({testo:'<b>Nessun allegato disponibile</b><br>Non ci sono file da scaricare in questa sezione.',emoji:'📎',colore:'#b91c1c',autoClose:true,durata:10000});
+        window.assistentePersonale({testo:'<b>Nessun allegato disponibile</b><br>Non ci sono file da scaricare in questa sezione.',emoji:'⚠️',negativo:true,colore:'#b91c1c',autoClose:true,durata:10000});
         return;
       }
       if(lista.length===1){
