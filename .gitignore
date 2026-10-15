@@ -4,3 +4,6 @@ dist/
 .env.local
 .env.*.local
 .DS_Store
+
+# Sorgenti PNG pesanti degli assistenti: l’app usa le versioni WebP
+public/assistants/*.png
