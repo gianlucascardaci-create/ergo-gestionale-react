@@ -6401,7 +6401,7 @@ function mostraPopupBenvenuto(){
     window._benvenutoMostrato=true;
     setTimeout(function(){
      if(typeof mostraPopupBenvenuto==='function')mostraPopupBenvenuto();
-    },4000);
+    },2000);
    }
    return r;
   };
@@ -6523,7 +6523,7 @@ window.mostraPopupBenvenuto=function(){
    var r=_origDash.apply(this,arguments);
    if(user&&user.username&&!window._popupMostratoInSessione){
     window._popupMostratoInSessione=true;
-    setTimeout(function(){window.mostraPopupBenvenuto()},6000);
+    setTimeout(function(){window.mostraPopupBenvenuto()},2000);
    }
    return r;
   };
@@ -6719,14 +6719,14 @@ window.mostraPopupBenvenuto=function(){
 /* ===== 2. POPUP SINGOLO — blocca definitivamente il doppione ===== */
 (function(){
  /* Intercetta TUTTI i setTimeout che chiamano mostraPopupBenvenuto
-    e lascia passare solo quello con delay >= 6000 */
+    e lascia passare solo quello con delay >= 2000 */
  var _timeoutOriginale=window.setTimeout;
  window.setTimeout=function(fn,delay){
   if(typeof fn==='function'){
    var src=fn.toString();
    if(src.indexOf('mostraPopupBenvenuto')>=0){
     /* Se è un vecchio timeout (< 6000), ignoriamolo */
-    if(delay&&delay<6000){
+    if(delay&&delay<2000){
      return _timeoutOriginale(function(){},100);
     }
    }
@@ -6736,13 +6736,13 @@ window.mostraPopupBenvenuto=function(){
 })();
   /* === FORZA POPUP A 4 SECONDI === */
 (function(){
- /* Intercetta TUTTI i setTimeout e blocca i popup con delay > 4000 */
+ /* Intercetta TUTTI i setTimeout e blocca i popup con delay > 2000 */
  var _timeoutOriginale=window.setTimeout;
  window.setTimeout=function(fn,delay){
   if(typeof fn==='function'){
    var src=fn.toString();
    /* Se la funzione contiene "mostraPopupBenvenuto" e il delay è > 4000, blocca */
-   if(src.indexOf('mostraPopupBenvenuto')>=0&&delay&&delay>4000){
+   if(src.indexOf('mostraPopupBenvenuto')>=0&&delay&&delay>2000){
     return _timeoutOriginale(function(){},100);
    }
   }
@@ -6760,7 +6760,7 @@ window.mostraPopupBenvenuto=function(){
      if(typeof mostraPopupBenvenuto==='function'){
       mostraPopupBenvenuto();
      }
-    },4000);
+    },2000);
    }
    return r;
   };
