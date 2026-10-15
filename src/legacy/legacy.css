@@ -358,9 +358,9 @@ h1.title{font-size:clamp(1.8rem,3vw,2.6rem);margin-top:8px;line-height:1.08}
 }
   /* === RESPONSIVE — schermi grandi (Mac/PC 1800px+) === */
 @media (min-width:1800px){
- body{font-size:16.5px}
- .page{padding:48px 50px 40px;max-width:1600px;margin:0 auto}
- .sidebar{width:270px;padding:26px 18px}
+ body{font-size:18px}
+ .page{padding:56px 64px 48px;max-width:1900px;margin:0 auto}
+ .sidebar{width:300px;padding:30px 22px}
  h1.title{font-size:3rem}
  .lede{font-size:.98rem}
  .cd-grid{gap:20px;margin-bottom:26px}

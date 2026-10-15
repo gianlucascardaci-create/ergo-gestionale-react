@@ -233,7 +233,7 @@ function app(){
  document.getElementById('mm').onclick=()=>document.getElementById('sb').classList.toggle('open');
  document.getElementById('out').onclick=()=>{user=null;login()};
  const pc=document.getElementById('pc');
- if(view==='dashboard')dash(pc);
+ if(view==='dashboard'){dash(pc);pc.classList.remove('dash-anim');void pc.offsetWidth;pc.classList.add('dash-anim');wait(function(){if(pc)pc.classList.remove('dash-anim')},7200);}
  else if(view==='inventario')inv(pc);
  else if(view==='calendario')cal(pc);
  else if(view==='ruoli')ruoli(pc);
@@ -1450,8 +1450,9 @@ function ruoli(el){
   el.innerHTML='<div class="page"><p class="eyebrow">Sezione</p><h1 class="title">Accesso negato</h1></div>';
   return;
  }
+ if(user&&user.username&&!UTENTI[user.username])UTENTI[user.username]={ruolo:user.ruolo,nome:user.nome,email:user.email,iniziali:user.iniziali};
  const listaUtenti=Object.keys(UTENTI).map(k=>({username:k,...UTENTI[k]}));
- if(window.ergoSupabaseListUsers&&!el._remoteUsersLoading){el._remoteUsersLoading=true;window.ergoSupabaseListUsers().then(list=>{Object.keys(UTENTI).forEach(k=>delete UTENTI[k]);(list||[]).forEach(u=>{UTENTI[u.username]={ruolo:u.ruolo,nome:u.nome,email:u.email,iniziali:(u.nome||u.username).split(' ').map(x=>x[0]).slice(0,2).join('').toUpperCase()}});el._remoteUsersLoading=false;ruoli(el)}).catch(()=>{el._remoteUsersLoading=false})}
+ if(window.ergoSupabaseListUsers&&!el._remoteUsersLoading){el._remoteUsersLoading=true;window.ergoSupabaseListUsers().then(list=>{const corrente=user&&user.username?{username:user.username,ruolo:user.ruolo,nome:user.nome,email:user.email,iniziali:user.iniziali}:null;Object.keys(UTENTI).forEach(k=>delete UTENTI[k]);(list||[]).forEach(u=>{UTENTI[u.username]={ruolo:u.ruolo,nome:u.nome,email:u.email,iniziali:(u.nome||u.username).split(' ').map(x=>x[0]).slice(0,2).join('').toUpperCase()}});if(corrente&&!UTENTI[corrente.username])UTENTI[corrente.username]={ruolo:corrente.ruolo,nome:corrente.nome,email:corrente.email,iniziali:corrente.iniziali};el._remoteUsersLoading=false;ruoli(el)}).catch(()=>{el._remoteUsersLoading=false})}
  el.innerHTML=`<div class="page">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:24px;flex-wrap:wrap">
    <div><p class="eyebrow">Amministrazione</p><h1 class="title">Sistema Ruoli</h1><p class="lede">${listaUtenti.length} utenti autorizzati.</p></div>
@@ -1499,7 +1500,7 @@ function modaleUtente(username){
  document.getElementById('d-eyebrow').textContent=modifica?'Modifica utente':'Nuovo utente';
  document.getElementById('d-titolo').textContent=modifica?('👤 '+username):'👤 Aggiungi utente';
  document.getElementById('d-body').innerHTML=`
-  <div class="campo"><label>Username <span style="color:#dc2626">*</span></label><input id="usr-name" value="${modifica?username:''}" ${modifica?'readonly':''}></div>
+  <div class="campo"><label>Username <span style="color:#dc2626">*</span></label><input id="usr-name" value="${modifica?username:''}"></div>
   <div class="campo"><label>Nome / Reparto</label><input id="usr-nome" value="${(u.nome||'').replace(/"/g,'&quot;')}"></div>
   <div class="campo"><label>Email</label><input id="usr-email" type="email" value="${(u.email||'').replace(/"/g,'&quot;')}"></div>
   <div class="campo"><label>Ruolo <span style="color:#dc2626">*</span></label>
@@ -6907,11 +6908,11 @@ window.mostraPopupBenvenuto=function(){
  window.ergoAssistenteSvg.Magazzino2='<svg viewBox="0 0 120 160" xmlns="http://www.w3.org/2000/svg"><ellipse cx="60" cy="153" rx="29" ry="4" fill="#152238" opacity=".16"/><rect x="43" y="116" width="14" height="32" rx="6" fill="#374151"/><rect x="63" y="116" width="14" height="32" rx="6" fill="#374151"/><ellipse cx="49" cy="150" rx="11" ry="4" fill="#152238"/><ellipse cx="71" cy="150" rx="11" ry="4" fill="#152238"/><rect x="34" y="57" width="52" height="63" rx="10" fill="#7c3aed"/><path d="M34 80h52" stroke="#c4b5fd" stroke-width="4"/><circle cx="60" cy="34" r="24" fill="#f4c8a1"/><path d="M33 31Q33 7 60 7Q87 7 87 31L84 75Q75 88 60 88Q45 88 36 75Z" fill="#5b3b2e"/><path d="M36 31Q60 22 84 31" fill="none" stroke="#3f2922" stroke-width="6"/><circle cx="60" cy="35" r="24" fill="#f4c8a1"/><path d="M33 31Q33 7 60 7Q87 7 87 31L84 75Q75 88 60 88Q45 88 36 75Z" fill="#5b3b2e"/><path d="M36 31Q60 22 84 31" fill="none" stroke="#3f2922" stroke-width="6"/><rect x="42" y="34" width="15" height="10" rx="4" fill="none" stroke="#152238" stroke-width="2"/><rect x="63" y="34" width="15" height="10" rx="4" fill="none" stroke="#152238" stroke-width="2"/><path d="M57 39h6" stroke="#152238" stroke-width="2"/><path d="M52 49q8 7 16 0" fill="none" stroke="#152238" stroke-width="2"/></svg>';
  /* Identità degli assistenti personali: nome, saluto e funzione. */
  window.ergoAssistantIdentity={
-  'Amministratore':{label:'Ciao Capo · Luca',welcome:'Ciao Capo, sono Luca, il tuo assistente personale.'},
-  'Sala':{label:'Ciao maître · Lorenzo',welcome:'Ciao maître, sono Lorenzo, il tuo aiuto sala personale.'},
-  'Cucina':{label:'Ciao Chef · Gigi',welcome:'Ciao Chef, sono Gigi, il tuo assistente cuoco personale.'},
-  'Magazzino':{label:'Ciao Nicola · Pietro',welcome:'Ciao Nicola, sono Pietro, il tuo assistente magazzino personale.'},
-  'Magazzino2':{label:'Ciao Simona · Elena',welcome:'Ciao Simona, sono Elena, la tua assistente magazzino personale.'}
+  'Amministratore':{label:'Ciao Capo',welcome:'Ciao Capo, piacere, sono Luca, il tuo assistente personale.'},
+  'Sala':{label:'Ciao maître',welcome:'Ciao maître, sono Lorenzo, il tuo aiuto sala personale.'},
+  'Cucina':{label:'Ciao Chef',welcome:'Ciao Chef, sono Gigi, il tuo assistente cuoco personale.'},
+  'Magazzino':{label:'Ciao Nicola',welcome:'Ciao Nicola, sono Pietro, il tuo assistente magazzino personale.'},
+  'Magazzino2':{label:'Ciao Simona',welcome:'Ciao Simona, sono Elena, la tua assistente magazzino personale.'}
  };
  /* Nuova serie illustrata: personaggi a corpo intero, leggibili e coerenti per ruolo. */
  window.ergoAssistenteSvg={
@@ -6932,8 +6933,11 @@ window.mostraPopupBenvenuto=function(){
     try{return typeof isLetta==='function'?!isLetta(user.username,n.id):true}catch(e){return true}
    });
 
-   var saluto={'Amministratore':'Buon lavoro, capo!','Wedding':'Che emozione!','Cucina':'Ai fornelli!','Sala':'Pronti al servizio!','Magazzino':'Tutto in ordine!','Magazzino2':'Si parte!'}[user.ruolo]||'Bentornato!';
-   var nomeRuolo=(window.ergoAssistantIdentity&&window.ergoAssistantIdentity[user.ruolo]&&window.ergoAssistantIdentity[user.ruolo].label)||user.ruolo;
+   var identita=window.ergoAssistantIdentity&&window.ergoAssistantIdentity[user.ruolo];
+   var introKey='ergo_assistente_intro_'+user.username;
+   var primaApertura=!sessionStorage.getItem(introKey);
+   var saluto=primaApertura&&identita&&identita.welcome?identita.welcome:({'Amministratore':'Buon lavoro, capo!','Wedding':'Che emozione!','Cucina':'Ai fornelli!','Sala':'Pronti al servizio!','Magazzino':'Tutto in ordine!','Magazzino2':'Si parte!'}[user.ruolo]||'Bentornato!');
+   var nomeRuolo=(identita&&identita.label)||user.ruolo;
    var svg=window.ergoAssistenteSvg[user.ruolo]||SVG[user.ruolo]||SVG['Amministratore'];
 
    var wrap=document.createElement('div');
@@ -6968,6 +6972,7 @@ window.mostraPopupBenvenuto=function(){
    wrap.appendChild(pers);
    wrap.appendChild(cartello);
    document.body.appendChild(wrap);
+   if(primaApertura){try{sessionStorage.setItem(introKey,'1')}catch(e){}}
 
    /* Anima ingresso */
    _t(function(){
