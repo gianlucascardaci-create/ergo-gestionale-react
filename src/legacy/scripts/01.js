@@ -363,7 +363,7 @@ function raggruppaNotificheFeed(lista){
  (lista||[]).forEach(function(n){
   const evento=n.dettagli&&n.dettagli.evento;
   const raggruppabile=evento&&(n.tipo==='evento'||n.tipo==='nota'||n.tipo==='allegato');
-  const key=raggruppabile?'evento:'+evento:'singolo:'+n.id;
+  const giorno=raggruppabile&&n.dettagli&&n.dettagli.data?String(n.dettagli.data).slice(0,10):''; const key=raggruppabile?'evento:'+evento+'|'+giorno:'singolo:'+n.id;
   if(!byKey[key]){byKey[key]={id:'feed-'+out.length,eventName:evento||'',items:[],latest:n.quando};byKey[key].items.push(n);out.push(byKey[key]);}
   else{byKey[key].items.push(n);if(new Date(n.quando)>new Date(byKey[key].latest))byKey[key].latest=n.quando;}
  });
@@ -6242,6 +6242,9 @@ window.cal=function(el){
  document.head.appendChild(s);
 })();
 
+function pdfSafeText(value){
+  return String(value||'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[\u{1F000}-\u{1FAFF}\u{2000}-\u{2BFF}\u{FE00}-\u{FEFF}]/gu,'').replace(/[\u0000-\u001F]/g,' ').replace(/[^\x20-\x7E]/g,'?').trim();
+}
 window.scaricaUnicoPdf=async function(lista,sezione){
  if(!window.PDFLib){
   alert('Attendi 2 secondi e riprova (libreria PDF in caricamento).');
@@ -6257,12 +6260,12 @@ window.scaricaUnicoPdf=async function(lista,sezione){
   var fontB=await mergedPdf.embedFont(window.PDFLib.StandardFonts.HelveticaBold);
   var fontR=await mergedPdf.embedFont(window.PDFLib.StandardFonts.Helvetica);
   cover.drawRectangle({x:0,y:782,width:595,height:60,color:rgb(0.03,0.20,0.47)});
-  cover.drawText(sezione||'Allegati',{x:30,y:805,size:22,font:fontB,color:rgb(1,1,1)});
-  cover.drawText(lista.length+' allegati',{x:30,y:790,size:10,font:fontR,color:rgb(0.8,0.9,1)});
+  cover.drawText(pdfSafeText(sezione||'Allegati'),{x:30,y:805,size:22,font:fontB,color:rgb(1,1,1)});
+  cover.drawText(pdfSafeText(lista.length+' allegati'),{x:30,y:790,size:10,font:fontR,color:rgb(0.8,0.9,1)});
   cover.drawText('Contenuto:',{x:30,y:740,size:13,font:fontB,color:rgb(0.08,0.13,0.22)});
   var yc=720;
   for(var i=0;i<lista.length;i++){
-   cover.drawText((i+1)+'. '+(lista[i].nome||'file'),{x:30,y:yc,size:11,font:fontR,color:rgb(0.2,0.25,0.35)});
+   cover.drawText(pdfSafeText((i+1)+'. '+(lista[i].nome||'file')),{x:30,y:yc,size:11,font:fontR,color:rgb(0.2,0.25,0.35)});
    yc-=18;
    if(yc<60)break;
   }
@@ -7646,8 +7649,14 @@ window.mostraPopupBenvenuto=function(){
     try{var r=await sb.storage.from('immagini_prodotti').createSignedUrl(prod.foto_path,3600);if(!r.error&&r.data)prod.foto=r.data.signedUrl;}catch(e){console.warn('Anteprima foto non disponibile',e)}
     return prod;
   }
+  function dataEventoLocale(row){
+    var raw=String(row.data||'').slice(0,10);
+    var ora='12:00:00';
+    if(row.inizio){var m=String(row.inizio).match(/T(\d{2}:\d{2}(?::\d{2})?)/);if(m)ora=m[1].length===5?m[1]+':00':m[1];}
+    return raw?raw+'T'+ora:'';
+  }
   function mapEvent(row){
-    return {id:String(row.id),tipo:'evento',titolo:row.nome_evento,inizio:row.inizio||((row.data||'')+'T12:00:00'),fine:row.fine||((row.data||'')+'T23:59:00'),location:row.location||'',ospiti:Number(row.ospiti||0),bambini:Number(row.bambini||0),staff:Number(row.staff||0),noteTutti:row.note_tutti||'',noteSala:row.note_sala||'',noteCucina:row.note_cucina||'',noteMagazzino:row.note_magazzino||'',noteStoricoTutti:Array.isArray(row.note_storico_tutti)?row.note_storico_tutti:[],noteStoricoSala:Array.isArray(row.note_storico_sala)?row.note_storico_sala:[],noteStoricoCucina:Array.isArray(row.note_storico_cucina)?row.note_storico_cucina:[],noteStoricoMagazzino:Array.isArray(row.note_storico_magazzino)?row.note_storico_magazzino:[],noteStoricoAdmin:Array.isArray(row.note_storico_admin)?row.note_storico_admin:[],allegatiTutti:mapFileList(row.allegati_tutti),allegatiSala:mapFileList(row.allegati_sala),allegatiCucina:mapFileList(row.allegati_cucina),allegatiMagazzino:mapFileList(row.allegati_magazzino),allegatiPrivata:mapFileList(row.allegati_privati),listaAttrezzature:Array.isArray(row.lista_attrezzature)?row.lista_attrezzature:[],stato:'confermato'};
+    return {id:String(row.id),tipo:'evento',titolo:row.nome_evento,inizio:dataEventoLocale(row),fine:(String(row.data||'').slice(0,10)||dataEventoLocale(row).slice(0,10))+'T23:59:59',location:row.location||'',ospiti:Number(row.ospiti||0),bambini:Number(row.bambini||0),staff:Number(row.staff||0),noteTutti:row.note_tutti||'',noteSala:row.note_sala||'',noteCucina:row.note_cucina||'',noteMagazzino:row.note_magazzino||'',noteStoricoTutti:Array.isArray(row.note_storico_tutti)?row.note_storico_tutti:[],noteStoricoSala:Array.isArray(row.note_storico_sala)?row.note_storico_sala:[],noteStoricoCucina:Array.isArray(row.note_storico_cucina)?row.note_storico_cucina:[],noteStoricoMagazzino:Array.isArray(row.note_storico_magazzino)?row.note_storico_magazzino:[],noteStoricoAdmin:Array.isArray(row.note_storico_admin)?row.note_storico_admin:[],allegatiTutti:mapFileList(row.allegati_tutti),allegatiSala:mapFileList(row.allegati_sala),allegatiCucina:mapFileList(row.allegati_cucina),allegatiMagazzino:mapFileList(row.allegati_magazzino),allegatiPrivata:mapFileList(row.allegati_privati),listaAttrezzature:Array.isArray(row.lista_attrezzature)?row.lista_attrezzature:[],stato:'confermato'};
   }
   function mapRental(row){
     return {id:String(row.id),tipo:'noleggio',titolo:row.titolo,inizio:row.inizio,fine:row.fine,stato:row.stato||'confermato',location:row.location||'',referente:row.referente||'',telefono:row.telefono||'',note:row.note||'',bolla_path:row.bolla_path||'',ddt_path:row.ddt_path||'',vario_path:row.vario_path||'',allegatiBolla:mapFileList(row.bolla_url||row.bolla),allegatiDDT:mapFileList(row.ddt_url||row.ddt),allegatiVario:mapFileList(row.vario_url||row.vario)};
