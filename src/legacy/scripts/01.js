@@ -1507,7 +1507,7 @@ function modaleUtente(username){
  d.classList.add('open');bg.classList.add('open');
  document.getElementById('d-close').onclick=chiudiDrawer;
  bg.onclick=chiudiDrawer;
- document.getElementById('usr-salva').onclick=()=>{
+ document.getElementById('usr-salva').onclick=async()=>{
   const username2=document.getElementById('usr-name').value.trim();
   const nome=document.getElementById('usr-nome').value.trim();
   const email=document.getElementById('usr-email').value.trim();
@@ -1607,7 +1607,7 @@ const _qrToken=_qp.get('qr');
 if(_qrToken){apriQRPubblico(_qrToken);}
 else{login();}
   /* === FIX CAMPI OSPITI/BAMBINI/STAFF === */
-function apriModaleEvento(){
+function apriModaleEventoCampi(){
  const oggi=new Date().toISOString().slice(0,10);
  const isAdmin=user.ruolo==='Amministratore';
  const d=document.getElementById('d-panel'),bg=document.getElementById('d-bg');
@@ -1686,6 +1686,7 @@ function apriModaleEvento(){
   if(pc){if(view==='calendario')cal(pc);else if(view==='dashboard')dash(pc)}
  };
 }
+  apriModaleEvento=apriModaleEventoCampi;
   /* ============================================================
    FIX: MAGAZZINO2 VEDE PREZZO INVENTARIO
    ============================================================ */
@@ -2385,7 +2386,7 @@ async function mostraMeteoDashboard(){
    AGGIUNTA: CAMPO "CITTÀ" separato dalla location
    ============================================================ */
 /* Sovrascrivo apriModaleEvento per aggiungere campo Città */
-function apriModaleEvento(){
+function apriModaleEventoCitta(){
  const oggi=new Date().toISOString().slice(0,10);
  const isAdmin=user.ruolo==='Amministratore';
  const d=document.getElementById('d-panel'),bg=document.getElementById('d-bg');
@@ -2466,6 +2467,7 @@ function apriModaleEvento(){
  };
 }
 
+apriModaleEvento=apriModaleEventoCitta;
 /* Sovrascrivo apriModaleNoleggio per aggiungere campo Città */
 function apriModaleNoleggio(){
  const oggi=new Date().toISOString().slice(0,10);
