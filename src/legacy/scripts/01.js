@@ -7693,7 +7693,7 @@ window.mostraPopupBenvenuto=function(){
   /* Tutti i messaggi passano dal personaggio: nessun alert nativo o toast successivo. */
   window.alert = function(message){
     var text=String(message||'').replace(/\n/g,'<br>');
-    var error=/errore|obbligatorio|non trovato|non disponibile|non corrette|non completat|non accettat|massimo|nessun|fallit|impossibile|mancant|manca/i.test(text);
+    var error=/errore|obbligatorio|non trovato|non disponibile|non ci sono|non corrette|non completat|non accettat|massimo|nessun|fallit|impossibile|mancant|manca/i.test(text);
     window.assistentePersonale({
       testo:text,
       emoji:error?'⚠️':'✅',
