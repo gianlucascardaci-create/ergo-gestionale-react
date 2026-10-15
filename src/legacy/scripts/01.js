@@ -91,6 +91,12 @@ function renderStoricoNote(ev,reparto){
  const arr=storicoNote(ev,reparto);if(!arr.length)return '<div class="note-thread-empty">Nessun messaggio ancora. Scrivi il primo aggiornamento qui sotto.</div>';
  return '<div class="note-thread">'+arr.map(function(m,i){return '<div class="note-thread-msg"><div class="note-thread-meta"><strong>'+escapeHtml(m.da||'Utente')+'</strong><span>'+new Date(m.quando||Date.now()).toLocaleString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})+'</span></div><div class="note-thread-text">'+escapeHtml(m.testo||'')+'</div><div class="note-thread-state">'+(m.legacy||m.letto?'✓ Visualizzato':'Nuovo messaggio')+'</div></div>';}).join('')+'</div>';
 }
+function marcaStoricoNoteLette(ev,reparto){
+ const campo=CAMPI_STORICO_NOTE[reparto];if(!campo||!ev||!Array.isArray(ev[campo]))return;
+ ev[campo].forEach(function(m){m.letto=true});
+}
+function titoloRepartoNota(reparto){return {tutti:'Note per tutti',sala:'Conversazione sala',cucina:'Conversazione cucina',magazzino:'Conversazione magazzino',admin:'Conversazione privata Admin'}[reparto]||'Conversazione';}
+
 function aggiungiNotaStorica(ev,reparto,testo){
  const testoPulito=String(testo||'').trim(),campo=CAMPI_STORICO_NOTE[reparto];if(!campo||!testoPulito)return null;
  const arr=storicoNote(ev,reparto);const msg={id:'nota-'+Date.now()+'-'+Math.random().toString(36).slice(2,7),testo:testoPulito,da:user?user.nome:'Utente',ruolo:user?user.ruolo:'',quando:new Date().toISOString(),letto:false};arr.push(msg);ev[campo]=arr;
@@ -815,10 +821,10 @@ function apriDrawerEnt(tipo,obj){
   const vediSala=isAdmin||isWedding||user.ruolo==='Sala';
   const vediCucina=isAdmin||isWedding||user.ruolo==='Cucina';
   const vediMag=isAdmin||isWedding||isMag1||isMag2;
-  if(obj.noteTutti)h+=`<h4>📝 Note per tutti</h4><div class="note-box tutti">${obj.noteTutti}</div>`;
-  if(vediSala&&obj.noteSala)h+=`<h4>🍽️ Note per la sala</h4><div class="note-box sala">${obj.noteSala}</div>`;
-  if(vediCucina&&obj.noteCucina)h+=`<h4>👨‍🍳 Note per la cucina</h4><div class="note-box cucina">${obj.noteCucina}</div>`;
-  if(vediMag&&obj.noteMagazzino)h+=`<h4>📦 Note per il magazzino</h4><div class="note-box magazzino">${obj.noteMagazzino}</div>`;
+  if(storicoNote(obj,'tutti').length){marcaStoricoNoteLette(obj,'tutti');h+=`<h4>📝 ${titoloRepartoNota('tutti')}</h4>${renderStoricoNote(obj,'tutti')}`;}
+  if(vediSala&&storicoNote(obj,'sala').length){marcaStoricoNoteLette(obj,'sala');h+=`<h4>🍽️ ${titoloRepartoNota('sala')}</h4>${renderStoricoNote(obj,'sala')}`;}
+  if(vediCucina&&storicoNote(obj,'cucina').length){marcaStoricoNoteLette(obj,'cucina');h+=`<h4>👨‍🍳 ${titoloRepartoNota('cucina')}</h4>${renderStoricoNote(obj,'cucina')}`;}
+  if(vediMag&&storicoNote(obj,'magazzino').length){marcaStoricoNoteLette(obj,'magazzino');h+=`<h4>📦 ${titoloRepartoNota('magazzino')}</h4>${renderStoricoNote(obj,'magazzino')}`;}
   const tuttiAllegati=raccogliAllegatiEnt('evento',obj,vediSala,vediCucina,vediMag);
   if(tuttiAllegati.length>0){
    h+=`<h4>📎 Allegati (${tuttiAllegati.length})</h4>`;
