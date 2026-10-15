@@ -1028,6 +1028,12 @@ function apriModaleProdotto(prod){
  d.classList.add('open');bg.classList.add('open');
  document.getElementById('d-close').onclick=chiudiDrawer;
  bg.onclick=chiudiDrawer;
+ const qtaInput=document.getElementById('pr-qta');
+ if(qtaInput){
+  qtaInput.addEventListener('focus',function(){this.select()});
+  qtaInput.addEventListener('keydown',function(e){if(/^\d$/.test(e.key)&&this.value==='0'){e.preventDefault();this.value=e.key;this.dispatchEvent(new Event('input',{bubbles:true}))}});
+  qtaInput.addEventListener('input',function(){this.value=this.value.replace(/^0+(?=\d)/,'')});
+ }
  document.querySelectorAll('.pr-cat-check').forEach(cb=>{
   cb.addEventListener('change',()=>{cb.closest('label').classList.toggle('on',cb.checked)});
  });
@@ -1093,7 +1099,7 @@ async function salvaProdotto(modifica,p,nuovaFoto){
  }
  localStorage.setItem('ergo_prodotti',JSON.stringify(salvati));
  chiudiDrawer();
- window.assistentePersonale({testo:'<b>Prodotto '+(modifica?'aggiornato':'aggiunto')+'!</b><br>'+String(nuovo.nome).replace(/</g,'&lt;')+' è nel catalogo.',emoji:'📦',colore:'#a66d24'});
+ window.assistentePersonale({testo:'<b>Prodotto '+(modifica?'aggiornato':'aggiunto')+'!</b><br>'+String(nuovo.nome).replace(/</g,'&lt;')+' è nel catalogo.',emoji:modifica?'🔄':'✅',colore:modifica?'#2563eb':'#a66d24'});
  const pc=document.getElementById('pc');if(pc&&view==='inventario')inv(pc);
 }
 
@@ -1613,7 +1619,7 @@ caricaDaLocalStorage();
 
 const _qp=new URLSearchParams(location.search);
 const _qrToken=_qp.get('qr');
-if(_qrToken){apriQRPubblico(_qrToken);}
+if(_qrToken){R.innerHTML='<div class="qr-page"><div class="qr-errore"><div class="emo">⏳</div><h1>Caricamento scheda prodotto</h1><p>Sto recuperando i dati associati al QR code…</p></div></div>';}
 else{login();}
   /* === FIX CAMPI OSPITI/BAMBINI/STAFF === */
 function apriModaleEventoCampi(){
@@ -1654,6 +1660,7 @@ function apriModaleEventoCampi(){
   const inp=document.getElementById(id);
   if(inp){
    inp.addEventListener('focus',function(){this.select()});
+   inp.addEventListener('keydown',function(e){if(/^\d$/.test(e.key)&&this.value==='0'){e.preventDefault();this.value=e.key;this.dispatchEvent(new Event('input',{bubbles:true}))}});
    inp.addEventListener('input',function(){this.value=this.value.replace(/^0+(?=\d)/,'')});
   }
  });
@@ -7647,7 +7654,9 @@ window.mostraPopupBenvenuto=function(){
     var card=document.createElement('div'); card.className='assistente-card'; card.style.borderColor=color;
     var buttons=config.bottoni||[{label:'Va bene',colore:color}];
     card.innerHTML='<button class="assistente-close" aria-label="Chiudi">×</button><div class="assistente-role" style="color:'+color+'">'+roleName+'</div>'+(config.emoji?'<div class="assistente-emoji">'+config.emoji+'</div>':'')+'<div class="assistente-text">'+(config.testo||'Sono qui per aiutarti.')+'</div><div class="assistente-actions">'+buttons.map(function(b,i){return '<button class="assistente-action" data-i="'+i+'" style="background:'+(b.colore||color)+'">'+b.label+'</button>';}).join('')+'</div>';
-    var person=document.createElement('div'); person.className='assistente-person'; person.innerHTML=svg;
+    var moodIcon=String(config.emoji||'👋').replace(/[<>]/g,'');
+    var mood=(moodIcon.indexOf('⚠')>=0||moodIcon.indexOf('❌')>=0)?'attenzione':(moodIcon.indexOf('🔄')>=0||moodIcon.indexOf('📥')>=0?'azione':(moodIcon.indexOf('✅')>=0||moodIcon.indexOf('📦')>=0?'felice':'saluto'));
+    var person=document.createElement('div'); person.className='assistente-person assistente-mood-'+mood; person.dataset.moodIcon=moodIcon; person.innerHTML=svg;
     wrap.appendChild(person); wrap.appendChild(card); document.body.appendChild(wrap);
     requestAnimationFrame(function(){wrap.classList.add('visibile');});
     function close(cb){wrap.classList.remove('visibile');wait(function(){if(wrap.parentNode)wrap.remove();if(cb)cb();},350);}
@@ -7715,12 +7724,21 @@ window.mostraPopupBenvenuto=function(){
   .assistente-close{position:absolute;right:7px;top:5px;border:0;background:transparent;color:#94a3b8;font-size:20px;cursor:pointer}
   .assistente-role{text-transform:uppercase;letter-spacing:.12em;font-size:.65rem;font-weight:800;margin-bottom:5px}
   .assistente-emoji{font-size:1.55rem;margin-bottom:5px}.assistente-text{font-size:.9rem;line-height:1.45;color:#152238;font-weight:600;margin-bottom:12px}.assistente-actions{display:flex;flex-direction:column;gap:7px}.assistente-action{border:0;color:#fff;border-radius:10px;padding:10px 12px;font-weight:800;font-size:.78rem;cursor:pointer}
-  @media(max-width:560px){.assistente-vnext{right:8px;bottom:8px;max-width:calc(100vw - 16px)}.assistente-person{width:125px;min-width:125px}.assistente-person svg{width:125px;height:167px}.assistente-card{min-width:0;max-width:calc(100vw - 118px);padding:14px}.assistente-text{font-size:.84rem}}
+  @media(max-width:560px){.assistente-vnext{right:8px;bottom:8px;max-width:calc(100vw - 16px)}.assistente-person{width:125px;min-width:125px}.assistente-person svg{width:125px;height:167px}.assistente-card{min-width:0;max-width:calc(100vw - 118px);padding:14px}.assistente-text{font-size:.84rem;overflow-wrap:anywhere}.assistente-person::after{font-size:1rem;padding:5px 7px}}
   /* Correzione visibilità: il personaggio deve essere riconoscibile a colpo d'occhio. */
   .assistente-vnext{right:22px;bottom:22px;max-width:min(700px,calc(100vw - 24px))}
-  .assistente-person{width:210px;min-width:210px;transform:translateY(8px);filter:drop-shadow(0 14px 26px rgba(8,50,120,.28))}
-  .assistente-person svg{width:210px;height:280px}
-  .assistente-card{min-width:330px;max-width:410px;padding:20px 22px 19px;border-width:3px;border-radius:22px}
+  .assistente-person{width:210px;min-width:210px;transform:translateY(8px);filter:drop-shadow(0 14px 26px rgba(8,50,120,.28));position:relative;transform-origin:bottom center;transition:transform .3s ease}
+  .assistente-person svg,.assistente-person .assistant-character-image{width:210px;height:280px;display:block;object-fit:contain}
+  .assistente-person::after{content:attr(data-mood-icon);position:absolute;right:-2px;top:8px;background:#fff;border:2px solid #d7e7fa;border-radius:999px;padding:7px 9px;font-size:1.25rem;line-height:1;box-shadow:0 8px 18px rgba(21,34,56,.16);animation:assistente-mood-pop .45s ease-out both}
+  .assistente-mood-felice{animation:assistente-happy .9s ease-in-out .1s 2}
+  .assistente-mood-azione{animation:assistente-action .8s ease-in-out .1s 2}
+  .assistente-mood-attenzione{animation:assistente-attention .5s ease-in-out .1s 2}
+  @keyframes assistente-mood-pop{from{opacity:0;transform:scale(.6) translateY(8px)}to{opacity:1;transform:scale(1) translateY(0)}}
+  @keyframes assistente-happy{0%,100%{transform:translateY(8px) rotate(0)}50%{transform:translateY(2px) rotate(-2deg)}}
+  @keyframes assistente-action{0%,100%{transform:translateY(8px) rotate(0)}50%{transform:translateY(0) rotate(2deg)}}
+  @keyframes assistente-attention{0%,100%{transform:translateY(8px) rotate(0)}50%{transform:translateY(8px) rotate(-3deg)}}
+  .assistente-card{min-width:330px;max-width:410px;padding:20px 22px 19px;border-width:3px;border-radius:22px;overflow:visible}
+  .assistente-text{overflow-wrap:anywhere;word-break:normal}
   .assistente-role{font-size:.75rem}.assistente-text{font-size:1.02rem;line-height:1.5}.assistente-emoji{font-size:2rem}.assistente-action{padding:12px 14px;font-size:.86rem}
   /* Effetto dashboard più lento e leggibile. */
   .dash-anim .sidebar{animation-duration:1.35s !important}
@@ -7732,7 +7750,7 @@ window.mostraPopupBenvenuto=function(){
   .dash-anim .feed-item:nth-child(1){animation-delay:2.35s !important}.dash-anim .feed-item:nth-child(2){animation-delay:2.55s !important}.dash-anim .feed-item:nth-child(3){animation-delay:2.75s !important}.dash-anim .feed-item:nth-child(4){animation-delay:2.95s !important}.dash-anim .feed-item:nth-child(5){animation-delay:3.15s !important}.dash-anim .feed-item:nth-child(6){animation-delay:3.35s !important}.dash-anim .feed-item:nth-child(7){animation-delay:3.55s !important}
   .dash-anim h1.title{animation-duration:1.8s !important;animation-delay:1.45s !important}
   .dash-anim .eyebrow{animation-duration:.9s !important;animation-delay:1.1s !important}.dash-anim .lede{animation-duration:.9s !important;animation-delay:1.7s !important}
-  @media(max-width:560px){.assistente-vnext{right:8px;bottom:8px}.assistente-person{width:125px;min-width:125px}.assistente-person svg{width:125px;height:167px}.assistente-card{min-width:0;max-width:calc(100vw - 118px);padding:14px}.assistente-text{font-size:.84rem}}
+  @media(max-width:560px){.assistente-vnext{right:8px;bottom:8px}.assistente-person{width:125px;min-width:125px}.assistente-person svg{width:125px;height:167px}.assistente-card{min-width:0;max-width:calc(100vw - 118px);padding:14px}.assistente-text{font-size:.84rem;overflow-wrap:anywhere}.assistente-person::after{font-size:1rem;padding:5px 7px}}
   `;
   document.head.appendChild(style);
 
@@ -7829,7 +7847,7 @@ window.mostraPopupBenvenuto=function(){
     window.login=function(){window._dashVnextShown=false;return previousLogin.apply(this,arguments);};
   }
 
-  if(_qrToken&&sb){wait(async function(){try{var qr=await sb.rpc('get_prodotto_qr',{p_token:_qrToken});var row=qr.data&&Array.isArray(qr.data)?qr.data[0]:qr.data;if(row){var prod=mapProduct(row);prod.qrToken=_qrToken;await firmaFotoProdotto(prod);localStorage.setItem('ergo_prodotti',JSON.stringify([prod]));apriQRPubblico(_qrToken);}}catch(e){console.warn('QR remoto non disponibile',e)}},250);}
+  if(_qrToken&&sb){wait(async function(){try{var qr=await sb.rpc('get_prodotto_qr',{p_token:_qrToken});if(qr.error)throw qr.error;var row=qr.data&&Array.isArray(qr.data)?qr.data[0]:qr.data;if(row){var prod=mapProduct(row);prod.qrToken=_qrToken;await firmaFotoProdotto(prod);localStorage.setItem('ergo_prodotti',JSON.stringify([prod]));apriQRPubblico(_qrToken);}else{apriQRPubblico(_qrToken);}}catch(e){console.warn('QR remoto non disponibile',e);R.innerHTML='<div class="qr-page"><div class="qr-errore"><div class="emo">⚠️</div><h1>Scheda non disponibile</h1><p>Il QR è valido, ma in questo momento non riesco a recuperare il prodotto.</p></div></div>'; }},250);}else if(_qrToken&&!sb){R.innerHTML='<div class="qr-page"><div class="qr-errore"><div class="emo">⚠️</div><h1>Collegamento non disponibile</h1><p>La scheda privata richiede il collegamento a Supabase.</p></div></div>';}
 
   console.info('Ergo vNext: assistente attivo; Supabase '+(sb?'configurato':'non configurato, fallback localStorage'));
 })();
