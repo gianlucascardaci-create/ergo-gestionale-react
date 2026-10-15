@@ -7665,6 +7665,35 @@ window.mostraPopupBenvenuto=function(){
       return result;
     };
   }
+  /* Scelta PDF definitiva: la domanda viene fatta dal personaggio, non da un drawer generico. */
+  if(window.scaricaAllegatiConScelta&&!window._assistentePdfChoiceWrapped){
+    window._assistentePdfChoiceWrapped=true;
+    window.scaricaAllegatiConScelta=function(lista,sezione){
+      if(!Array.isArray(lista)||lista.length===0){
+        window.assistentePersonale({testo:'<b>Nessun allegato disponibile</b><br>Non ci sono file da scaricare in questa sezione.',emoji:'📎',colore:'#b91c1c',autoClose:false});
+        return;
+      }
+      if(lista.length===1){
+        window.scaricaAllega(lista[0]);
+        return;
+      }
+      var nomeSezione=String(sezione||'questa sezione').replace(/[<>]/g,'');
+      window.assistentePersonale({
+        testo:'<b>Ho trovato '+lista.length+' allegati</b><br>Come vuoi scaricarli da <b>'+nomeSezione+'</b>?',
+        emoji:'📥',colore:'#0891b2',autoClose:false,
+        bottoni:[
+          {label:'📄 Uno alla volta',colore:'#0891b2',azione:function(){
+            lista.forEach(function(allegato,i){wait(function(){window.scaricaAllega(allegato);},i*350);});
+          }},
+          {label:'📚 Tutti insieme in un unico PDF',colore:'#083278',azione:function(){
+            if(typeof window.scaricaUnicoPdf==='function')window.scaricaUnicoPdf(lista,sezione);
+          }},
+          {label:'Annulla',colore:'#94a3b8'}
+        ]
+      });
+    };
+  }
+
   var previousLogin=window.login;
   if(previousLogin){
     window.login=function(){window._dashVnextShown=false;return previousLogin.apply(this,arguments);};
