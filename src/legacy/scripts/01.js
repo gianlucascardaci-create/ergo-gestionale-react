@@ -7147,7 +7147,7 @@ window.mostraPopupBenvenuto=function(){
   if(!messaggio)return;
 
   /* Controlla se già mostrato oggi */
-  var key='ergo_fascia_'+user.username+'_'+oggi+'_'+chiave;
+  var key='ergo_fascia_v2_'+user.username+'_'+oggi+'_'+chiave;
   if(localStorage.getItem(key))return;
   localStorage.setItem(key,'1');
 
