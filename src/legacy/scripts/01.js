@@ -7550,6 +7550,14 @@ window.mostraPopupBenvenuto=function(){
       if(rentals.error) throw rentals.error;
       if(events.error) throw events.error;
       var pRows=(products.data||[]).map(mapProduct), nRows=(rentals.data||[]).map(mapRental), eRows=(events.data||[]).map(mapEvent);
+      /* Migrazione trasparente: assegna e salva un token ai prodotti storici privi di QR. */
+      for(var qi=0;qi<(products.data||[]).length;qi++){
+        var rawProduct=products.data[qi], mappedProduct=pRows[qi];
+        if(rawProduct&&!rawProduct.qr_token&&mappedProduct&&mappedProduct.qrToken){
+          var qrUpdate=await sb.from('prodotti_noleggio').update({qr_token:mappedProduct.qrToken}).eq('id',rawProduct.id);
+          if(qrUpdate.error)console.warn('Token QR non salvato per prodotto storico',rawProduct.codice,qrUpdate.error);
+        }
+      }
       originalSetItem.call(localStorage,'ergo_prodotti',JSON.stringify(pRows));
       originalSetItem.call(localStorage,'ergo_noleggi',JSON.stringify(nRows));
       originalSetItem.call(localStorage,'ergo_eventi',JSON.stringify(eRows));
