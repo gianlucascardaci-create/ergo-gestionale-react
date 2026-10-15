@@ -1091,11 +1091,13 @@ async function salvaProdotto(modifica,p,nuovaFoto){
   if(iB>=0)PRODOTTI[iB]=nuovo;
   const iS=salvati.findIndex(x=>x.codice===p.codice);
   if(iS>=0)salvati[iS]=nuovo;else if(iB<0)salvati.push(nuovo);
+  if(iB<0)PRODOTTI.push(nuovo);
  }else{
   if(PRODOTTI.find(x=>x.codice===codice)||salvati.find(x=>x.codice===codice)){
    alert('Esiste già un prodotto con questo codice.');return;
   }
   salvati.push(nuovo);
+  PRODOTTI.push(nuovo);
  }
  localStorage.setItem('ergo_prodotti',JSON.stringify(salvati));
  chiudiDrawer();
@@ -7438,6 +7440,7 @@ window.mostraPopupBenvenuto=function(){
 
   var syncTimer = null;
   var syncing = false;
+  var localCollectionRevision = 0;
   var collections = {
     'ergo_eventi':'evento',
     'ergo_noleggi':'noleggio',
@@ -7611,6 +7614,7 @@ window.mostraPopupBenvenuto=function(){
     if(!sb) return;
     try{
       syncing=true;
+      var loadRevision=localCollectionRevision;
       var products=await sb.from('prodotti_noleggio').select('id,qr_token,codice,nome,categoria,quantita,posizione,costo_noleggio,note,foto_path,scheda_materiale,scheda_colore,scheda_dimensione,scheda_note').order('nome');
       var rentals=await sb.from('noleggi').select('id,titolo,inizio,fine,stato,location,referente,telefono,note,bolla,ddt,vario,bolla_url,ddt_url,vario_url,bolla_path,ddt_path,vario_path,bolla_mime,ddt_mime,vario_mime').order('inizio');
       var events=await sb.from('eventi_catering').select('id,nome_evento,data,data_display,location,ospiti,bambini,staff,note_tutti,allegati_tutti,note_sala,allegati_sala,note_cucina,allegati_cucina,note_magazzino,allegati_magazzino,allegati_privati').order('data');
@@ -7619,6 +7623,10 @@ window.mostraPopupBenvenuto=function(){
       if(events.error) throw events.error;
       var pRows=(products.data||[]).map(mapProduct), nRows=(rentals.data||[]).map(mapRental), eRows=(events.data||[]).map(mapEvent);
       for(const product of pRows) await firmaFotoProdotto(product);
+      if(localCollectionRevision!==loadRevision){
+        console.warn('Caricamento Supabase non applicato: sono intervenute modifiche locali più recenti');
+        return;
+      }
       /* Migrazione trasparente: assegna e salva un token ai prodotti storici privi di QR. */
       for(var qi=0;qi<(products.data||[]).length;qi++){
         var rawProduct=products.data[qi], mappedProduct=pRows[qi];
@@ -7630,6 +7638,7 @@ window.mostraPopupBenvenuto=function(){
       originalSetItem.call(localStorage,'ergo_prodotti',JSON.stringify(pRows));
       originalSetItem.call(localStorage,'ergo_noleggi',JSON.stringify(nRows));
       originalSetItem.call(localStorage,'ergo_eventi',JSON.stringify(eRows));
+      PRODOTTI.splice(0,PRODOTTI.length,...pRows);
       EVENTI.splice(0,EVENTI.length,...eRows); NOLEGGI.splice(0,NOLEGGI.length,...nRows);
       if(typeof user!=='undefined'&&user&&typeof app==='function') app();
     }catch(e){ console.warn('Dati Streamlit/Supabase non disponibili: uso il fallback locale',e); }
