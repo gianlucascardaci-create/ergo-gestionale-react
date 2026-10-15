@@ -2481,9 +2481,13 @@ function apriModaleEventoCitta(){
   salvati.push(ev);
   localStorage.setItem('ergo_eventi',JSON.stringify(salvati));
   EVENTI.push(ev);
+  if(window.ergoSupabaseSyncEvents){
+   try{await window.ergoSupabaseSyncEvents(salvati);}
+   catch(syncErr){console.error('Salvataggio evento Supabase fallito',syncErr);btn.disabled=false;btn.textContent='💾 Crea Evento';alert('Evento salvato solo temporaneamente: Supabase non ha accettato il salvataggio.');return;}
+  }
   generaNotifEvento(ev);
   chiudiDrawer();
-  alert('✅ Evento creato!');
+  alert('✅ Evento creato e salvato su Supabase!');
   const pc=document.getElementById('pc');
   if(pc){if(view==='calendario')cal(pc);else if(view==='dashboard')dash(pc)}
  };
@@ -2543,6 +2547,10 @@ function apriModaleNoleggio(){
   salvati.push(nl);
   localStorage.setItem('ergo_noleggi',JSON.stringify(salvati));
   NOLEGGI.push(nl);
+  if(window.ergoSupabaseSyncRentals){
+   try{await window.ergoSupabaseSyncRentals(salvati);}
+   catch(syncErr){console.error('Salvataggio noleggio Supabase fallito',syncErr);btn.disabled=false;btn.textContent='💾 Crea Noleggio';alert('Noleggio salvato solo temporaneamente: Supabase non ha accettato il salvataggio.');return;}
+  }
   generaNotifNoleggio(nl);
   chiudiDrawer();
   const pc=document.getElementById('pc');
@@ -7509,6 +7517,14 @@ window.mostraPopupBenvenuto=function(){
     try{await upsertCollection('prodotto',Array.isArray(rows)?rows:[]);}
     finally{syncing=wasSyncing;}
   };
+  async function syncRemoteCollection(kind,rows){
+    if(!sb) throw new Error('Supabase non configurato');
+    var wasSyncing=syncing; syncing=false;
+    try{await upsertCollection(kind,Array.isArray(rows)?rows:[]);}
+    finally{syncing=wasSyncing;}
+  }
+  window.ergoSupabaseSyncEvents=function(rows){return syncRemoteCollection('evento',rows);};
+  window.ergoSupabaseSyncRentals=function(rows){return syncRemoteCollection('noleggio',rows);};
 
   /* Evita richieste ripetute: una singola operazione batch per collezione. */
   var originalSetItem = Storage.prototype.setItem;
