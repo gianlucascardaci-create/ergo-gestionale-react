@@ -523,14 +523,15 @@ h1.title{font-size:clamp(1.8rem,3vw,2.6rem);margin-top:8px;line-height:1.08}
  .login-box .btn-login{padding:20px;font-size:1.05rem;margin-top:38px;border-radius:16px}
 }
 
-/* Marchi Ergo Noleggi + Scardaci Catering */
-.login-box .logos .logo-noleggio{height:78px;max-width:126px;object-fit:contain}
-.login-box .logos .logo-catering{height:126px;max-width:220px;object-fit:contain}
+/* Marchi Ergo Noleggi + Scardaci Catering: dimensioni e asse visivo bilanciati */
+.login-box .logos{align-items:center}
+.login-box .logos .logo-noleggio{height:86px;max-width:140px;object-fit:contain;display:block}
+.login-box .logos .logo-catering{height:136px;max-width:232px;object-fit:contain;display:block;transform:translateY(-6px)}
 .brand-logos .logo-noleggio{height:32px;max-width:54px;object-fit:contain}
 .brand-logos .logo-catering{height:50px;max-width:92px;object-fit:contain}
 @media (max-width:760px){
- .login-box .logos .logo-noleggio{height:62px;max-width:104px}
- .login-box .logos .logo-catering{height:98px;max-width:178px}
+ .login-box .logos .logo-noleggio{height:70px;max-width:116px}
+ .login-box .logos .logo-catering{height:108px;max-width:194px;transform:translateY(-5px)}
 }
 
 /* Assistenti illustrati a corpo intero */
