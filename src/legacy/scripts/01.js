@@ -145,8 +145,8 @@ function login(){
  if(timer){clearInterval(timer);timer=null}
  R.innerHTML=`<div class="login"><div class="login-box">
   <div class="logos">
-   <img src="logo-ergo.png" alt="Ergo" onerror="this.style.display='none'">
-   <img src="logo-scardaci.png" alt="Scardaci" onerror="this.style.display='none'">
+   <img class="logo-noleggio" src="/brand/logo-noleggio.jpeg" alt="Ergo Noleggi" onerror="this.style.display='none'">
+   <img class="logo-catering" src="/brand/logo-catering.jpeg" alt="Scardaci Catering" onerror="this.style.display='none'">
   </div>
   <h1>Ergo <span style="color:#a66d24;font-style:italic">&</span> Scardaci</h1>
 <p style="text-align:center;font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:#8b96a9;font-weight:700;margin-bottom:24px">Gestionale Eventi</p>
