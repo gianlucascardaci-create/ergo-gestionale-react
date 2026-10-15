@@ -1105,7 +1105,7 @@ async function salvaProdotto(modifica,p,nuovaFoto){
  const pc=document.getElementById('pc');if(pc&&view==='inventario')inv(pc);
  if(window.ergoSupabaseSyncProducts){
   try{await window.ergoSupabaseSyncProducts(salvati);}
-  catch(syncErr){console.error('Sincronizzazione prodotto fallita',syncErr);window.assistentePersonale({testo:'<b>Prodotto salvato sul dispositivo</b><br>Attenzione: sincronizzazione Supabase non riuscita. Riproverò automaticamente.',emoji:'⚠️',espressione:'attenzione',colore:'#b91c1c',autoClose:false});}
+  catch(syncErr){console.error('Sincronizzazione prodotto fallita',syncErr);window.assistentePersonale({testo:'<b>Prodotto salvato solo sul dispositivo</b><br>Supabase: '+String(syncErr&&syncErr.message||syncErr).replace(/[<>]/g,''),emoji:'⚠️',espressione:'attenzione',colore:'#b91c1c',autoClose:false});}
  }
 }
 
@@ -2483,7 +2483,7 @@ function apriModaleEventoCitta(){
   EVENTI.push(ev);
   if(window.ergoSupabaseSyncEvents){
    try{await window.ergoSupabaseSyncEvents(salvati);}
-   catch(syncErr){console.error('Salvataggio evento Supabase fallito',syncErr);btn.disabled=false;btn.textContent='💾 Crea Evento';alert('Evento salvato solo temporaneamente: Supabase non ha accettato il salvataggio.');return;}
+   catch(syncErr){console.error('Salvataggio evento Supabase fallito',syncErr);btn.disabled=false;btn.textContent='💾 Crea Evento';alert('Evento salvato solo temporaneamente: Supabase non ha accettato il salvataggio.\n\n'+String(syncErr&&syncErr.message||syncErr));return;}
   }
   generaNotifEvento(ev);
   chiudiDrawer();
@@ -2549,7 +2549,7 @@ function apriModaleNoleggio(){
   NOLEGGI.push(nl);
   if(window.ergoSupabaseSyncRentals){
    try{await window.ergoSupabaseSyncRentals(salvati);}
-   catch(syncErr){console.error('Salvataggio noleggio Supabase fallito',syncErr);btn.disabled=false;btn.textContent='💾 Crea Noleggio';alert('Noleggio salvato solo temporaneamente: Supabase non ha accettato il salvataggio.');return;}
+   catch(syncErr){console.error('Salvataggio noleggio Supabase fallito',syncErr);btn.disabled=false;btn.textContent='💾 Crea Noleggio';alert('Noleggio salvato solo temporaneamente: Supabase non ha accettato il salvataggio.\n\n'+String(syncErr&&syncErr.message||syncErr));return;}
   }
   generaNotifNoleggio(nl);
   chiudiDrawer();
