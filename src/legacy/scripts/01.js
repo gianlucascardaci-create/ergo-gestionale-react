@@ -85,6 +85,8 @@ const NAV=[
    UTILITÀ TESTO
    ============================================================ */
 function escapeAttr(t){return String(t||'').replace(/"/g,'&quot;').replace(/</g,'&lt;')}
+function nuovoQrToken(){try{if(window.crypto&&crypto.getRandomValues){const a=new Uint8Array(18);crypto.getRandomValues(a);return Array.from(a).map(x=>x.toString(16).padStart(2,'0')).join('')}}catch(e){}return 'qr_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,14)}
+function assicuraQrToken(p){if(p&&!p.qrToken)p.qrToken=nuovoQrToken();return p&&p.qrToken||''}
 
 function normalizzaTesto(t){
  return String(t||'').toLowerCase()
@@ -1048,6 +1050,7 @@ async function salvaProdotto(modifica,p,nuovaFoto){
  }
  const nuovo={
   id:p.id,
+  qrToken:assicuraQrToken(p),
   codice,nome,categoria:categorie.join(', '),
   quantita:parseInt(document.getElementById('pr-qta').value)||0,
   posizione:document.getElementById('pr-pos').value.trim(),
@@ -1109,7 +1112,7 @@ function apriSchedaProd(p){
  setTimeout(()=>{
   const c=document.getElementById('qr-canvas');
   if(c){
-   const url=location.origin+location.pathname+'?codice='+encodeURIComponent(p.codice||'');
+   const url=location.origin+location.pathname+'?qr='+encodeURIComponent(assicuraQrToken(p));
    const img=new Image();img.crossOrigin='anonymous';
    img.onload=()=>{const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,180,180);x.drawImage(img,0,0,180,180)};
    img.onerror=()=>{const x=c.getContext('2d');x.fillStyle='#f8fafc';x.fillRect(0,0,180,180);x.fillStyle='#98a2b3';x.font='12px sans-serif';x.textAlign='center';x.fillText('QR non disponibile',90,84);x.fillText('(richiede internet)',90,102)};
@@ -1550,6 +1553,7 @@ function eliminaUtente(username){
    CARICAMENTO DA LOCALSTORAGE
    ============================================================ */
 function caricaDaLocalStorage(){
+ try{const prodLS=JSON.parse(localStorage.getItem('ergo_prodotti'))||[];prodLS.forEach(assicuraQrToken);localStorage.setItem('ergo_prodotti',JSON.stringify(prodLS));}catch(e){}
  try{
   const evLS=JSON.parse(localStorage.getItem('ergo_eventi'))||[];
   evLS.forEach(e=>{if(!EVENTI.find(x=>x.id===e.id))EVENTI.push(e)});
@@ -1578,11 +1582,11 @@ function caricaDaLocalStorage(){
 /* ============================================================
    QR PUBBLICO (accesso senza login)
    ============================================================ */
-function apriQRPubblico(codice){
+function apriQRPubblico(token){
  let salvati=[];
  try{salvati=JSON.parse(localStorage.getItem('ergo_prodotti'))||[]}catch(e){}
  const tutti=tuttiProds(salvati);
- const prod=tutti.find(p=>p.codice===codice);
+ const prod=tutti.find(p=>p.qrToken===token);
  R.innerHTML='';
  if(!prod){
   R.innerHTML='<div class="qr-page"><div class="qr-errore"><div class="emo">🔍</div><h1>Prodotto non trovato</h1><p>Il codice "<b>'+codice+'</b>" non corrisponde a nessun prodotto in catalogo.</p></div></div>';
@@ -1615,8 +1619,8 @@ function apriQRPubblico(codice){
 caricaDaLocalStorage();
 
 const _qp=new URLSearchParams(location.search);
-const _codiceQR=_qp.get('codice');
-if(_codiceQR){apriQRPubblico(_codiceQR);}
+const _qrToken=_qp.get('qr');
+if(_qrToken){apriQRPubblico(_qrToken);}
 else{login();}
   /* === FIX CAMPI OSPITI/BAMBINI/STAFF === */
 function apriModaleEvento(){
@@ -1997,7 +2001,7 @@ function apriSchedaProd(p){
  setTimeout(()=>{
   const c=document.getElementById('qr-canvas');
   if(c){
-   const url=location.origin+location.pathname+'?codice='+encodeURIComponent(p.codice||'');
+   const url=location.origin+location.pathname+'?qr='+encodeURIComponent(assicuraQrToken(p));
    const img=new Image();
    img.crossOrigin='anonymous';
    img.onload=()=>{
@@ -2690,7 +2694,7 @@ function apriSchedaProd(p){
  setTimeout(()=>{
   const c=document.getElementById('qr-canvas');
   if(c){
-   const url=location.origin+location.pathname+'?codice='+encodeURIComponent(p.codice||'');
+   const url=location.origin+location.pathname+'?qr='+encodeURIComponent(assicuraQrToken(p));
    const img=new Image();img.crossOrigin='anonymous';
    img.onload=()=>{const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,180,180);x.drawImage(img,0,0,180,180)};
    img.onerror=()=>{const x=c.getContext('2d');x.fillStyle='#f8fafc';x.fillRect(0,0,180,180);x.fillStyle='#98a2b3';x.font='12px sans-serif';x.textAlign='center';x.fillText('QR non disponibile',90,84);x.fillText('(richiede internet)',90,102)};
@@ -6895,6 +6899,10 @@ window.mostraPopupBenvenuto=function(){
   'Magazzino2':'<svg viewBox="0 0 120 160" xmlns="http://www.w3.org/2000/svg" style="width:110px;height:145px"><ellipse cx="60" cy="152" rx="30" ry="5" fill="#152238" opacity=".15"/><rect x="35" y="58" width="50" height="63" rx="10" fill="#7c3aed"/><path d="M35 75h50" stroke="#c4b5fd" stroke-width="4"/><circle cx="60" cy="34" r="24" fill="#f4c8a1"/><path d="M35 32Q36 9 60 9t25 23" fill="#5b3b2e"/><path d="M34 31Q60 22 86 31" fill="none" stroke="#5b3b2e" stroke-width="6"/><rect x="43" y="34" width="14" height="9" rx="4" fill="none" stroke="#152238" stroke-width="2"/><rect x="63" y="34" width="14" height="9" rx="4" fill="none" stroke="#152238" stroke-width="2"/><path d="M57 38h6" stroke="#152238" stroke-width="2"/><path d="M52 49q8 7 16 0" fill="none" stroke="#152238" stroke-width="2" stroke-linecap="round"/></svg>'
  };
 
+ /* Personaggi corpo intero: gambe, scarpe e accessori distintivi. */
+ window.ergoAssistenteSvg.Cucina='<svg viewBox="0 0 120 160" xmlns="http://www.w3.org/2000/svg"><ellipse cx="60" cy="153" rx="29" ry="4" fill="#152238" opacity=".16"/><rect x="43" y="116" width="14" height="32" rx="6" fill="#334155"/><rect x="63" y="116" width="14" height="32" rx="6" fill="#334155"/><ellipse cx="49" cy="150" rx="11" ry="4" fill="#152238"/><ellipse cx="71" cy="150" rx="11" ry="4" fill="#152238"/><rect x="34" y="57" width="52" height="63" rx="10" fill="#fff" stroke="#cbd5e1" stroke-width="2"/><path d="M34 62Q35 42 48 45Q51 27 60 39Q69 27 72 45Q85 42 86 62Z" fill="#fff" stroke="#cbd5e1" stroke-width="2"/><rect x="42" y="76" width="36" height="8" fill="#f59e0b"/><circle cx="60" cy="35" r="24" fill="#f4c8a1"/><path d="M36 31Q39 8 60 8t24 23Q76 22 60 22T36 31" fill="#4b2e22"/><circle cx="52" cy="36" r="2.5"/><circle cx="68" cy="36" r="2.5"/><path d="M52 46q8 7 16 0" fill="none" stroke="#152238" stroke-width="2"/></svg>';
+ window.ergoAssistenteSvg.Magazzino='<svg viewBox="0 0 120 160" xmlns="http://www.w3.org/2000/svg"><ellipse cx="60" cy="153" rx="29" ry="4" fill="#152238" opacity=".16"/><rect x="43" y="116" width="14" height="32" rx="6" fill="#1e40af"/><rect x="63" y="116" width="14" height="32" rx="6" fill="#1e40af"/><ellipse cx="49" cy="150" rx="11" ry="4" fill="#152238"/><ellipse cx="71" cy="150" rx="11" ry="4" fill="#152238"/><rect x="34" y="57" width="52" height="63" rx="10" fill="#facc15"/><path d="M34 80h52v9H34z" fill="#b45309" opacity=".75"/><path d="M45 57V42h30v15" fill="none" stroke="#92400e" stroke-width="7"/><circle cx="60" cy="34" r="24" fill="#f4c8a1"/><path d="M32 32Q35 9 60 9t28 23H32z" fill="#f59e0b"/><path d="M30 32h60" stroke="#92400e" stroke-width="5"/><circle cx="52" cy="39" r="2.5"/><circle cx="68" cy="39" r="2.5"/><path d="M52 49q8 7 16 0" fill="none" stroke="#152238" stroke-width="2"/></svg>';
+ window.ergoAssistenteSvg.Magazzino2='<svg viewBox="0 0 120 160" xmlns="http://www.w3.org/2000/svg"><ellipse cx="60" cy="153" rx="29" ry="4" fill="#152238" opacity=".16"/><rect x="43" y="116" width="14" height="32" rx="6" fill="#374151"/><rect x="63" y="116" width="14" height="32" rx="6" fill="#374151"/><ellipse cx="49" cy="150" rx="11" ry="4" fill="#152238"/><ellipse cx="71" cy="150" rx="11" ry="4" fill="#152238"/><rect x="34" y="57" width="52" height="63" rx="10" fill="#7c3aed"/><path d="M34 80h52" stroke="#c4b5fd" stroke-width="4"/><circle cx="60" cy="34" r="24" fill="#f4c8a1"/><path d="M34 32Q36 9 60 9t26 23" fill="#5b3b2e"/><path d="M34 31Q60 23 86 31" fill="none" stroke="#5b3b2e" stroke-width="7"/><rect x="42" y="34" width="15" height="10" rx="4" fill="none" stroke="#152238" stroke-width="2"/><rect x="63" y="34" width="15" height="10" rx="4" fill="none" stroke="#152238" stroke-width="2"/><path d="M57 39h6" stroke="#152238" stroke-width="2"/><path d="M52 49q8 7 16 0" fill="none" stroke="#152238" stroke-width="2"/></svg>';
  function mostraPersonaggio(){
   try{
    if(typeof user==='undefined'||!user||!user.username)return;
@@ -7400,7 +7408,7 @@ window.mostraPopupBenvenuto=function(){
 
   function productPayload(p){
     var sh=p.scheda||{};
-    return {codice:p.codice,nome:p.nome,categoria:p.categoria||'',quantita:Number(p.quantita||0),posizione:p.posizione||'',costo_noleggio:Number(p.prezzo||p.costo_noleggio||0),note:p.note||'',foto_path:p.foto_path||((p.foto&&/^https?:/.test(p.foto))?'':p.foto)||'',scheda_materiale:sh.materiale||'',scheda_colore:sh.colore||'',scheda_dimensione:sh.dimensione||'',scheda_note:sh.note||''};
+    return {qr_token:assicuraQrToken(p),codice:p.codice,nome:p.nome,categoria:p.categoria||'',quantita:Number(p.quantita||0),posizione:p.posizione||'',costo_noleggio:Number(p.prezzo||p.costo_noleggio||0),note:p.note||'',foto_path:p.foto_path||((p.foto&&/^https?:/.test(p.foto))?'':p.foto)||'',scheda_materiale:sh.materiale||'',scheda_colore:sh.colore||'',scheda_dimensione:sh.dimensione||'',scheda_note:sh.note||''};
   }
   function eventPayload(e){
     return {nome_evento:e.titolo,data:(e.inizio||'').slice(0,10),data_display:e.data_display||e.inizio||'',location:e.location||'',ospiti:Number(e.ospiti||0),bambini:Number(e.bambini||0),staff:Number(e.staff||0),note_tutti:e.noteTutti||'',allegati_tutti:e.allegatiTutti||[],note_sala:e.noteSala||'',allegati_sala:e.allegatiSala||[],note_cucina:e.noteCucina||'',allegati_cucina:e.allegatiCucina||[],note_magazzino:e.noteMagazzino||'',allegati_magazzino:e.allegatiMagazzino||[],allegati_privati:e.allegatiPrivata||[]};
@@ -7499,7 +7507,7 @@ window.mostraPopupBenvenuto=function(){
       var pub=sb.storage.from('immagini_prodotti').getPublicUrl(foto);
       foto=pub.data.publicUrl;
     }
-    return {id:row.id,codice:row.codice,nome:row.nome,categoria:row.categoria||'',quantita:Number(row.quantita||0),posizione:row.posizione||'',prezzo:Number(row.costo_noleggio||row.prezzo||0),note:row.note||'',foto:foto,foto_path:row.foto_path||'',scheda:{materiale:row.scheda_materiale||'',colore:row.scheda_colore||'',dimensione:row.scheda_dimensione||'',note:row.scheda_note||''}};
+    return {id:row.id,qrToken:row.qr_token||nuovoQrToken(),codice:row.codice,nome:row.nome,categoria:row.categoria||'',quantita:Number(row.quantita||0),posizione:row.posizione||'',prezzo:Number(row.costo_noleggio||row.prezzo||0),note:row.note||'',foto:foto,foto_path:row.foto_path||'',scheda:{materiale:row.scheda_materiale||'',colore:row.scheda_colore||'',dimensione:row.scheda_dimensione||'',note:row.scheda_note||''}};
   }
   function mapEvent(row){
     return {id:String(row.id),tipo:'evento',titolo:row.nome_evento,inizio:row.inizio||((row.data||'')+'T12:00:00'),fine:row.fine||((row.data||'')+'T23:59:00'),location:row.location||'',ospiti:Number(row.ospiti||0),bambini:Number(row.bambini||0),staff:Number(row.staff||0),noteTutti:row.note_tutti||'',noteSala:row.note_sala||'',noteCucina:row.note_cucina||'',noteMagazzino:row.note_magazzino||'',allegatiTutti:mapFileList(row.allegati_tutti),allegatiSala:mapFileList(row.allegati_sala),allegatiCucina:mapFileList(row.allegati_cucina),allegatiMagazzino:mapFileList(row.allegati_magazzino),allegatiPrivata:mapFileList(row.allegati_privati),stato:'confermato'};
@@ -7535,7 +7543,7 @@ window.mostraPopupBenvenuto=function(){
     if(!sb) return;
     try{
       syncing=true;
-      var products=await sb.from('prodotti_noleggio').select('id,codice,nome,categoria,quantita,posizione,costo_noleggio,note,foto_path,scheda_materiale,scheda_colore,scheda_dimensione,scheda_note').order('nome');
+      var products=await sb.from('prodotti_noleggio').select('id,qr_token,codice,nome,categoria,quantita,posizione,costo_noleggio,note,foto_path,scheda_materiale,scheda_colore,scheda_dimensione,scheda_note').order('nome');
       var rentals=await sb.from('noleggi').select('id,titolo,inizio,fine,stato,location,referente,telefono,note,bolla,ddt,vario,bolla_url,ddt_url,vario_url,bolla_path,ddt_path,vario_path,bolla_mime,ddt_mime,vario_mime').order('inizio');
       var events=await sb.from('eventi_catering').select('id,nome_evento,data,data_display,location,ospiti,bambini,staff,note_tutti,allegati_tutti,note_sala,allegati_sala,note_cucina,allegati_cucina,note_magazzino,allegati_magazzino,allegati_privati').order('data');
       if(products.error) throw products.error;
@@ -7712,6 +7720,8 @@ window.mostraPopupBenvenuto=function(){
   if(previousLogin){
     window.login=function(){window._dashVnextShown=false;return previousLogin.apply(this,arguments);};
   }
+
+  if(_qrToken&&sb){wait(async function(){try{var qr=await sb.rpc('get_prodotto_qr',{p_token:_qrToken});var row=qr.data&&Array.isArray(qr.data)?qr.data[0]:qr.data;if(row){var prod=mapProduct(row);prod.qrToken=_qrToken;localStorage.setItem('ergo_prodotti',JSON.stringify([prod]));apriQRPubblico(_qrToken);}}catch(e){console.warn('QR remoto non disponibile',e)}},250);}
 
   console.info('Ergo vNext: assistente attivo; Supabase '+(sb?'configurato':'non configurato, fallback localStorage'));
 })();

@@ -126,3 +126,22 @@ on conflict (id) do nothing;
 
 -- Non usare la service_role key nel frontend. Le password storiche vanno migrate
 -- a Supabase Auth; la colonna password è mantenuta solo per compatibilità temporanea.
+
+-- QR privati: il link contiene solo questo token casuale, non il codice prodotto.
+alter table public.prodotti_noleggio add column if not exists qr_token text;
+create unique index if not exists prodotti_noleggio_qr_token_idx on public.prodotti_noleggio(qr_token) where qr_token is not null;
+update public.prodotti_noleggio set qr_token=encode(gen_random_bytes(18),'hex') where qr_token is null;
+
+create or replace function public.get_prodotto_qr(p_token text)
+returns table (
+  id bigint, qr_token text, codice text, nome text, categoria text, quantita integer,
+  posizione text, costo_noleggio numeric, note text, foto_path text,
+  scheda_materiale text, scheda_colore text, scheda_dimensione text, scheda_note text
+)
+language sql security definer set search_path=public
+as $$
+  select p.id,p.qr_token,p.codice,p.nome,p.categoria,p.quantita,p.posizione,p.costo_noleggio,p.note,p.foto_path,
+         p.scheda_materiale,p.scheda_colore,p.scheda_dimensione,p.scheda_note
+  from public.prodotti_noleggio p where p.qr_token=p_token limit 1;
+$$;
+grant execute on function public.get_prodotto_qr(text) to anon, authenticated;
