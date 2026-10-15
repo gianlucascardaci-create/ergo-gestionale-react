@@ -963,24 +963,7 @@ function tuttiProds(salvati){
  return base;
 }
 
-function cardProd(p,isAdmin){
- const hasFoto=!!p.foto;
- return `<div class="inv-card">
-  <div class="inv-foto">${hasFoto?`<img loading="lazy" src="${p.foto}">`:''}<span class="inv-badge-cat">${p.categoria||'—'}</span></div>
-  <div class="inv-body">
-   <div class="inv-nome">${p.nome||''}</div>
-   <div class="inv-codice">Cod. ${p.codice||'—'}</div>
-   <div class="inv-qta">📦 ${p.quantita||0}</div>
-   <div class="inv-info">📍 <b>${p.posizione||'—'}</b></div>
-   ${isAdmin?`<div class="inv-prezzo">€ ${(p.prezzo||0).toFixed(2)}</div>`:''}
-   <div class="inv-azioni">
-    <button class="inv-btn primario" data-azione="scheda" data-codice="${p.codice}">📋 Scheda</button>
-    ${isAdmin?`<button class="inv-btn" data-azione="modifica" data-codice="${p.codice}">✏️</button>`:''}
-    ${isAdmin?`<button class="inv-btn pericolo" data-azione="elimina" data-codice="${p.codice}">🗑️</button>`:''}
-   </div>
-  </div>
- </div>`;
-}
+
 
 function inv(el){
  let salvati=[];
@@ -1811,24 +1794,7 @@ function apriModaleEventoCampi(){
   /* ============================================================
    FIX: MAGAZZINO2 VEDE PREZZO INVENTARIO
    ============================================================ */
-function cardProd(p,isAdmin,vedePrezzo){
- const hasFoto=!!p.foto;
- return `<div class="inv-card">
-  <div class="inv-foto">${hasFoto?`<img loading="lazy" src="${p.foto}">`:''}<span class="inv-badge-cat">${p.categoria||'—'}</span></div>
-  <div class="inv-body">
-   <div class="inv-nome">${p.nome||''}</div>
-   <div class="inv-codice">Cod. ${p.codice||'—'}</div>
-   <div class="inv-qta">📦 ${p.quantita||0}</div>
-   <div class="inv-info">📍 <b>${p.posizione||'—'}</b></div>
-   ${vedePrezzo?`<div class="inv-prezzo">€ ${(p.prezzo||0).toFixed(2)}</div>`:''}
-   <div class="inv-azioni">
-    <button class="inv-btn primario" data-azione="scheda" data-codice="${p.codice}">📋 Scheda</button>
-    ${isAdmin?`<button class="inv-btn" data-azione="modifica" data-codice="${p.codice}">✏️</button>`:''}
-    ${isAdmin?`<button class="inv-btn pericolo" data-azione="elimina" data-codice="${p.codice}">🗑️</button>`:''}
-   </div>
-  </div>
- </div>`;
-}
+
 
 function inv(el){
  let salvati=[];
@@ -2045,7 +2011,7 @@ function apriModaleModificaEvento(ev){
    inp.addEventListener('input',function(){this.value=this.value.replace(/^0+(?=\d)/,'')});
   }
  });
- document.getElementById('me-salva').onclick=()=>{
+ document.getElementById('me-salva').onclick=async()=>{
   const nome=document.getElementById('me-nome').value.trim();
   if(!nome){alert('Il nome è obbligatorio.');return}
   ev.titolo=nome;
