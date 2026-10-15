@@ -826,6 +826,7 @@ function confermaElimEnt(tipo,obj){
  document.getElementById('d-close').onclick=chiudiDrawer;
  bg.onclick=chiudiDrawer;
  document.getElementById('d-conf').onclick=()=>{
+  if(window.ergoSupabaseDeleteEntity)window.ergoSupabaseDeleteEntity(tipo,obj);
   if(tipo==='evento'){
    const idx=EVENTI.findIndex(e=>e.id===obj.id);
    if(idx>=0)EVENTI.splice(idx,1);
@@ -4174,6 +4175,8 @@ function agganciaRimuoviAllegati(ev){
    else if(pref==='me-al-priv')campo='allegatiPrivata';
    if(!campo)return;
    if(confirm('Eliminare questo allegato?')){
+    const rimosso=(ev[campo]||[])[idx];
+    if(rimosso&&window.ergoSupabaseRemoveAttachment)window.ergoSupabaseRemoveAttachment(rimosso);
     ev[campo]=(ev[campo]||[]).filter((_,i)=>i!==idx);
     let salv=[];
     try{salv=JSON.parse(localStorage.getItem('ergo_eventi'))||[]}catch(e){}
@@ -4198,6 +4201,8 @@ function agganciaRimuoviAllegatiNoleggio(nl){
    else if(pref==='mn-al-vario')campo='allegatiVario';
    if(!campo)return;
    if(confirm('Eliminare questo allegato?')){
+    const rimosso=(nl[campo]||[])[idx];
+    if(rimosso&&window.ergoSupabaseRemoveAttachment)window.ergoSupabaseRemoveAttachment(rimosso);
     nl[campo]=(nl[campo]||[]).filter((_,i)=>i!==idx);
     let salv=[];
     try{salv=JSON.parse(localStorage.getItem('ergo_noleggi'))||[]}catch(e){}
@@ -7483,6 +7488,21 @@ window.mostraPopupBenvenuto=function(){
     return {url:signed.data.signedUrl,path:path,bucket:bucket,name:file.name,mime:file.type,size:file.size};
   };
 
+  window.ergoSupabaseRemoveAttachment=async function(a){
+    if(!sb||!a||!a.path)return;
+    var bucket=a.bucket||'allegati_noleggi';
+    try{var r=await sb.storage.from(bucket).remove([a.path]);if(r.error)console.warn('File non rimosso da Storage',a.path,r.error)}catch(e){console.warn('Rimozione allegato rinviata',e)}
+  };
+  window.ergoSupabaseDeleteEntity=async function(tipo,obj){
+    if(!sb||!obj)return;
+    var lists=tipo==='evento'?['allegatiTutti','allegatiSala','allegatiCucina','allegatiMagazzino','allegatiPrivata']:['allegatiBolla','allegatiDDT','allegatiVario'];
+    var files=[];lists.forEach(function(k){(obj[k]||[]).forEach(function(a){if(a&&a.path)files.push({bucket:a.bucket||'allegati_noleggi',path:a.path})})});
+    for(const bucket of ['allegati_noleggi','immagini_prodotti']){var paths=files.filter(function(x){return x.bucket===bucket}).map(function(x){return x.path});if(paths.length)try{await sb.storage.from(bucket).remove(paths)}catch(e){console.warn('File non rimossi da Storage',e)}}
+    try{
+      var q=tipo==='evento'?sb.from('eventi_catering').delete().eq('nome_evento',obj.titolo).eq('data',String(obj.inizio||'').slice(0,10)):sb.from('noleggi').delete().eq('titolo',obj.titolo).eq('inizio',obj.inizio);
+      var r=await q;if(r.error)console.warn('Record remoto non eliminato',r.error);
+    }catch(e){console.warn('Eliminazione remota rinviata',e)}
+  };
   function parseJsonList(value){
     if(Array.isArray(value)) return value;
     if(typeof value==='string'){
