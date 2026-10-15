@@ -7634,12 +7634,14 @@ window.mostraPopupBenvenuto=function(){
     try{
       syncing=true;
       var loadRevision=localCollectionRevision;
-      var products=await sb.from('prodotti_noleggio').select('id,qr_token,codice,nome,categoria,quantita,posizione,costo_noleggio,note,foto_path,scheda_materiale,scheda_colore,scheda_dimensione,scheda_note').order('nome');
-      var rentals=await sb.from('noleggi').select('id,titolo,inizio,fine,stato,location,referente,telefono,note,bolla,ddt,vario,bolla_url,ddt_url,vario_url,bolla_path,ddt_path,vario_path,bolla_mime,ddt_mime,vario_mime').order('inizio');
-      var events=await sb.from('eventi_catering').select('id,nome_evento,data,data_display,location,ospiti,bambini,staff,note_tutti,allegati_tutti,note_sala,allegati_sala,note_cucina,allegati_cucina,note_magazzino,allegati_magazzino,allegati_privati').order('data');
-      if(products.error) throw products.error;
-      if(rentals.error) throw rentals.error;
-      if(events.error) throw events.error;
+      var token=sessionStorage.getItem('ergo_session_token')||'';
+      if(!token) throw new Error('SESSIONE_ASSENTE');
+      var read=await sb.rpc('ergo_read_data',{p_token:token});
+      if(read.error) throw read.error;
+      var payload=read.data||{};
+      var products={data:payload.products||[],error:null};
+      var rentals={data:payload.rentals||[],error:null};
+      var events={data:payload.events||[],error:null};
       var remoteProducts=(products.data||[]).map(mapProduct);
       var localProducts=[]; try{localProducts=JSON.parse(localStorage.getItem('ergo_prodotti')||'[]');}catch(e){localProducts=[];}
       var pRows=remoteProducts.slice();
@@ -7654,8 +7656,7 @@ window.mostraPopupBenvenuto=function(){
       for(var qi=0;qi<(products.data||[]).length;qi++){
         var rawProduct=products.data[qi], mappedProduct=pRows[qi];
         if(rawProduct&&!rawProduct.qr_token&&mappedProduct&&mappedProduct.qrToken){
-          var qrUpdate=await sb.from('prodotti_noleggio').update({qr_token:mappedProduct.qrToken}).eq('id',rawProduct.id);
-          if(qrUpdate.error)console.warn('Token QR non salvato per prodotto storico',rawProduct.codice,qrUpdate.error);
+          try{await sb.rpc('ergo_sync_products',{p_token:token,p_rows:[mappedProduct]});}catch(qe){console.warn('Token QR non salvato per prodotto storico',rawProduct.codice,qe)}
         }
       }
       originalSetItem.call(localStorage,'ergo_prodotti',JSON.stringify(pRows));
