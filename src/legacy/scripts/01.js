@@ -7683,8 +7683,14 @@ window.mostraPopupBenvenuto=function(){
       view='dashboard';filtroFeed='tutte';app();
       wait(function(){var feed=document.querySelector('.feed');if(feed)feed.scrollIntoView({behavior:'smooth',block:'start'});},450);
     };
+    var testoBenvenuto='<b>'+(identita&&identita.welcome||'Bentornato!')+'</b><br><span style="font-weight:500">Ciao '+String(user.nome||user.username).replace(/[<>]/g,'')+', sono qui per aiutarti.</span>';
+    if(notifiche.length){
+      testoBenvenuto+='<br><span style="display:inline-block;margin-top:7px;font-weight:800;color:#b91c1c">🔔 Hai '+notifiche.length+' '+(notifiche.length===1?'nuova notifica':'nuove notifiche')+'.</span><br><span style="font-weight:500">Premi il pulsante per vedere gli aggiornamenti recenti.</span>';
+    }else{
+      testoBenvenuto+='<br><span style="display:inline-block;margin-top:7px;font-weight:600;color:#3e765e">✓ Nessuna nuova notifica.</span>';
+    }
     window.assistentePersonale({
-      testo:'<b>'+(identita&&identita.welcome||'Bentornato!')+'</b><br><span style="font-weight:500">Ciao '+String(user.nome||user.username).replace(/[<>]/g,'')+', sono qui per aiutarti.</span>',
+      testo:testoBenvenuto,
       emoji:'👋',colore:'#083278',autoClose:true,durata:10000,
       bottoni:[{label:notifiche.length?'🔔 Apri aggiornamenti recenti':'Inizia a lavorare',colore:'#083278',azione:notifiche.length?azioneAggiornamenti:function(){}}]
     });
