@@ -157,11 +157,12 @@ function login(){
   <label class="field">Password</label>
   <input class="inp" id="p" type="password" value="" placeholder="Inserisci password" autocomplete="current-password">
   <button class="btn-login" id="go">Accedi al gestionale</button>
-  <button class="btn-ghost" id="bootstrap" style="width:100%;margin-top:12px">Prima configurazione amministratore</button>
+  <button class="btn-ghost" id="bootstrap" style="display:none;width:100%;margin-top:12px">Prima configurazione amministratore</button>
   <div id="bootstrap-box" style="display:none;margin-top:16px;text-align:left"></div>
  </div></div>`;
  document.getElementById('go').onclick=doLogin;
  document.getElementById('bootstrap').onclick=mostraBootstrap;
+ if(window.ergoSupabaseBootstrapAvailable){window.ergoSupabaseBootstrapAvailable().then(function(available){var b=document.getElementById('bootstrap');if(b&&available)b.style.display='block';}).catch(function(){})}
  document.getElementById('p').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
 }
 
@@ -7393,6 +7394,7 @@ window.mostraPopupBenvenuto=function(){
   if(sb){try{setErgoSessionHeader(sessionStorage.getItem('ergo_session_token')||'')}catch(e){}}
   window.ergoSupabaseLogin=async function(username,password){if(!sb)throw new Error('Supabase non configurato');var r=await sb.rpc('ergo_login_username',{p_username:username,p_password:password});if(r.error)throw r.error;var row=(r.data||[])[0];if(!row)return null;setErgoSessionHeader(row.token);return {username:row.username,ruolo:row.ruolo,nome:row.nome,email:row.email||'',iniziali:(row.nome||row.username).split(' ').map(function(x){return x[0]}).slice(0,2).join('').toUpperCase()};};
   window.ergoSupabaseBootstrap=async function(username,password,nome){if(!sb)throw new Error('Supabase non configurato');var r=await sb.rpc('ergo_bootstrap_admin',{p_username:username,p_password:password,p_nome:nome||'Amministratore'});if(r.error)throw r.error;return r.data;};
+  window.ergoSupabaseBootstrapAvailable=async function(){if(!sb)return false;var r=await sb.rpc('ergo_bootstrap_available');if(r.error)throw r.error;return r.data===true;};
   window.ergoSupabaseListUsers=async function(){if(!sb) return [];var r=await sb.from('utenti_autorizzati').select('username,ruolo,nome,email,attivo').eq('attivo',true).order('username');if(r.error)throw r.error;return r.data||[];};
   window.ergoSupabaseSaveUser=async function(x){if(!sb)throw new Error('Supabase non configurato');var token=sessionStorage.getItem('ergo_session_token')||'';var r=await sb.rpc('ergo_admin_save_user',{p_token:token,p_username:x.username,p_password:x.password||'',p_ruolo:x.ruolo,p_nome:x.nome||x.username,p_email:x.email||null,p_original_username:x.originalUsername||null});if(r.error)throw r.error;return r.data;};
   window.ergoSupabaseDeleteUser=async function(username){if(!sb)throw new Error('Supabase non configurato');var r=await sb.rpc('ergo_admin_delete_user',{p_token:sessionStorage.getItem('ergo_session_token')||'',p_username:username});if(r.error)throw r.error;return r.data;};
