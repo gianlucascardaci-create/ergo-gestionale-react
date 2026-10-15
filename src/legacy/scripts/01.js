@@ -183,7 +183,7 @@ async function doLogin(){
 function mostraBootstrap(){
  const box=document.getElementById('bootstrap-box'); if(!box)return;
  box.style.display='block'; box.innerHTML='<div class="divisore-modale">🔐 Prima configurazione</div><p style="font-size:.78rem;color:#667085">Crea il primo amministratore. La password verrà salvata solo come hash in Supabase.</p><input class="inp" id="boot-user" placeholder="Username amministratore" autocomplete="username"><input class="inp" id="boot-name" placeholder="Nome visualizzato" style="margin-top:8px"><input class="inp" id="boot-pass" type="password" placeholder="Password (almeno 8 caratteri)" style="margin-top:8px" autocomplete="new-password"><input class="inp" id="boot-pass2" type="password" placeholder="Conferma password" style="margin-top:8px" autocomplete="new-password"><button class="btn-login" id="boot-go" style="margin-top:10px">Crea amministratore</button>';
- document.getElementById('boot-go').onclick=async function(){const u=document.getElementById('boot-user').value.trim(),n=document.getElementById('boot-name').value.trim(),a=document.getElementById('boot-pass').value,b=document.getElementById('boot-pass2').value;if(!u||a.length<8||a!==b){document.getElementById('e').innerHTML='<div class="err">Inserisci username e password di almeno 8 caratteri uguali.</div>';return}try{await window.ergoSupabaseBootstrap(u,a,n);document.getElementById('u').value=u;document.getElementById('p').value=a;box.style.display='none';await doLogin()}catch(e){document.getElementById('e').innerHTML='<div class="err">Configurazione già completata o non disponibile.</div>';console.warn(e)}};
+ document.getElementById('boot-go').onclick=async function(){const u=document.getElementById('boot-user').value.trim(),n=document.getElementById('boot-name').value.trim(),a=document.getElementById('boot-pass').value,b=document.getElementById('boot-pass2').value;if(!u||a.length<8||a!==b){document.getElementById('e').innerHTML='<div class="err">Inserisci username e password di almeno 8 caratteri uguali.</div>';return}try{if(!window.ergoSupabaseBootstrap||!window.ergoSupabaseBootstrapAvailable)throw new Error('CLIENT_SUPABASE_NON_DISPONIBILE');var disponibile=await window.ergoSupabaseBootstrapAvailable();if(!disponibile)throw new Error('BOOTSTRAP_COMPLETED');await window.ergoSupabaseBootstrap(u,a,n);document.getElementById('u').value=u;document.getElementById('p').value=a;box.style.display='none';await doLogin()}catch(e){var msg=String((e&&e.message)||e||'');var testo=msg.includes('BOOTSTRAP_COMPLETED')?'La configurazione Admin è già completata.':msg.includes('USERNAME_OR_PASSWORD_TOO_SHORT')?'Username o password troppo corti.':msg.includes('CLIENT_SUPABASE_NON_DISPONIBILE')?'Supabase non è collegato a questa pubblicazione.':'Errore Supabase: '+msg;document.getElementById('e').innerHTML='<div class="err">'+testo+'</div>';console.warn(e)}};
 }
 
 /* ============================================================
@@ -4157,7 +4157,7 @@ function listaAllegatiEsistenti(allegati,prefisso){
 
 function agganciaRimuoviAllegati(ev){
  document.querySelectorAll('[data-rimuovi-allegato]').forEach(b=>{
-  b.onclick=()=>{
+  b.onclick=async()=>{
    const pref=b.dataset.rimuoviAllegato;
    const idx=parseInt(b.dataset.idx);
    let campo='';
@@ -4168,16 +4168,18 @@ function agganciaRimuoviAllegati(ev){
    else if(pref==='me-al-priv')campo='allegatiPrivata';
    if(!campo)return;
    if(confirm('Eliminare questo allegato?')){
-    const rimosso=(ev[campo]||[])[idx];
-    if(rimosso&&window.ergoSupabaseRemoveAttachment)window.ergoSupabaseRemoveAttachment(rimosso);
-    ev[campo]=(ev[campo]||[]).filter((_,i)=>i!==idx);
-    let salv=[];
-    try{salv=JSON.parse(localStorage.getItem('ergo_eventi'))||[]}catch(e){}
-    const id=salv.findIndex(x=>x.id===ev.id);
-    if(id>=0)salv[id]=ev;
-    localStorage.setItem('ergo_eventi',JSON.stringify(salv));
-    /* Ricarica il modale per mostrare la lista aggiornata */
-    apriModaleModificaEvento(ev);
+    try{
+     const rimosso=(ev[campo]||[])[idx];
+     if(rimosso&&window.ergoSupabaseRemoveAttachment)await window.ergoSupabaseRemoveAttachment(rimosso);
+     ev[campo]=(ev[campo]||[]).filter((_,i)=>i!==idx);
+     let salv=[];
+     try{salv=JSON.parse(localStorage.getItem('ergo_eventi'))||[]}catch(e){}
+     const id=salv.findIndex(x=>x.id===ev.id);
+     if(id>=0)salv[id]=ev;
+     localStorage.setItem('ergo_eventi',JSON.stringify(salv));
+     /* Ricarica il modale per mostrare la lista aggiornata */
+     apriModaleModificaEvento(ev);
+    }catch(e){alert('❌ Allegato non eliminato da Supabase.');console.warn(e)}
    }
   };
  });
@@ -4185,7 +4187,7 @@ function agganciaRimuoviAllegati(ev){
 
 function agganciaRimuoviAllegatiNoleggio(nl){
  document.querySelectorAll('[data-rimuovi-allegato]').forEach(b=>{
-  b.onclick=()=>{
+  b.onclick=async()=>{
    const pref=b.dataset.rimuoviAllegato;
    const idx=parseInt(b.dataset.idx);
    let campo='';
@@ -4194,15 +4196,17 @@ function agganciaRimuoviAllegatiNoleggio(nl){
    else if(pref==='mn-al-vario')campo='allegatiVario';
    if(!campo)return;
    if(confirm('Eliminare questo allegato?')){
-    const rimosso=(nl[campo]||[])[idx];
-    if(rimosso&&window.ergoSupabaseRemoveAttachment)window.ergoSupabaseRemoveAttachment(rimosso);
-    nl[campo]=(nl[campo]||[]).filter((_,i)=>i!==idx);
-    let salv=[];
-    try{salv=JSON.parse(localStorage.getItem('ergo_noleggi'))||[]}catch(e){}
-    const id=salv.findIndex(x=>x.id===nl.id);
-    if(id>=0)salv[id]=nl;
-    localStorage.setItem('ergo_noleggi',JSON.stringify(salv));
-    apriModaleModificaNoleggio(nl);
+    try{
+     const rimosso=(nl[campo]||[])[idx];
+     if(rimosso&&window.ergoSupabaseRemoveAttachment)await window.ergoSupabaseRemoveAttachment(rimosso);
+     nl[campo]=(nl[campo]||[]).filter((_,i)=>i!==idx);
+     let salv=[];
+     try{salv=JSON.parse(localStorage.getItem('ergo_noleggi'))||[]}catch(e){}
+     const id=salv.findIndex(x=>x.id===nl.id);
+     if(id>=0)salv[id]=nl;
+     localStorage.setItem('ergo_noleggi',JSON.stringify(salv));
+     apriModaleModificaNoleggio(nl);
+    }catch(e){alert('❌ Allegato non eliminato da Supabase.');console.warn(e)}
    }
   };
  });
@@ -7509,9 +7513,11 @@ window.mostraPopupBenvenuto=function(){
   };
 
   window.ergoSupabaseRemoveAttachment=async function(a){
-    if(!sb||!a||!a.path)return;
+    if(!sb||!a||!a.path)return {remote:false};
     var bucket=a.bucket||'allegati_noleggi';
-    try{var r=await sb.storage.from(bucket).remove([a.path]);if(r.error)console.warn('File non rimosso da Storage',a.path,r.error)}catch(e){console.warn('Rimozione allegato rinviata',e)}
+    var r=await sb.storage.from(bucket).remove([a.path]);
+    if(r.error)throw r.error;
+    return {remote:true};
   };
   window.ergoSupabaseDeleteEntity=async function(tipo,obj){
     if(!sb||!obj)return {remote:false};
