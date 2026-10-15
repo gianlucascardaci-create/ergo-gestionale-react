@@ -7478,10 +7478,6 @@ window.mostraPopupBenvenuto=function(){
     var path=Date.now()+'-'+safe;
     var res=await sb.storage.from(bucket).upload(path,file,{upsert:false,contentType:file.type||undefined});
     if(res.error) throw res.error;
-    if(bucket==='immagini_prodotti'){
-      var publicUrl=sb.storage.from(bucket).getPublicUrl(path);
-      return {url:publicUrl.data.publicUrl,path:path,bucket:bucket,name:file.name,mime:file.type,size:file.size};
-    }
     var signed=await sb.storage.from(bucket).createSignedUrl(path,3600);
     if(signed.error) throw signed.error;
     return {url:signed.data.signedUrl,path:path,bucket:bucket,name:file.name,mime:file.type,size:file.size};
@@ -7497,17 +7493,19 @@ window.mostraPopupBenvenuto=function(){
   function mapFileList(list){
     return parseJsonList(list).map(function(a){
       var name=a.nome_file||a.nome||'allegato';
-      var url=a.url||a.data||'';
-      return {nome:name,nome_file:name,mime:a.mime||'application/octet-stream',size:a.size||0,url:url,data:url,path:a.path||'',bucket:a.bucket||'allegati_noleggi',caricato_il:a.caricato_il||''};
+      var url=a.url||a.data||' ';url=url.trim();
+      /* Per gli allegati Storage conserviamo il solo URL firmato; data resta solo per il fallback locale. */
+      return {nome:name,nome_file:name,mime:a.mime||'application/octet-stream',size:a.size||0,url:url,data:a.data&&String(a.data).startsWith('data:')?a.data:'',path:a.path||'',bucket:a.bucket||'allegati_noleggi',caricato_il:a.caricato_il||''};
     });
   }
   function mapProduct(row){
     var foto=row.foto_path||row.foto_url||'';
-    if(foto && !/^https?:|^data:/.test(foto) && sb){
-      var pub=sb.storage.from('immagini_prodotti').getPublicUrl(foto);
-      foto=pub.data.publicUrl;
-    }
-    return {id:row.id,qrToken:row.qr_token||nuovoQrToken(),codice:row.codice,nome:row.nome,categoria:row.categoria||'',quantita:Number(row.quantita||0),posizione:row.posizione||'',prezzo:Number(row.costo_noleggio||row.prezzo||0),note:row.note||'',foto:foto,foto_path:row.foto_path||'',scheda:{materiale:row.scheda_materiale||'',colore:row.scheda_colore||'',dimensione:row.scheda_dimensione||'',note:row.scheda_note||''}};
+    return {id:row.id,qrToken:row.qr_token||nuovoQrToken(),codice:row.codice,nome:row.nome,categoria:row.categoria||'',quantita:Number(row.quantita||0),posizione:row.posizione||'',prezzo:Number(row.costo_noleggio||row.prezzo||0),note:row.note||'',foto:/^https?:|^data:/.test(foto)?foto:'',foto_path:row.foto_path||'',scheda:{materiale:row.scheda_materiale||'',colore:row.scheda_colore||'',dimensione:row.scheda_dimensione||'',note:row.scheda_note||''}};
+  }
+  async function firmaFotoProdotto(prod){
+    if(!sb||!prod||!prod.foto_path)return prod;
+    try{var r=await sb.storage.from('immagini_prodotti').createSignedUrl(prod.foto_path,3600);if(!r.error&&r.data)prod.foto=r.data.signedUrl;}catch(e){console.warn('Anteprima foto non disponibile',e)}
+    return prod;
   }
   function mapEvent(row){
     return {id:String(row.id),tipo:'evento',titolo:row.nome_evento,inizio:row.inizio||((row.data||'')+'T12:00:00'),fine:row.fine||((row.data||'')+'T23:59:00'),location:row.location||'',ospiti:Number(row.ospiti||0),bambini:Number(row.bambini||0),staff:Number(row.staff||0),noteTutti:row.note_tutti||'',noteSala:row.note_sala||'',noteCucina:row.note_cucina||'',noteMagazzino:row.note_magazzino||'',allegatiTutti:mapFileList(row.allegati_tutti),allegatiSala:mapFileList(row.allegati_sala),allegatiCucina:mapFileList(row.allegati_cucina),allegatiMagazzino:mapFileList(row.allegati_magazzino),allegatiPrivata:mapFileList(row.allegati_privati),stato:'confermato'};
@@ -7550,6 +7548,7 @@ window.mostraPopupBenvenuto=function(){
       if(rentals.error) throw rentals.error;
       if(events.error) throw events.error;
       var pRows=(products.data||[]).map(mapProduct), nRows=(rentals.data||[]).map(mapRental), eRows=(events.data||[]).map(mapEvent);
+      for(const product of pRows) await firmaFotoProdotto(product);
       /* Migrazione trasparente: assegna e salva un token ai prodotti storici privi di QR. */
       for(var qi=0;qi<(products.data||[]).length;qi++){
         var rawProduct=products.data[qi], mappedProduct=pRows[qi];
@@ -7729,7 +7728,7 @@ window.mostraPopupBenvenuto=function(){
     window.login=function(){window._dashVnextShown=false;return previousLogin.apply(this,arguments);};
   }
 
-  if(_qrToken&&sb){wait(async function(){try{var qr=await sb.rpc('get_prodotto_qr',{p_token:_qrToken});var row=qr.data&&Array.isArray(qr.data)?qr.data[0]:qr.data;if(row){var prod=mapProduct(row);prod.qrToken=_qrToken;localStorage.setItem('ergo_prodotti',JSON.stringify([prod]));apriQRPubblico(_qrToken);}}catch(e){console.warn('QR remoto non disponibile',e)}},250);}
+  if(_qrToken&&sb){wait(async function(){try{var qr=await sb.rpc('get_prodotto_qr',{p_token:_qrToken});var row=qr.data&&Array.isArray(qr.data)?qr.data[0]:qr.data;if(row){var prod=mapProduct(row);prod.qrToken=_qrToken;await firmaFotoProdotto(prod);localStorage.setItem('ergo_prodotti',JSON.stringify([prod]));apriQRPubblico(_qrToken);}}catch(e){console.warn('QR remoto non disponibile',e)}},250);}
 
   console.info('Ergo vNext: assistente attivo; Supabase '+(sb?'configurato':'non configurato, fallback localStorage'));
 })();
