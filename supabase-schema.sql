@@ -128,6 +128,7 @@ on conflict (id) do nothing;
 -- a Supabase Auth; la colonna password è mantenuta solo per compatibilità temporanea.
 
 -- QR privati: il link contiene solo questo token casuale, non il codice prodotto.
+create extension if not exists pgcrypto;
 alter table public.prodotti_noleggio add column if not exists qr_token text;
 create unique index if not exists prodotti_noleggio_qr_token_idx on public.prodotti_noleggio(qr_token) where qr_token is not null;
 update public.prodotti_noleggio set qr_token=encode(gen_random_bytes(18),'hex') where qr_token is null;
