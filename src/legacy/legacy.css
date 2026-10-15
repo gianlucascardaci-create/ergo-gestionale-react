@@ -359,10 +359,11 @@ h1.title{font-size:clamp(1.8rem,3vw,2.6rem);margin-top:8px;line-height:1.08}
   /* === RESPONSIVE — schermi grandi (Mac/PC 1800px+) === */
 @media (min-width:1800px){
  body{font-size:18px}
- .page{padding:56px 64px 48px;max-width:1900px;margin:0 auto}
- .sidebar{width:300px;padding:30px 22px}
- h1.title{font-size:3rem}
- .lede{font-size:.98rem}
+ .page{padding:56px 5vw 48px;max-width:none;width:100%;margin:0}
+ .main{min-width:0;width:100%}
+ .sidebar{width:330px;padding:32px 24px}
+ h1.title{font-size:3.4rem}
+ .lede{font-size:1.08rem;max-width:900px}
  .cd-grid{gap:20px;margin-bottom:26px}
  .cd-card{padding:28px}
  .cd-title{font-size:1.4rem}
@@ -538,3 +539,8 @@ h1.title{font-size:clamp(1.8rem,3vw,2.6rem);margin-top:8px;line-height:1.08}
 .assistant-character-image{display:block;width:210px;height:315px;object-fit:contain;object-position:center bottom;filter:drop-shadow(0 14px 24px rgba(8,50,120,.22))}
 .assistente-person .assistant-character-image{width:210px;height:315px}
 @media(max-width:560px){.assistant-character-image{width:125px;height:188px}.assistente-person .assistant-character-image{width:125px;height:188px}}
+
+
+/* Riquadri Ruoli: nessun movimento al passaggio del mouse. */
+.ruolo-card,.ruolo-card:hover,.ruolo-card:focus-within{transform:none !important;animation:none !important;transition:box-shadow .18s ease,border-color .18s ease !important}
+.ruolo-card:hover{box-shadow:0 8px 22px rgba(21,34,56,.08) !important}

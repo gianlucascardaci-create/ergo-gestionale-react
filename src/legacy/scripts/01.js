@@ -7729,14 +7729,11 @@ window.mostraPopupBenvenuto=function(){
     #personaggio-attivo>div:last-child{min-width:340px !important;max-width:420px !important;padding:20px 22px !important;border-width:3px !important;border-radius:22px !important;margin-bottom:46px !important}
     #personaggio-attivo>div:last-child div{font-size:1rem !important;line-height:1.5 !important}
     #personaggio-attivo>div:last-child button{padding:12px 14px !important;font-size:.86rem !important}
-    @keyframes ergo-dashboard-scan{0%{transform:translateX(-120%);opacity:0}12%{opacity:.7}70%{opacity:.22}100%{transform:translateX(120%);opacity:0}}
-    #pc.dash-anim:before{content:'';position:fixed;inset:0;z-index:9998;pointer-events:none;background:linear-gradient(100deg,transparent 0%,rgba(55,142,255,.14) 48%,rgba(255,255,255,.32) 50%,transparent 54%);animation:ergo-dashboard-scan 5.8s ease-in-out both}
-    #pc.dash-anim .page{animation:dash-page-reveal 1.6s ease-out .35s both}
-    @keyframes dash-page-reveal{0%{opacity:.12;filter:blur(5px)}100%{opacity:1;filter:blur(0)}}
-    .dash-anim .sidebar{animation-duration:1.8s !important}.dash-anim .topbar{animation-duration:1.5s !important}
-    .dash-anim .cd-card:nth-child(1){animation-delay:1.15s !important;animation-duration:1.7s !important}.dash-anim .cd-card:nth-child(2){animation-delay:1.65s !important;animation-duration:1.7s !important}
-    .dash-anim .feed{animation-delay:2.2s !important;animation-duration:1.55s !important}
-    .dash-anim h1.title{animation-delay:1.8s !important;animation-duration:2.2s !important}
+    /* Apertura pulita: niente scansione, lampeggi o rimbalzi. */
+    #pc.dash-anim:before{display:none !important;content:none !important}
+    @keyframes ergo-dashboard-soft-open{0%{opacity:0;transform:translateY(10px)}100%{opacity:1;transform:translateY(0)}}
+    #pc.dash-anim .page{animation:ergo-dashboard-soft-open .62s cubic-bezier(.22,.8,.32,1) both !important;filter:none !important}
+    #pc.dash-anim .sidebar,#pc.dash-anim .topbar,#pc.dash-anim .cd-card,#pc.dash-anim .feed,#pc.dash-anim .feed-item,#pc.dash-anim h1.title,#pc.dash-anim .eyebrow,#pc.dash-anim .lede,#pc.dash-anim .metric-icon,#pc.dash-anim .cd-icon{animation:none !important;filter:none !important}
     @media(max-width:560px){#personaggio-attivo{right:8px !important;bottom:8px !important}#personaggio-attivo>div:first-child{width:125px !important;min-width:125px !important}#personaggio-attivo svg{width:125px !important;height:167px !important}#personaggio-attivo>div:last-child{min-width:0 !important;max-width:calc(100vw - 118px) !important;padding:14px !important;margin-bottom:18px !important}}
   `;
   document.head.appendChild(visualFix);
