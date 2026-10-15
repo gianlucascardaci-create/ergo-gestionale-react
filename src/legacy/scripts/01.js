@@ -1467,7 +1467,7 @@ function ruoli(el){
  }
  if(user&&user.username&&!UTENTI[user.username])UTENTI[user.username]={ruolo:user.ruolo,nome:user.nome,email:user.email,iniziali:user.iniziali};
  const listaUtenti=Object.keys(UTENTI).map(k=>({username:k,...UTENTI[k]}));
- if(window.ergoSupabaseListUsers&&!el._remoteUsersLoading){el._remoteUsersLoading=true;window.ergoSupabaseListUsers().then(list=>{const corrente=user&&user.username?{username:user.username,ruolo:user.ruolo,nome:user.nome,email:user.email,iniziali:user.iniziali}:null;Object.keys(UTENTI).forEach(k=>delete UTENTI[k]);(list||[]).forEach(u=>{UTENTI[u.username]={ruolo:u.ruolo,nome:u.nome,email:u.email,iniziali:(u.nome||u.username).split(' ').map(x=>x[0]).slice(0,2).join('').toUpperCase()}});if(corrente&&!UTENTI[corrente.username])UTENTI[corrente.username]={ruolo:corrente.ruolo,nome:corrente.nome,email:corrente.email,iniziali:corrente.iniziali};el._remoteUsersLoading=false;ruoli(el)}).catch((e)=>{el._remoteUsersLoading=false;console.warn('Elenco ruoli Supabase non disponibile',e)})}
+ if(window.ergoSupabaseListUsers&&!el._remoteUsersLoading&&!el._remoteUsersLoaded){el._remoteUsersLoading=true;window.ergoSupabaseListUsers().then(list=>{const corrente=user&&user.username?{username:user.username,ruolo:user.ruolo,nome:user.nome,email:user.email,iniziali:user.iniziali}:null;Object.keys(UTENTI).forEach(k=>delete UTENTI[k]);(list||[]).forEach(u=>{UTENTI[u.username]={ruolo:u.ruolo,nome:u.nome,email:u.email,iniziali:(u.nome||u.username).split(' ').map(x=>x[0]).slice(0,2).join('').toUpperCase()}});if(corrente&&!UTENTI[corrente.username])UTENTI[corrente.username]={ruolo:corrente.ruolo,nome:corrente.nome,email:corrente.email,iniziali:corrente.iniziali};el._remoteUsersLoading=false;el._remoteUsersLoaded=true;ruoli(el)}).catch((e)=>{el._remoteUsersLoading=false;el._remoteUsersLoaded=true;console.warn('Elenco ruoli Supabase non disponibile',e)})}
  el.innerHTML=`<div class="page">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:24px;flex-wrap:wrap">
    <div><p class="eyebrow">Amministrazione</p><h1 class="title">Sistema Ruoli</h1><p class="lede">${listaUtenti.length} utenti autorizzati.</p></div>
@@ -1548,7 +1548,8 @@ function modaleUtente(username){
    if(modifica&&username!==username2)delete UTENTI[username];
    chiudiDrawer();
    alert('✅ Utente '+(modifica?'aggiornato':'creato')+' su Supabase.');
-   ruoli(document.getElementById('pc'));
+   var ruoloPage=document.getElementById('pc');if(ruoloPage)ruoloPage._remoteUsersLoaded=false;
+   ruoli(ruoloPage);
   }catch(e){alert('Errore: utente non salvato su Supabase.');console.warn(e)}
  };
 }
@@ -1564,7 +1565,7 @@ function eliminaUtente(username){
  document.getElementById('d-close').onclick=chiudiDrawer;
  bg.onclick=chiudiDrawer;
  document.getElementById('conf-del').onclick=()=>{
-  window.ergoSupabaseDeleteUser(username).then(()=>{delete UTENTI[username];chiudiDrawer();alert('✅ Utente eliminato da Supabase.');ruoli(document.getElementById('pc'));}).catch(e=>{alert('Errore: utente non eliminato.');console.warn(e)});
+  window.ergoSupabaseDeleteUser(username).then(()=>{delete UTENTI[username];chiudiDrawer();alert('✅ Utente eliminato da Supabase.');var ruoloPage=document.getElementById('pc');if(ruoloPage)ruoloPage._remoteUsersLoaded=false;ruoli(ruoloPage);}).catch(e=>{alert('Errore: utente non eliminato.');console.warn(e)});
  };
 }
 /* ============================================================
