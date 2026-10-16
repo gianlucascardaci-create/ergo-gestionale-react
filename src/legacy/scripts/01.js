@@ -4072,8 +4072,9 @@ function apriModaleInvioLista(){
 /* ============== MODIFICA EVENTO ============== */
 function apriModaleModificaEvento(ev){
  const isAdmin=user.ruolo==='Amministratore';
- const dataIso=new Date(ev.inizio).toISOString().slice(0,10);
- const ora=String(new Date(ev.inizio).getHours()).padStart(2,'0')+':'+String(new Date(ev.inizio).getMinutes()).padStart(2,'0');
+ const dataIso=String(ev.data||ev.inizio||'').slice(0,10);
+ const mt=String(ev.inizio||'').match(/T(\d{2}:\d{2})/);
+ const ora=mt?mt[1]:'18:30';
  const d=document.getElementById('d-panel'),bg=document.getElementById('d-bg');
  document.getElementById('d-eyebrow').textContent='Modifica evento';
  document.getElementById('d-titolo').textContent='✏️ '+ev.titolo;
@@ -4140,8 +4141,13 @@ function apriModaleModificaEvento(ev){
  document.getElementById('me-salva').onclick=async()=>{
   const nome=document.getElementById('me-nome').value.trim();
   if(!nome){alert('Il nome è obbligatorio.');return}
+  const dataEvento=document.getElementById('me-data').value;
+  const vecchieNote={tutti:ev.noteTutti||'',sala:ev.noteSala||'',cucina:ev.noteCucina||'',magazzino:ev.noteMagazzino||''};
   ev.titolo=nome;
-  ev.inizio=document.getElementById('me-data').value+'T'+(document.getElementById('me-ora').value||'18:30')+':00';
+  ev.data=dataEvento;
+  ev.clientId=ev.clientId||ev.id;
+  ev.inizio=dataEvento+'T'+(document.getElementById('me-ora').value||'18:30')+':00';
+  ev.fine=dataEvento+'T23:59:59';
   ev.location=document.getElementById('me-loc').value.trim()||'—';
   ev.citta=document.getElementById('me-citta').value.trim();
   ev.ospiti=parseInt(document.getElementById('me-osp').value)||0;
