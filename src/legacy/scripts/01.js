@@ -109,6 +109,21 @@ function creaNotificaNotaStorica(ev,reparto,msg){
  const n={id:'nf-'+Date.now()+'-nota-'+Math.random().toString(36).slice(2,7),tipo:'nota',reparto:reparto==='admin'?'admin':reparto,titolo:'Nuovo messaggio per la '+nomi[reparto],sottotitolo:'Da '+(msg.da||'utente')+' · '+ev.titolo,quando:msg.quando,da:msg.da,dettagli:{evento:ev.titolo,data:formattaDataIt(ev.inizio),testoNota:msg.testo,sezione:'Conversazione · '+nomi[reparto],messaggioId:msg.id}};
  NOTIFICHE.unshift(n);let salvate=[];try{salvate=JSON.parse(localStorage.getItem('ergo_notifiche')||'[]')}catch(e){};salvate.unshift(n);localStorage.setItem('ergo_notifiche',JSON.stringify(salvate.slice(0,200)));
 }
+function dataLocaleSicura(ev){const x=dataEventoCanonica(ev).split('-');if(x.length===3){const d=new Date(Number(x[0]),Number(x[1])-1,Number(x[2]));return d.toLocaleDateString('it-IT',{day:'numeric',month:'long',year:'numeric'});}return 'Data non disponibile';}
+function timelineQuando(v){const d=new Date(v||Date.now());return isNaN(d.getTime())?'':d.toLocaleString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});}
+function renderCronologiaReparto(ev,reparto){
+ const labels={sala:'Sala',cucina:'Cucina',magazzino:'Magazzino'};
+ const noteReparti=['tutti',reparto]; const items=[]; const files=[];
+ noteReparti.forEach(function(rep){storicoNote(ev,rep).forEach(function(m){items.push({kind:'note',rep:rep,quando:m.quando||ev.creatoIl||ev.created_at,testo:m.testo,autore:m.da||'Utente',letto:!!m.letto,id:m.id});});});
+ noteReparti.forEach(function(rep){const campo=rep==='tutti'?'allegatiTutti':rep==='sala'?'allegatiSala':rep==='cucina'?'allegatiCucina':'allegatiMagazzino';(ev[campo]||[]).forEach(function(a,i){items.push({kind:'file',rep:rep,quando:a.caricato_il||ev.creatoIl||ev.created_at,nome:a.nome||a.nome_file||'Allegato',allegato:a,letto:!!a.letto,id:'file-'+rep+'-'+i});});});
+ items.sort(function(a,b){return new Date(a.quando)-new Date(b.quando)});
+ let html='<div class="timeline-role-head"><div><span class="timeline-kicker">Cronologia reparto</span><strong>'+escapeHtml(labels[reparto]||reparto)+'</strong></div><span class="timeline-date">'+escapeHtml(dataLocaleSicura(ev))+'</span></div>';
+ html+='<div class="timeline-event-base"><div class="timeline-dot base">●</div><div><strong>Evento creato</strong><span>'+escapeHtml(ev.location||'Location non indicata')+' · '+Number(ev.ospiti||0)+' ospiti</span><small>Informazioni iniziali dell’evento</small></div></div>';
+ if(!items.length)html+='<div class="note-thread-empty">Nessuna nota o allegato per questo reparto.</div>';
+ items.forEach(function(x){const unread=!x.letto; if(x.kind==='note'){html+='<div class="timeline-item '+(unread?'unread':'read')+'"><div class="timeline-dot">'+(unread?'!':'✓')+'</div><div class="timeline-card"><div class="timeline-card-head"><strong>'+escapeHtml(x.rep==='tutti'?'Nota per tutti':'Nuova nota '+labels[x.rep])+'</strong><span>'+escapeHtml(timelineQuando(x.quando))+'</span></div><div class="timeline-text">'+escapeHtml(x.testo)+'</div><small>'+escapeHtml(x.autore)+' · '+(unread?'Da leggere':'Visualizzato')+'</small></div></div>';}else{const fid='tl-'+Math.random().toString(36).slice(2,10);files.push({id:fid,file:x.allegato});html+='<div class="timeline-item '+(unread?'unread':'read')+'"><div class="timeline-dot">'+(unread?'!':'✓')+'</div><div class="timeline-card"><div class="timeline-card-head"><strong>Nuovo allegato</strong><span>'+escapeHtml(timelineQuando(x.quando))+'</span></div><div class="timeline-text">'+escapeHtml(x.nome)+'</div><small>'+escapeHtml(x.rep==='tutti'?'Per tutti':'Per '+labels[x.rep])+' · '+(unread?'Da leggere':'Visualizzato')+'</small><div class="timeline-file-actions"><button class="allegato-btn anteprima" data-timeline-preview="'+fid+'">👁️ Anteprima</button><button class="allegato-btn" data-timeline-download="'+fid+'">⬇️ Scarica</button></div></div></div>';}});
+ window._timelineFiles=files.reduce(function(acc,x){acc[x.id]=x.file;return acc;},{});
+ return html;
+}
 function nuovoQrToken(){try{if(window.crypto&&crypto.getRandomValues){const a=new Uint8Array(18);crypto.getRandomValues(a);return Array.from(a).map(x=>x.toString(16).padStart(2,'0')).join('')}}catch(e){}return 'qr_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,14)}
 function assicuraQrToken(p){if(p&&!p.qrToken)p.qrToken=nuovoQrToken();return p&&p.qrToken||''}
 
@@ -825,6 +840,20 @@ function apriDrawerEnt(tipo,obj){
  const ora=new Date(obj.inizio).toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
  let h='';
  if(tipo==='evento'){
+  const ruoloCronologia=!isAdmin&&!isWedding&&['Sala','Cucina','Magazzino'].includes(user.ruolo);
+  if(ruoloCronologia){
+   const reparto=user.ruolo.toLowerCase();
+   h=renderCronologiaReparto(obj,reparto);
+   document.getElementById('d-body').innerHTML=h;
+   document.getElementById('d-foot').innerHTML='<button class="btn-ghost" onclick="chiudiDrawer()">Chiudi</button>';
+   d.classList.add('open');bg.classList.add('open');document.getElementById('d-close').onclick=chiudiDrawer;bg.onclick=chiudiDrawer;
+   const campo=CAMPI_STORICO_NOTE[reparto];if(campo&&Array.isArray(obj[campo]))obj[campo].forEach(function(m){m.letto=true});
+   ['allegatiTutti','allegatiSala','allegatiCucina','allegatiMagazzino'].forEach(function(k){(obj[k]||[]).forEach(function(a){a.letto=true})});
+   let rows=[];try{rows=JSON.parse(localStorage.getItem('ergo_eventi')||'[]')}catch(e){};const ix=rows.findIndex(function(x){return x.id===obj.id});if(ix>=0){rows[ix]=obj;localStorage.setItem('ergo_eventi',JSON.stringify(rows));}
+   document.querySelectorAll('[data-timeline-preview]').forEach(function(b){b.onclick=function(){const a=window._timelineFiles[b.dataset.timelinePreview];if(a)apriAnteprimaAllega(a)}});
+   document.querySelectorAll('[data-timeline-download]').forEach(function(b){b.onclick=function(){const a=window._timelineFiles[b.dataset.timelineDownload];if(a)scaricaAllega(a)}});
+   return;
+  }
   h+=`<h4>Dettagli evento</h4><div class="meta-grid"><div><small>Data</small><strong>${dataI}</strong></div><div><small>Orario</small><strong>${ora}</strong></div><div><small>Location</small><strong>${obj.location||'—'}</strong></div><div><small>Ospiti</small><strong>${obj.ospiti||0}${obj.bambini?' · '+obj.bambini+' bimbi':''}${obj.staff?' · '+obj.staff+' staff':''}</strong></div></div>`;
   const vediSala=isAdmin||isWedding||user.ruolo==='Sala';
   const vediCucina=isAdmin||isWedding||user.ruolo==='Cucina';
@@ -4094,28 +4123,28 @@ function apriModaleModificaEvento(ev){
   </div>
   <div class="divisore-modale">📝 Note per tutti</div>
   <div class="campo">
-   <textarea id="me-n-tutti" style="background:#eef2ff;border-color:#c7d2fe">${(ev.noteTutti||'').replace(/</g,'&lt;')}</textarea>
+   <textarea id="me-n-tutti" placeholder="Scrivi un nuovo messaggio per tutti…" style="background:#f8fafc"></textarea>
    ${listaAllegatiEsistenti(ev.allegatiTutti||[],'me-al-tutti')}
    <label style="display:block;font-size:.7rem;font-weight:700;color:#083278;margin-top:10px">+ Aggiungi nuovi allegati</label>
    <input type="file" id="me-f-tutti" multiple accept="image/*,.pdf">
   </div>
   <div class="divisore-modale">🍽️ Note per la sala</div>
   <div class="campo">
-   <textarea id="me-n-sala" style="background:#f0fdf4;border-color:#bbf7d0">${(ev.noteSala||'').replace(/</g,'&lt;')}</textarea>
+   <textarea id="me-n-sala" placeholder="Scrivi un nuovo messaggio per la sala…" style="background:#f8fafc"></textarea>
    ${listaAllegatiEsistenti(ev.allegatiSala||[],'me-al-sala')}
    <label style="display:block;font-size:.7rem;font-weight:700;color:#083278;margin-top:10px">+ Aggiungi nuovi allegati</label>
    <input type="file" id="me-f-sala" multiple accept="image/*,.pdf">
   </div>
   <div class="divisore-modale">👨‍🍳 Note per la cucina</div>
   <div class="campo">
-   <textarea id="me-n-cucina" style="background:#fff7ed;border-color:#fed7aa">${(ev.noteCucina||'').replace(/</g,'&lt;')}</textarea>
+   <textarea id="me-n-cucina" placeholder="Scrivi un nuovo messaggio per la cucina…" style="background:#f8fafc"></textarea>
    ${listaAllegatiEsistenti(ev.allegatiCucina||[],'me-al-cucina')}
    <label style="display:block;font-size:.7rem;font-weight:700;color:#083278;margin-top:10px">+ Aggiungi nuovi allegati</label>
    <input type="file" id="me-f-cucina" multiple accept="image/*,.pdf">
   </div>
   <div class="divisore-modale">📦 Note per il magazzino</div>
   <div class="campo">
-   <textarea id="me-n-mag" style="background:#f5f3ff;border-color:#ddd6fe">${(ev.noteMagazzino||'').replace(/</g,'&lt;')}</textarea>
+   <textarea id="me-n-mag" placeholder="Scrivi un nuovo messaggio per il magazzino…" style="background:#f8fafc"></textarea>
    ${listaAllegatiEsistenti(ev.allegatiMagazzino||[],'me-al-mag')}
    <label style="display:block;font-size:.7rem;font-weight:700;color:#083278;margin-top:10px">+ Aggiungi nuovi allegati</label>
    <input type="file" id="me-f-mag" multiple accept="image/*,.pdf">
