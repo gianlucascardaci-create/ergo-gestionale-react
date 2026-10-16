@@ -113,17 +113,38 @@ function dataLocaleSicura(ev){const x=dataEventoCanonica(ev).split('-');if(x.len
 function timelineQuando(v){const d=new Date(v||Date.now());return isNaN(d.getTime())?'':d.toLocaleString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});}
 function renderCronologiaReparto(ev,reparto){
  const labels={sala:'Sala',cucina:'Cucina',magazzino:'Magazzino'};
- const noteReparti=['tutti',reparto]; const items=[]; const files=[];
- noteReparti.forEach(function(rep){storicoNote(ev,rep).forEach(function(m){items.push({kind:'note',rep:rep,quando:m.quando||ev.creatoIl||ev.created_at,testo:m.testo,autore:m.da||'Utente',letto:!!m.letto,id:m.id});});});
- noteReparti.forEach(function(rep){const campo=rep==='tutti'?'allegatiTutti':rep==='sala'?'allegatiSala':rep==='cucina'?'allegatiCucina':'allegatiMagazzino';(ev[campo]||[]).forEach(function(a,i){items.push({kind:'file',rep:rep,quando:a.caricato_il||ev.creatoIl||ev.created_at,nome:a.nome||a.nome_file||'Allegato',allegato:a,letto:!!a.letto,id:'file-'+rep+'-'+i});});});
- items.sort(function(a,b){return new Date(a.quando)-new Date(b.quando)});
- let html='<div class="timeline-role-head"><div><span class="timeline-kicker">Cronologia reparto</span><strong>'+escapeHtml(labels[reparto]||reparto)+'</strong></div><span class="timeline-date">'+escapeHtml(dataLocaleSicura(ev))+'</span></div>';
- html+='<div class="timeline-event-base"><div class="timeline-dot base">●</div><div><strong>Evento creato</strong><span>'+escapeHtml(ev.location||'Location non indicata')+' · '+Number(ev.ospiti||0)+' ospiti</span><small>Informazioni iniziali dell’evento</small></div></div>';
- if(!items.length)html+='<div class="note-thread-empty">Nessuna nota o allegato per questo reparto.</div>';
- items.forEach(function(x){const unread=!x.letto; if(x.kind==='note'){html+='<div class="timeline-item '+(unread?'unread':'read')+'"><div class="timeline-dot">'+(unread?'!':'✓')+'</div><div class="timeline-card"><div class="timeline-card-head"><strong>'+escapeHtml(x.rep==='tutti'?'Nota per tutti':'Nuova nota '+labels[x.rep])+'</strong><span>'+escapeHtml(timelineQuando(x.quando))+'</span></div><div class="timeline-text">'+escapeHtml(x.testo)+'</div><small>'+escapeHtml(x.autore)+' · '+(unread?'Da leggere':'Visualizzato')+'</small></div></div>';}else{const fid='tl-'+Math.random().toString(36).slice(2,10);files.push({id:fid,file:x.allegato});html+='<div class="timeline-item '+(unread?'unread':'read')+'"><div class="timeline-dot">'+(unread?'!':'✓')+'</div><div class="timeline-card"><div class="timeline-card-head"><strong>Nuovo allegato</strong><span>'+escapeHtml(timelineQuando(x.quando))+'</span></div><div class="timeline-text">'+escapeHtml(x.nome)+'</div><small>'+escapeHtml(x.rep==='tutti'?'Per tutti':'Per '+labels[x.rep])+' · '+(unread?'Da leggere':'Visualizzato')+'</small><div class="timeline-file-actions"><button class="allegato-btn anteprima" data-timeline-preview="'+fid+'">👁️ Anteprima</button><button class="allegato-btn" data-timeline-download="'+fid+'">⬇️ Scarica</button></div></div></div>';}});
+ const noteReparti=['tutti',reparto],items=[],files=[];
+ noteReparti.forEach(function(rep){storicoNote(ev,rep).forEach(function(m){items.push({kind:'note',rep:rep,quando:m.quando||ev.creatoIl||ev.created_at||ev.inizio,testo:m.testo,autore:m.da||'Utente',letto:!!m.letto,id:m.id});});});
+ noteReparti.forEach(function(rep){const campo=rep==='tutti'?'allegatiTutti':rep==='sala'?'allegatiSala':rep==='cucina'?'allegatiCucina':'allegatiMagazzino';(ev[campo]||[]).forEach(function(a,i){items.push({kind:'file',rep:rep,quando:a.caricato_il||ev.creatoIl||ev.created_at||ev.inizio,nome:a.nome||a.nome_file||'Allegato',allegato:a,letto:!!a.letto,id:'file-'+rep+'-'+i});});});
+ /* Il più recente è sempre in alto. L'evento creato, essendo il primo, resta in fondo. */
+ items.sort(function(a,b){return new Date(b.quando)-new Date(a.quando)});
+ let html='<div class="timeline-role-head"><div><span class="timeline-kicker">Cronologia reparto · tocca un blocco per cambiare lo stato</span><strong>'+escapeHtml(labels[reparto]||reparto)+'</strong></div><span class="timeline-date">'+escapeHtml(dataLocaleSicura(ev))+'</span></div>';
+ items.forEach(function(x){const unread=!x.letto;
+  if(x.kind==='note'){
+   html+='<div class="timeline-item '+(unread?'unread':'read')+'" role="button" tabindex="0" data-timeline-kind="note" data-timeline-rep="'+x.rep+'" data-timeline-id="'+escapeAttr(x.id)+'"><div class="timeline-dot">'+(unread?'!':'✓')+'</div><div class="timeline-card"><div class="timeline-card-head"><strong>'+escapeHtml(x.rep==='tutti'?'Nota per tutti':'Nuova nota '+labels[x.rep])+'</strong><span>'+escapeHtml(timelineQuando(x.quando))+'</span></div><div class="timeline-text">'+escapeHtml(x.testo)+'</div><small>'+escapeHtml(x.autore)+' · <span class="timeline-state">'+(unread?'Da leggere':'Visualizzato')+'</span></small></div></div>';
+  }else{
+   const fid='tl-'+Math.random().toString(36).slice(2,10);files.push({id:fid,file:x.allegato});
+   html+='<div class="timeline-item '+(unread?'unread':'read')+'" role="button" tabindex="0" data-timeline-kind="file" data-timeline-rep="'+x.rep+'" data-timeline-id="'+escapeAttr(x.id)+'"><div class="timeline-dot">'+(unread?'!':'✓')+'</div><div class="timeline-card"><div class="timeline-card-head"><strong>Nuovo allegato</strong><span>'+escapeHtml(timelineQuando(x.quando))+'</span></div><div class="timeline-text">'+escapeHtml(x.nome)+'</div><small>'+escapeHtml(x.rep==='tutti'?'Per tutti':'Per '+labels[x.rep])+' · <span class="timeline-state">'+(unread?'Da leggere':'Visualizzato')+'</span></small><div class="timeline-file-actions"><button class="allegato-btn anteprima" data-timeline-preview="'+fid+'">👁️ Anteprima</button><button class="allegato-btn" data-timeline-download="'+fid+'">⬇️ Scarica</button></div></div></div>';
+  }
+ });
+ /* Il blocco originario è sempre riconoscibile e chiude la cronologia in fondo. */
+ html+='<div class="timeline-event-base"><div class="timeline-dot base">●</div><div><strong>Evento creato</strong><span>'+escapeHtml(ev.location||'Location non indicata')+' · '+Number(ev.ospiti||0)+' ospiti</span><small>'+escapeHtml(dataLocaleSicura(ev))+' · primo inserimento</small></div></div>';
  window._timelineFiles=files.reduce(function(acc,x){acc[x.id]=x.file;return acc;},{});
  return html;
 }
+function toggleTimelineLetto(ev,rep,kind,id,row){
+ let target=null;
+ if(kind==='note'){const arr=ev[CAMPI_STORICO_NOTE[rep]]||[];target=arr.find(function(m){return String(m.id)===String(id)});}
+ else {const campo=rep==='tutti'?'allegatiTutti':rep==='sala'?'allegatiSala':rep==='cucina'?'allegatiCucina':'allegatiMagazzino';const idx=String(id).split('-').pop();target=(ev[campo]||[])[Number(idx)];}
+ if(!target)return;
+ target.letto=!target.letto;row.classList.toggle('unread',!target.letto);row.classList.toggle('read',!!target.letto);
+ const dot=row.querySelector('.timeline-dot');if(dot)dot.textContent=target.letto?'✓':'!';const st=row.querySelector('.timeline-state');if(st)st.textContent=target.letto?'Visualizzato':'Da leggere';
+ let rows=[];try{rows=JSON.parse(localStorage.getItem('ergo_eventi')||'[]')}catch(e){};const ix=rows.findIndex(function(x){return x.id===ev.id});if(ix>=0){rows[ix]=ev;localStorage.setItem('ergo_eventi',JSON.stringify(rows));}
+ /* La notifica collegata segue lo stesso stato del blocco. */
+ NOTIFICHE.filter(function(n){return n.dettagli&&n.dettagli.messaggioId===id}).forEach(function(n){if(target.letto)segnaLetta(user.username,n.id);else{const l=getLette(user.username).filter(function(x){return x!==n.id});setLette(user.username,l);}});
+ if(window.ergoSupabaseSyncEvents)window.ergoSupabaseSyncEvents(rows).catch(function(e){console.warn('Stato letto non sincronizzato',e)});
+}
+
 function nuovoQrToken(){try{if(window.crypto&&crypto.getRandomValues){const a=new Uint8Array(18);crypto.getRandomValues(a);return Array.from(a).map(x=>x.toString(16).padStart(2,'0')).join('')}}catch(e){}return 'qr_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,14)}
 function assicuraQrToken(p){if(p&&!p.qrToken)p.qrToken=nuovoQrToken();return p&&p.qrToken||''}
 
@@ -1900,13 +1921,11 @@ function notifichePerUtente(utente){
   'Magazzino2':['tutti','magazzino']
  };
  const rep=mappa[utente.ruolo]||['tutti'];
+ sincronizzaNotificheDaStorico(utente);
  return NOTIFICHE.filter(n=>{
-  /* Filtro base per reparto */
   if(!rep.includes(n.reparto))return false;
-  /* Magazzino2 vede SOLO notifiche di tipo noleggio e allegato */
-  if(utente.ruolo==='Magazzino2'){
-   if(n.tipo!=='noleggio'&&n.tipo!=='allegato')return false;
-  }
+  if(!eventoNotificaValida(n))return false;
+  if(utente.ruolo==='Magazzino2'&&n.tipo!=='noleggio'&&n.tipo!=='allegato')return false;
   return true;
  });
 }
@@ -1933,12 +1952,11 @@ function apriDrawerEnt(tipo,obj){
    document.getElementById('d-body').innerHTML=h;
    document.getElementById('d-foot').innerHTML='<button class="btn-ghost" onclick="chiudiDrawer()">Chiudi</button>';
    d.classList.add('open');bg.classList.add('open');document.getElementById('d-close').onclick=chiudiDrawer;bg.onclick=chiudiDrawer;
-   const campo=CAMPI_STORICO_NOTE[reparto];if(campo&&Array.isArray(obj[campo]))obj[campo].forEach(function(m){m.letto=true});
-   ['allegatiTutti','allegati'+reparto.charAt(0).toUpperCase()+reparto.slice(1)].forEach(function(k){(obj[k]||[]).forEach(function(a){a.letto=true})});
    let rows=[];try{rows=JSON.parse(localStorage.getItem('ergo_eventi')||'[]')}catch(e){};const ix=rows.findIndex(function(x){return x.id===obj.id});if(ix>=0){rows[ix]=obj;localStorage.setItem('ergo_eventi',JSON.stringify(rows));}
    if(window.ergoSupabaseSyncEvents)window.ergoSupabaseSyncEvents(rows).catch(function(e){console.warn('Stato lettura non sincronizzato',e)});
    document.querySelectorAll('[data-timeline-preview]').forEach(function(b){b.onclick=function(){const a=window._timelineFiles[b.dataset.timelinePreview];if(a)apriAnteprimaAllega(a)}});
-   document.querySelectorAll('[data-timeline-download]').forEach(function(b){b.onclick=function(){const a=window._timelineFiles[b.dataset.timelineDownload];if(a)scaricaAllega(a)}});
+   document.querySelectorAll('[data-timeline-download]').forEach(function(b){b.onclick=function(e){e.stopPropagation();const a=window._timelineFiles[b.dataset.timelineDownload];if(a)scaricaAllega(a)}});
+   document.querySelectorAll('.timeline-item[data-timeline-id]').forEach(function(row){const fn=function(){toggleTimelineLetto(obj,row.dataset.timelineRep,row.dataset.timelineKind,row.dataset.timelineId,row)};row.onclick=fn;row.onkeydown=function(e){if(e.key==='Enter'||e.key===' ')fn();};});
    return;
   }
   h+=`<h4>Dettagli evento</h4><div class="meta-grid"><div><small>Data</small><strong>${dataI}</strong></div><div><small>Orario</small><strong>${ora}</strong></div><div><small>Location</small><strong>${obj.location||'—'}</strong></div><div><small>Ospiti</small><strong>${obj.ospiti||0}${obj.bambini?' · '+obj.bambini+' bimbi':''}${obj.staff?' · '+obj.staff+' staff':''}</strong></div></div>`;
@@ -1949,10 +1967,11 @@ function apriDrawerEnt(tipo,obj){
   if(isAdmin&&obj.notePrivata){
    h+=`<h4>🔒 Cartella privata Admin</h4><div class="note-box" style="background:#fdf4ff;border-color:#f5d0fe;color:#86198f">${obj.notePrivata}</div>`;
   }
-  if(obj.noteTutti)h+=`<h4>📝 Note per tutti</h4><div class="note-box tutti">${obj.noteTutti}</div>`;
-  if(vediSala&&obj.noteSala)h+=`<h4>🍽️ Note per la sala</h4><div class="note-box sala">${obj.noteSala}</div>`;
-  if(vediCucina&&obj.noteCucina)h+=`<h4>👨‍🍳 Note per la cucina</h4><div class="note-box cucina">${obj.noteCucina}</div>`;
-  if(vediMag&&obj.noteMagazzino)h+=`<h4>📦 Note per il magazzino</h4><div class="note-box magazzino">${obj.noteMagazzino}</div>`;
+  if(storicoNote(obj,'tutti').length)h+=`<h4>📝 Note per tutti</h4>${renderStoricoNote(obj,'tutti')}`;
+  if(vediSala&&storicoNote(obj,'sala').length)h+=`<h4>🍽️ Cronologia sala</h4>${renderStoricoNote(obj,'sala')}`;
+  if(vediCucina&&storicoNote(obj,'cucina').length)h+=`<h4>👨‍🍳 Cronologia cucina</h4>${renderStoricoNote(obj,'cucina')}`;
+  if(vediMag&&storicoNote(obj,'magazzino').length)h+=`<h4>📦 Cronologia magazzino</h4>${renderStoricoNote(obj,'magazzino')}`;
+  if(isAdmin&&storicoNote(obj,'admin').length)h+=`<h4>🔒 Cronologia privata Admin</h4>${renderStoricoNote(obj,'admin')}`;
   /* Allegati raggruppati per reparto: ogni file resta vicino alla propria sezione */
   const gruppiAllegati=[];
   const aggiungiGruppo=function(titolo,arr,visibile){if(visibile&&arr&&arr.length)gruppiAllegati.push({titolo:titolo,arr:arr});};
@@ -4429,6 +4448,17 @@ function agganciaRimuoviAllegatiNoleggio(nl){
    ============================================================ */
 
 /* 1) Notifiche: Sala e Cucina vedono solo notifiche di eventi/note */
+function eventoNotificaValida(n){
+ const det=n&&n.dettagli;if(!det||!det.evento)return true;
+ const ev=EVENTI.find(function(x){return String(x.titolo||'').trim().toLowerCase()===String(det.evento||'').trim().toLowerCase()});
+ if(!ev)return false;
+ const dm=String(det.data||'').match(/(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4})/);
+ return !dm||dataEventoCanonica(ev)===dm[3]+'-'+String(dm[2]).padStart(2,'0')+'-'+String(dm[1]).padStart(2,'0');
+}
+function sincronizzaNotificheDaStorico(utente){
+ const rep=utente.ruolo==='Amministratore'?['tutti','sala','cucina','magazzino','admin']:(utente.ruolo==='Cucina'?['tutti','cucina']:utente.ruolo==='Sala'?['tutti','sala']:utente.ruolo==='Magazzino'?['tutti','magazzino']:['tutti']);
+ EVENTI.forEach(function(ev){rep.forEach(function(r){storicoNote(ev,r).forEach(function(m){if(!m||m.letto||!m.id)return;const id='nf-note-'+ev.id+'-'+m.id;if(!NOTIFICHE.some(function(n){return n.id===id})){NOTIFICHE.unshift({id:id,tipo:'nota',reparto:r,titolo:'Nuova nota per '+(r==='tutti'?'tutti':r),sottotitolo:'Da '+(m.da||'utente')+' · '+ev.titolo,quando:m.quando,dettagli:{evento:ev.titolo,data:formattaDataIt(ev.inizio),messaggioId:m.id}});}});});});
+}
 function notifichePerUtente(utente){
  const mappa={
   'Amministratore':['tutti','sala','cucina','magazzino','admin'],
