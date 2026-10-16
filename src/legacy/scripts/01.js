@@ -1921,10 +1921,26 @@ function apriDrawerEnt(tipo,obj){
  const isMag1=user.ruolo==='Magazzino';
  document.getElementById('d-eyebrow').textContent=tipo==='evento'?'Evento Catering':'Noleggio';
  document.getElementById('d-titolo').textContent=obj.titolo;
- const dataI=new Date(obj.inizio).toLocaleDateString('it-IT',{day:'numeric',month:'long',year:'numeric'});
- const ora=new Date(obj.inizio).toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
+ const dataI=dataLocaleSicura(obj);
+ const mtOra=String(obj.inizio||'').match(/T(\d{2}:\d{2})/);
+ const ora=mtOra?mtOra[1]:'—';
  let h='';
  if(tipo==='evento'){
+  const ruoloCronologia=!isAdmin&&!isWedding&&['Sala','Cucina','Magazzino'].includes(user.ruolo);
+  if(ruoloCronologia){
+   const reparto=user.ruolo.toLowerCase();
+   h=renderCronologiaReparto(obj,reparto);
+   document.getElementById('d-body').innerHTML=h;
+   document.getElementById('d-foot').innerHTML='<button class="btn-ghost" onclick="chiudiDrawer()">Chiudi</button>';
+   d.classList.add('open');bg.classList.add('open');document.getElementById('d-close').onclick=chiudiDrawer;bg.onclick=chiudiDrawer;
+   const campo=CAMPI_STORICO_NOTE[reparto];if(campo&&Array.isArray(obj[campo]))obj[campo].forEach(function(m){m.letto=true});
+   ['allegatiTutti','allegati'+reparto.charAt(0).toUpperCase()+reparto.slice(1)].forEach(function(k){(obj[k]||[]).forEach(function(a){a.letto=true})});
+   let rows=[];try{rows=JSON.parse(localStorage.getItem('ergo_eventi')||'[]')}catch(e){};const ix=rows.findIndex(function(x){return x.id===obj.id});if(ix>=0){rows[ix]=obj;localStorage.setItem('ergo_eventi',JSON.stringify(rows));}
+   if(window.ergoSupabaseSyncEvents)window.ergoSupabaseSyncEvents(rows).catch(function(e){console.warn('Stato lettura non sincronizzato',e)});
+   document.querySelectorAll('[data-timeline-preview]').forEach(function(b){b.onclick=function(){const a=window._timelineFiles[b.dataset.timelinePreview];if(a)apriAnteprimaAllega(a)}});
+   document.querySelectorAll('[data-timeline-download]').forEach(function(b){b.onclick=function(){const a=window._timelineFiles[b.dataset.timelineDownload];if(a)scaricaAllega(a)}});
+   return;
+  }
   h+=`<h4>Dettagli evento</h4><div class="meta-grid"><div><small>Data</small><strong>${dataI}</strong></div><div><small>Orario</small><strong>${ora}</strong></div><div><small>Location</small><strong>${obj.location||'—'}</strong></div><div><small>Ospiti</small><strong>${obj.ospiti||0}${obj.bambini?' · '+obj.bambini+' bimbi':''}${obj.staff?' · '+obj.staff+' staff':''}</strong></div></div>`;
   const vediSala=isAdmin||isWedding||user.ruolo==='Sala';
   const vediCucina=isAdmin||isWedding||user.ruolo==='Cucina';
@@ -4152,7 +4168,7 @@ function apriModaleModificaEvento(ev){
   ${isAdmin?`
   <div class="divisore-modale">🔒 Cartella privata Admin</div>
   <div class="campo">
-   <textarea id="me-n-priv" style="background:#fdf4ff;border-color:#f5d0fe">${(ev.notePrivata||'').replace(/</g,'&lt;')}</textarea>
+   <textarea id="me-n-priv" placeholder="Scrivi un nuovo messaggio privato…" style="background:#f8fafc"></textarea>
    ${listaAllegatiEsistenti(ev.allegatiPrivata||[],'me-al-priv')}
    <label style="display:block;font-size:.7rem;font-weight:700;color:#8338ec;margin-top:10px">+ Aggiungi nuovi allegati</label>
    <input type="file" id="me-f-priv" multiple accept="image/*,.pdf">
