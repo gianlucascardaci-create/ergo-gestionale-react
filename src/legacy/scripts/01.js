@@ -163,6 +163,13 @@ function formattaDataIt(iso){
  return d.toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'})+' · '+d.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
 }
 
+function dataEventoCanonica(ev){return String((ev&&ev.data)||((ev&&ev.inizio)||'')).slice(0,10);}
+function oraEventoCanonica(ev){const m=String((ev&&ev.inizio)||'').match(/T(\d{2}:\d{2}(?::\d{2})?)/);return m?(m[1].length===5?m[1]+':00':m[1]):'12:00:00';}
+function inizializzaStoricoEvento(ev){
+ const map={tutti:'noteTutti',sala:'noteSala',cucina:'noteCucina',magazzino:'noteMagazzino',admin:'notePrivata'};
+ Object.keys(map).forEach(function(rep){if(String(ev[map[rep]]||'').trim()&&!storicoNote(ev,rep).length)aggiungiNotaStorica(ev,rep,ev[map[rep]]);});
+}
+function dataNotificaKey(n){const m=String(n&&n.dettagli&&n.dettagli.data||'').match(/(\d{2})\/(\d{2})\/(\d{4})/);return m?m[3]+'-'+m[2]+'-'+m[1]:'';}
 function iconaAllegato(mime){
  if(!mime)return '📎';
  if(mime.startsWith('image/'))return '🖼️';
@@ -338,7 +345,7 @@ function dash(el){
    </div>
    ${daMostrare.length===0
      ?`<div class="feed-empty"><span class="emo">✨</span>${filtroFeed==='nuove'?'Nessuna notifica nuova.':'Nessuna novità per ora.'}</div>`
-     :gruppiFeed.map(notifGroupRow).join('')}
+     :daMostrare.map(notifRow).join('')}
   </div>
  </div>`;
  document.getElementById('f-tutte').onclick=()=>{filtroFeed='tutte';dash(el)};
@@ -671,7 +678,7 @@ function apriModaleEvento(){
   const data=document.getElementById('ev-data').value;
   const ora=document.getElementById('ev-ora').value||'18:30';
   const ev={
-   id:'e-'+Date.now(),titolo:nome,inizio:data+'T'+ora+':00',fine:data+'T23:59:00',
+   id:'e-'+Date.now(),clientId:'e-'+Date.now(),data:data,titolo:nome,inizio:data+'T'+ora+':00',fine:data+'T23:59:59',
    location:document.getElementById('ev-loc').value.trim()||'—',
    ospiti:parseInt(document.getElementById('ev-osp').value)||0,
    bambini:parseInt(document.getElementById('ev-bam').value)||0,
@@ -689,6 +696,7 @@ function apriModaleEvento(){
    allegatiPrivata:document.getElementById('ev-f-priv')?await leggiAllegati('ev-f-priv'):[],
    creatoDa:user.nome+' ('+user.ruolo+')',creatoIl:new Date().toISOString()
   };
+  inizializzaStoricoEvento(ev);
   let salvati=[];try{salvati=JSON.parse(localStorage.getItem('ergo_eventi'))||[]}catch(e){}
   salvati.push(ev);localStorage.setItem('ergo_eventi',JSON.stringify(salvati));
   EVENTI.push(ev);generaNotifEvento(ev);
@@ -1766,7 +1774,7 @@ function apriModaleEventoCampi(){
   const data=document.getElementById('ev-data').value;
   const ora=document.getElementById('ev-ora').value||'18:30';
   const ev={
-   id:'e-'+Date.now(),titolo:nome,inizio:data+'T'+ora+':00',fine:data+'T23:59:00',
+   id:'e-'+Date.now(),clientId:'e-'+Date.now(),data:data,titolo:nome,inizio:data+'T'+ora+':00',fine:data+'T23:59:59',
    location:document.getElementById('ev-loc').value.trim()||'—',
    ospiti:parseInt(document.getElementById('ev-osp').value)||0,
    bambini:parseInt(document.getElementById('ev-bam').value)||0,
@@ -1981,8 +1989,8 @@ function apriDrawerEnt(tipo,obj){
    ============================================================ */
 function apriModaleModificaEvento(ev){
  const isAdmin=user.ruolo==='Amministratore';
- const dataIso=new Date(ev.inizio).toISOString().slice(0,10);
- const ora=String(new Date(ev.inizio).getHours()).padStart(2,'0')+':'+String(new Date(ev.inizio).getMinutes()).padStart(2,'0');
+ const dataIso=dataEventoCanonica(ev);
+ const ora=oraEventoCanonica(ev).slice(0,5);
  const d=document.getElementById('d-panel'),bg=document.getElementById('d-bg');
  document.getElementById('d-eyebrow').textContent='Modifica evento';
  document.getElementById('d-titolo').textContent='✏️ '+ev.titolo;
@@ -2020,8 +2028,13 @@ function apriModaleModificaEvento(ev){
  document.getElementById('me-salva').onclick=async()=>{
   const nome=document.getElementById('me-nome').value.trim();
   if(!nome){alert('Il nome è obbligatorio.');return}
+  const dataEvento=document.getElementById('me-data').value;
+  const vecchieNote={tutti:ev.noteTutti||'',sala:ev.noteSala||'',cucina:ev.noteCucina||'',magazzino:ev.noteMagazzino||'',admin:ev.notePrivata||''};
   ev.titolo=nome;
-  ev.inizio=document.getElementById('me-data').value+'T'+(document.getElementById('me-ora').value||'18:30')+':00';
+  ev.data=dataEvento;
+  ev.inizio=dataEvento+'T'+(document.getElementById('me-ora').value||'18:30')+':00';
+  ev.fine=dataEvento+'T23:59:59';
+  ev.clientId=ev.clientId||ev.id;
   ev.location=document.getElementById('me-loc').value.trim()||'—';
   ev.ospiti=parseInt(document.getElementById('me-osp').value)||0;
   ev.bambini=parseInt(document.getElementById('me-bam').value)||0;
@@ -2543,7 +2556,7 @@ function apriModaleEventoCitta(){
   const data=document.getElementById('ev-data').value;
   const ora=document.getElementById('ev-ora').value||'18:30';
   const ev={
-   id:'e-'+Date.now(),titolo:nome,inizio:data+'T'+ora+':00',fine:data+'T23:59:00',
+   id:'e-'+Date.now(),clientId:'e-'+Date.now(),data:data,titolo:nome,inizio:data+'T'+ora+':00',fine:data+'T23:59:59',
    location:document.getElementById('ev-loc').value.trim()||'—',
    citta:document.getElementById('ev-citta').value.trim(),
    ospiti:parseInt(document.getElementById('ev-osp').value)||0,
@@ -4134,10 +4147,9 @@ function apriModaleModificaEvento(ev){
   ev.ospiti=parseInt(document.getElementById('me-osp').value)||0;
   ev.bambini=parseInt(document.getElementById('me-bam').value)||0;
   ev.staff=parseInt(document.getElementById('me-stf').value)||0;
-  ev.noteTutti=document.getElementById('me-n-tutti').value;
-  ev.noteSala=document.getElementById('me-n-sala').value;
-  ev.noteCucina=document.getElementById('me-n-cucina').value;
-  ev.noteMagazzino=document.getElementById('me-n-mag').value;
+  const nuoveNote={tutti:document.getElementById('me-n-tutti').value,sala:document.getElementById('me-n-sala').value,cucina:document.getElementById('me-n-cucina').value,magazzino:document.getElementById('me-n-mag').value};
+  Object.keys(nuoveNote).forEach(function(rep){if(String(nuoveNote[rep]||'').trim()&&nuoveNote[rep].trim()!==String(vecchieNote[rep]||'').trim())aggiungiNotaStorica(ev,rep,nuoveNote[rep]);});
+  ev.noteTutti=nuoveNote.tutti; ev.noteSala=nuoveNote.sala; ev.noteCucina=nuoveNote.cucina; ev.noteMagazzino=nuoveNote.magazzino;
   if(isAdmin&&document.getElementById('me-n-priv'))ev.notePrivata=document.getElementById('me-n-priv').value;
   /* Aggiungi nuovi allegati a ciascuna sezione */
   const nuoviTutti=await leggiAllegati('me-f-tutti');
@@ -4157,6 +4169,7 @@ function apriModaleModificaEvento(ev){
   const idx=salv.findIndex(e=>e.id===ev.id);
   if(idx>=0)salv[idx]=ev;else salv.push(ev);
   localStorage.setItem('ergo_eventi',JSON.stringify(salv));
+  if(window.ergoSupabaseSyncEvents){try{await window.ergoSupabaseSyncEvents(salv);}catch(syncErr){alert('Evento aggiornato solo localmente: sincronizzazione Supabase non riuscita.\n\n'+String(syncErr&&syncErr.message||syncErr));return}}
   chiudiDrawer();
   alert('✅ Evento aggiornato!');
   const pc=document.getElementById('pc');
@@ -7521,7 +7534,7 @@ window.mostraPopupBenvenuto=function(){
     return {qr_token:assicuraQrToken(p),codice:p.codice,nome:p.nome,categoria:p.categoria||'',quantita:Number(p.quantita||0),posizione:p.posizione||'',costo_noleggio:Number(p.prezzo||p.costo_noleggio||0),note:p.note||'',foto_path:p.foto_path||((p.foto&&/^https?:/.test(p.foto))?'':p.foto)||'',scheda_materiale:sh.materiale||'',scheda_colore:sh.colore||'',scheda_dimensione:sh.dimensione||'',scheda_note:sh.note||''};
   }
   function eventPayload(e){
-    return {nome_evento:e.titolo,data:(e.inizio||'').slice(0,10),data_display:e.data_display||e.inizio||'',location:e.location||'',ospiti:Number(e.ospiti||0),bambini:Number(e.bambini||0),staff:Number(e.staff||0),note_tutti:e.noteTutti||'',allegati_tutti:e.allegatiTutti||[],note_sala:e.noteSala||'',allegati_sala:e.allegatiSala||[],note_cucina:e.noteCucina||'',allegati_cucina:e.allegatiCucina||[],note_magazzino:e.noteMagazzino||'',allegati_magazzino:e.allegatiMagazzino||[],allegati_privati:e.allegatiPrivata||[],lista_attrezzature:e.listaAttrezzature||[],note_storico_tutti:e.noteStoricoTutti||[],note_storico_sala:e.noteStoricoSala||[],note_storico_cucina:e.noteStoricoCucina||[],note_storico_magazzino:e.noteStoricoMagazzino||[],note_storico_admin:e.noteStoricoAdmin||[]};
+    return {client_id:e.clientId||e.id||null,nome_evento:e.titolo,data:dataEventoCanonica(e),data_display:dataEventoCanonica(e)+'T'+oraEventoCanonica(e),location:e.location||'',ospiti:Number(e.ospiti||0),bambini:Number(e.bambini||0),staff:Number(e.staff||0),note_tutti:e.noteTutti||'',allegati_tutti:e.allegatiTutti||[],note_sala:e.noteSala||'',allegati_sala:e.allegatiSala||[],note_cucina:e.noteCucina||'',allegati_cucina:e.allegatiCucina||[],note_magazzino:e.noteMagazzino||'',allegati_magazzino:e.allegatiMagazzino||[],allegati_privati:e.allegatiPrivata||[],lista_attrezzature:e.listaAttrezzature||[],note_storico_tutti:e.noteStoricoTutti||[],note_storico_sala:e.noteStoricoSala||[],note_storico_cucina:e.noteStoricoCucina||[],note_storico_magazzino:e.noteStoricoMagazzino||[],note_storico_admin:e.noteStoricoAdmin||[]};
   }
   function firstAttachment(n,key){var a=(n[key]||[])[0]||{};return {name:a.nome||'',url:a.url||'',mime:a.mime||'',path:a.path||''};}
   function rentalPayload(n){
@@ -7662,7 +7675,9 @@ window.mostraPopupBenvenuto=function(){
     return raw?raw+'T'+ora:'';
   }
   function mapEvent(row){
-    return {id:String(row.id),tipo:'evento',titolo:row.nome_evento,inizio:dataEventoLocale(row),fine:(String(row.data||'').slice(0,10)||dataEventoLocale(row).slice(0,10))+'T23:59:59',location:row.location||'',ospiti:Number(row.ospiti||0),bambini:Number(row.bambini||0),staff:Number(row.staff||0),noteTutti:row.note_tutti||'',noteSala:row.note_sala||'',noteCucina:row.note_cucina||'',noteMagazzino:row.note_magazzino||'',noteStoricoTutti:Array.isArray(row.note_storico_tutti)?row.note_storico_tutti:[],noteStoricoSala:Array.isArray(row.note_storico_sala)?row.note_storico_sala:[],noteStoricoCucina:Array.isArray(row.note_storico_cucina)?row.note_storico_cucina:[],noteStoricoMagazzino:Array.isArray(row.note_storico_magazzino)?row.note_storico_magazzino:[],noteStoricoAdmin:Array.isArray(row.note_storico_admin)?row.note_storico_admin:[],allegatiTutti:mapFileList(row.allegati_tutti),allegatiSala:mapFileList(row.allegati_sala),allegatiCucina:mapFileList(row.allegati_cucina),allegatiMagazzino:mapFileList(row.allegati_magazzino),allegatiPrivata:mapFileList(row.allegati_privati),listaAttrezzature:Array.isArray(row.lista_attrezzature)?row.lista_attrezzature:[],stato:'confermato'};
+    var raw=String(row.data||row.data_display||'').slice(0,10);
+    var dm=String(row.data_display||'').match(/T(\d{2}:\d{2}(?::\d{2})?)/);var ora=dm?(dm[1].length===5?dm[1]+':00':dm[1]):'12:00:00';
+    return {id:String(row.id),clientId:row.client_id||('legacy-'+row.id),data:raw,tipo:'evento',titolo:row.nome_evento,inizio:raw+'T'+ora,fine:raw+'T23:59:59',location:row.location||'',ospiti:Number(row.ospiti||0),bambini:Number(row.bambini||0),staff:Number(row.staff||0),noteTutti:row.note_tutti||'',noteSala:row.note_sala||'',noteCucina:row.note_cucina||'',noteMagazzino:row.note_magazzino||'',noteStoricoTutti:Array.isArray(row.note_storico_tutti)?row.note_storico_tutti:[],noteStoricoSala:Array.isArray(row.note_storico_sala)?row.note_storico_sala:[],noteStoricoCucina:Array.isArray(row.note_storico_cucina)?row.note_storico_cucina:[],noteStoricoMagazzino:Array.isArray(row.note_storico_magazzino)?row.note_storico_magazzino:[],noteStoricoAdmin:Array.isArray(row.note_storico_admin)?row.note_storico_admin:[],allegatiTutti:mapFileList(row.allegati_tutti),allegatiSala:mapFileList(row.allegati_sala),allegatiCucina:mapFileList(row.allegati_cucina),allegatiMagazzino:mapFileList(row.allegati_magazzino),allegatiPrivata:mapFileList(row.allegati_privati),listaAttrezzature:Array.isArray(row.lista_attrezzature)?row.lista_attrezzature:[],stato:'confermato'};
   }
   function mapRental(row){
     return {id:String(row.id),tipo:'noleggio',titolo:row.titolo,inizio:row.inizio,fine:row.fine,stato:row.stato||'confermato',location:row.location||'',referente:row.referente||'',telefono:row.telefono||'',note:row.note||'',bolla_path:row.bolla_path||'',ddt_path:row.ddt_path||'',vario_path:row.vario_path||'',allegatiBolla:mapFileList(row.bolla_url||row.bolla),allegatiDDT:mapFileList(row.ddt_url||row.ddt),allegatiVario:mapFileList(row.vario_url||row.vario)};
