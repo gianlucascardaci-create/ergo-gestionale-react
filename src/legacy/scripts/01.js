@@ -1879,8 +1879,16 @@ function distanzaNomeProdotto(query,nome){
 }
 function suggerisciProdottoInventario(query,tutti){
  const q=String(query||'').trim();if(q.length<3)return;
- const candidati=tutti.filter(function(p){return ricercaIntelligente(q,[p.nome,p.codice,p.categoria,p.posizione,p.note])&&!testoProdottoEsatto(q,p);});
+ const key=chiaveRicercaInventario()+'|'+normalizzaTesto(q);
+ if(window._ultimoSuggerimentoInventario===key)return;
+ const candidati=(tutti||[]).filter(function(p){
+  const nome=normalizzaTesto(p.nome||'').replace(/\s+/g,'');
+  const cerca=ricercaIntelligente(q,[p.nome,p.codice,p.categoria,p.posizione,p.note]);
+  const vicino=nome&&distanzaTesto(normalizzaTesto(q).replace(/\s+/g,''),nome)<=Math.max(1,Math.floor(Math.max(nome.length,normalizzaTesto(q).length)*0.25));
+  return (cerca||vicino)&&!testoProdottoEsatto(q,p);
+ });
  if(!candidati.length)return;
+ window._ultimoSuggerimentoInventario=key;
  candidati.sort(function(a,b){return distanzaNomeProdotto(q,a.nome)-distanzaNomeProdotto(q,b.nome);});
  const scelto=candidati[0];if(!scelto||!window.assistentePersonale)return;
  const nome=String(scelto.nome||'prodotto').replace(/[<>]/g,'');
@@ -1891,6 +1899,18 @@ function suggerisciProdottoInventario(query,tutti){
    const pc=document.getElementById('pc');if(pc&&view==='inventario')inv(pc);
   }},{label:'No, continuo la ricerca',colore:'#94a3b8'}]});
 }
+
+/* Fallback robusto: intercetta sempre il campo inventario, anche quando un override legacy
+   avvolge la funzione inv() con lo skeleton di caricamento. */
+document.addEventListener('input',function(e){
+ if(!e.target||e.target.id!=='inv-input-q')return;
+ if(invRicercaTimer)clearTimeout(invRicercaTimer);
+ invRicerca=e.target.value;
+ invRicercaTimer=setTimeout(function(){
+  let salvati=[];try{salvati=JSON.parse(localStorage.getItem('ergo_prodotti')||'[]')}catch(err){}
+  suggerisciProdottoInventario(invRicerca,tuttiProds(salvati));
+ },500);
+});
 
 function inv(el){
  const statoKey=chiaveRicercaInventario();
