@@ -168,16 +168,19 @@ function variantiParola(p){
  return Array.from(varianti);
 }
 
+function distanzaTesto(a,b){
+ const prev=Array.from({length:b.length+1},(_,i)=>i);
+ for(let i=1;i<=a.length;i++){const cur=[i];for(let j=1;j<=b.length;j++)cur[j]=Math.min(cur[j-1]+1,prev[j]+1,prev[j-1]+(a[i-1]===b[j-1]?0:1));prev.splice(0,prev.length,...cur);}return prev[b.length];
+}
 function paroleSimili(a,b){
  if(a===b)return true;
  if(a.length<3||b.length<3)return false;
- if(Math.abs(a.length-b.length)<=2){
-  if(a.startsWith(b)||b.startsWith(a))return true;
-  if(a.slice(0,3)===b.slice(0,3))return true;
- }
- let match=0;const min=Math.min(a.length,b.length);
- for(let i=0;i<min;i++){if(a[i]===b[i])match++}
- return match/min>=0.7;
+ const aa=a.endsWith('i')?a.slice(0,-1):a,bb=b.endsWith('i')?b.slice(0,-1):b;
+ if(aa===bb||aa===b||bb===a)return true;
+ if(Math.abs(a.length-b.length)<=2&&(a.startsWith(b)||b.startsWith(a)))return true;
+ if(a.slice(0,3)===b.slice(0,3))return true;
+ const max=Math.max(a.length,b.length),dist=distanzaTesto(a,b);
+ return dist<=Math.max(1,Math.floor(max*0.25));
 }
 
 function ricercaIntelligente(query,campi){
@@ -4449,39 +4452,33 @@ function agganciaRimuoviAllegatiNoleggio(nl){
    ============================================================ */
 
 /* 1) Notifiche: Sala e Cucina vedono solo notifiche di eventi/note */
-function eventoNotificaValida(n){
+function dataEventoPassato(ev){
+ const data=dataEventoCanonica(ev);if(!/^\d{4}-\d{2}-\d{2}$/.test(data))return false;
+ const oggi=new Date();oggi.setHours(0,0,0,0);const d=new Date(Number(data.slice(0,4)),Number(data.slice(5,7))-1,Number(data.slice(8,10)));return d<oggi;
+}
+function eventoNotificaValida(n,utente){
  const det=n&&n.dettagli;if(!det||!det.evento)return true;
  const ev=EVENTI.find(function(x){return String(x.titolo||'').trim().toLowerCase()===String(det.evento||'').trim().toLowerCase()});
  if(!ev)return false;
  const dm=String(det.data||'').match(/(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4})/);
- return !dm||dataEventoCanonica(ev)===dm[3]+'-'+String(dm[2]).padStart(2,'0')+'-'+String(dm[1]).padStart(2,'0');
+ const stessaData=!dm||dataEventoCanonica(ev)===dm[3]+'-'+String(dm[2]).padStart(2,'0')+'-'+String(dm[1]).padStart(2,'0');
+ if(!stessaData)return false;
+ /* Sala, Cucina e Magazzino vedono solo aggiornamenti di eventi ancora attuali. */
+ if(utente&&utente.ruolo!=='Amministratore'&&utente.ruolo!=='Wedding'&&dataEventoPassato(ev))return false;
+ return true;
 }
 function sincronizzaNotificheDaStorico(utente){
  const rep=utente.ruolo==='Amministratore'?['tutti','sala','cucina','magazzino','admin']:(utente.ruolo==='Cucina'?['tutti','cucina']:utente.ruolo==='Sala'?['tutti','sala']:utente.ruolo==='Magazzino'?['tutti','magazzino']:['tutti']);
- EVENTI.forEach(function(ev){rep.forEach(function(r){storicoNote(ev,r).forEach(function(m){if(!m||m.letto||!m.id)return;const id='nf-note-'+ev.id+'-'+m.id;if(!NOTIFICHE.some(function(n){return n.id===id})){NOTIFICHE.unshift({id:id,tipo:'nota',reparto:r,titolo:'Nuova nota per '+(r==='tutti'?'tutti':r),sottotitolo:'Da '+(m.da||'utente')+' · '+ev.titolo,quando:m.quando,dettagli:{evento:ev.titolo,data:formattaDataIt(ev.inizio),messaggioId:m.id}});}});});});
+ EVENTI.forEach(function(ev){if(utente.ruolo!=='Amministratore'&&utente.ruolo!=='Wedding'&&dataEventoPassato(ev))return;rep.forEach(function(r){storicoNote(ev,r).forEach(function(m){if(!m||m.letto||!m.id)return;const id='nf-note-'+ev.id+'-'+m.id;if(!NOTIFICHE.some(function(n){return n.id===id})){NOTIFICHE.unshift({id:id,tipo:'nota',reparto:r,titolo:'Nuova nota per '+(r==='tutti'?'tutti':r),sottotitolo:'Da '+(m.da||'utente')+' · '+ev.titolo,quando:m.quando,dettagli:{evento:ev.titolo,data:formattaDataIt(ev.inizio),messaggioId:m.id}});}});});});
 }
 function notifichePerUtente(utente){
- const mappa={
-  'Amministratore':['tutti','sala','cucina','magazzino','admin'],
-  'Wedding':['tutti','sala','cucina','magazzino'],
-  'Cucina':['tutti','cucina'],
-  'Sala':['tutti','sala'],
-  'Magazzino':['tutti','magazzino'],
-  'Magazzino2':['magazzino']
- };
- const rep=mappa[utente.ruolo]||['tutti'];
- return NOTIFICHE.filter(n=>{
-  if(!rep.includes(n.reparto))return false;
-  /* Magazzino2 vede SOLO notifiche di tipo "noleggio" */
-  if(utente.ruolo==='Magazzino2'){
-   return n.tipo==='noleggio';
-  }
-  /* Nessun reparto operativo vede la cartella privata Admin. */
+ const mappa={'Amministratore':['tutti','sala','cucina','magazzino','admin'],'Wedding':['tutti','sala','cucina','magazzino'],'Cucina':['tutti','cucina'],'Sala':['tutti','sala'],'Magazzino':['tutti','magazzino'],'Magazzino2':['magazzino']};
+ const rep=mappa[utente.ruolo]||['tutti'];sincronizzaNotificheDaStorico(utente);
+ return NOTIFICHE.filter(function(n){
+  if(!rep.includes(n.reparto)||!eventoNotificaValida(n,utente))return false;
+  if(utente.ruolo==='Magazzino2')return n.tipo==='noleggio';
   if(utente.ruolo!=='Amministratore'&&n.reparto==='admin')return false;
-  /* Sala e Cucina NON vedono notifiche di tipo "noleggio" */
-  if(utente.ruolo==='Sala'||utente.ruolo==='Cucina'){
-   return n.tipo!=='noleggio';
-  }
+  if((utente.ruolo==='Sala'||utente.ruolo==='Cucina')&&n.tipo==='noleggio')return false;
   return true;
  });
 }
