@@ -331,21 +331,21 @@ function dash(el){
 
  let prossimoEv=null;
  const oggi=new Date();oggi.setHours(0,0,0,0);
- EVENTI.forEach(e=>{
-  const d=new Date(e.inizio);
-  if(d>=oggi&&(!prossimoEv||new Date(e.inizio)<new Date(prossimoEv.inizio)))prossimoEv=e;
- });
+ const eventiOrdinati=EVENTI.filter(e=>e&&e.inizio).sort((a,b)=>new Date(a.inizio)-new Date(b.inizio));
+ const eventiFuturi=eventiOrdinati.filter(e=>new Date(e.inizio)>=oggi);
+ prossimoEv=eventiFuturi[0]||eventiOrdinati[eventiOrdinati.length-1]||null;
  let prossimoNl=null;
- NOLEGGI.forEach(n=>{
-  const d=new Date(n.inizio);
-  if(d>=oggi&&(!prossimoNl||new Date(n.inizio)<new Date(prossimoNl.inizio)))prossimoNl=n;
- });
+ const noleggiOrdinati=NOLEGGI.filter(n=>n&&n.inizio).sort((a,b)=>new Date(a.inizio)-new Date(b.inizio));
+ const noleggiFuturi=noleggiOrdinati.filter(n=>new Date(n.inizio)>=oggi);
+ prossimoNl=noleggiFuturi[0]||noleggiOrdinati[noleggiOrdinati.length-1]||null;
+ const eventoDashboardPassato=!!(prossimoEv&&new Date(prossimoEv.inizio)<oggi);
+ const noleggioDashboardPassato=!!(prossimoNl&&new Date(prossimoNl.inizio)<oggi);
 
  const oggi_str=oggi.toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
 
  const cardEv=prossimoEv
   ?`<div class="cd-card event">
-    <div class="cd-head"><div class="cd-label">📅 Prossimo evento</div><span class="cd-tag">${prossimoEv.stato||'confermato'}</span></div>
+    <div class="cd-head"><div class="cd-label">📅 ${eventoDashboardPassato?'Ultimo evento':'Prossimo evento'}</div><span class="cd-tag">${prossimoEv.stato||'confermato'}</span></div>
     <div class="cd-title">${prossimoEv.titolo}</div>
     <div class="cd-when">${prossimoEv.location||'—'} · ${prossimoEv.ospiti||0} ospiti</div>
     <div id="cd-e" data-target="${prossimoEv.inizio}"></div>
@@ -357,7 +357,7 @@ function dash(el){
 
  const cardNl=prossimoNl
   ?`<div class="cd-card rental">
-    <div class="cd-head"><div class="cd-label">🚚 Prossimo noleggio</div><span class="cd-tag">${prossimoNl.stato||'confermato'}</span></div>
+    <div class="cd-head"><div class="cd-label">🚚 ${noleggioDashboardPassato?'Ultimo noleggio':'Prossimo noleggio'}</div><span class="cd-tag">${prossimoNl.stato||'confermato'}</span></div>
     <div class="cd-title">${prossimoNl.titolo}</div>
     <div class="cd-when">${prossimoNl.location||'—'}</div>
     <div id="cd-n" data-target="${prossimoNl.inizio}"></div>
@@ -4469,8 +4469,18 @@ function eventoNotificaValida(n,utente){
 }
 function sincronizzaNotificheDaStorico(utente){
  const rep=utente.ruolo==='Amministratore'?['tutti','sala','cucina','magazzino','admin']:(utente.ruolo==='Cucina'?['tutti','cucina']:utente.ruolo==='Sala'?['tutti','sala']:utente.ruolo==='Magazzino'?['tutti','magazzino']:['tutti']);
- EVENTI.forEach(function(ev){if(utente.ruolo!=='Amministratore'&&utente.ruolo!=='Wedding'&&dataEventoPassato(ev))return;rep.forEach(function(r){storicoNote(ev,r).forEach(function(m){if(!m||m.letto||!m.id)return;const id='nf-note-'+ev.id+'-'+m.id;if(!NOTIFICHE.some(function(n){return n.id===id})){NOTIFICHE.unshift({id:id,tipo:'nota',reparto:r,titolo:'Nuova nota per '+(r==='tutti'?'tutti':r),sottotitolo:'Da '+(m.da||'utente')+' · '+ev.titolo,quando:m.quando,dettagli:{evento:ev.titolo,data:formattaDataIt(ev.inizio),messaggioId:m.id}});}});});});
+ EVENTI.forEach(function(ev){
+  if(utente.ruolo!=='Amministratore'&&utente.ruolo!=='Wedding'&&utente.ruolo!=='Magazzino2'&&dataEventoPassato(ev))return;
+  /* La notifica di creazione viene ricostruita dai dati remoti, così un ruolo
+     che accede da un altro browser non dipende dal localStorage dell'Admin. */
+  if(utente.ruolo!=='Magazzino2' && rep.includes('tutti')){
+   const eventId='nf-remote-event-'+String(ev.id);
+   if(!NOTIFICHE.some(function(n){return n.id===eventId})){NOTIFICHE.push({id:eventId,tipo:'evento',reparto:'tutti',titolo:'Evento disponibile: '+ev.titolo,sottotitolo:(ev.location||'—')+' · '+formattaDataIt(ev.inizio),quando:ev.creatoIl||ev.inizio,dettagli:{evento:ev.titolo,data:formattaDataIt(ev.inizio),location:ev.location,ospiti:ev.ospiti}});}
+  }
+  rep.forEach(function(r){storicoNote(ev,r).forEach(function(m){if(!m||m.letto||!m.id)return;const id='nf-note-'+ev.id+'-'+m.id;if(!NOTIFICHE.some(function(n){return n.id===id})){NOTIFICHE.unshift({id:id,tipo:'nota',reparto:r,titolo:'Nuova nota per '+(r==='tutti'?'tutti':r),sottotitolo:'Da '+(m.da||'utente')+' · '+ev.titolo,quando:m.quando,dettagli:{evento:ev.titolo,data:formattaDataIt(ev.inizio),messaggioId:m.id}});}});});
+ });
 }
+
 function notifichePerUtente(utente){
  const mappa={'Amministratore':['tutti','sala','cucina','magazzino','admin'],'Wedding':['tutti','sala','cucina','magazzino'],'Cucina':['tutti','cucina'],'Sala':['tutti','sala'],'Magazzino':['tutti','magazzino'],'Magazzino2':['magazzino']};
  const rep=mappa[utente.ruolo]||['tutti'];sincronizzaNotificheDaStorico(utente);
