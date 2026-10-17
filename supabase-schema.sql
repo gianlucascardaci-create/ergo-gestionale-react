@@ -29,6 +29,7 @@ create table if not exists public.eventi_catering (
   data date,
   data_display text,
   location text,
+  citta text,
   ospiti integer not null default 0,
   bambini integer not null default 0,
   staff integer not null default 0,
