@@ -740,6 +740,7 @@ function apriModaleEvento(){
   inizializzaStoricoEvento(ev);
   let salvati=[];try{salvati=JSON.parse(localStorage.getItem('ergo_eventi'))||[]}catch(e){}
   salvati.push(ev);localStorage.setItem('ergo_eventi',JSON.stringify(salvati));
+  if(window.ergoSupabaseSyncEvents){try{await window.ergoSupabaseSyncEvents(salvati);}catch(syncErr){alert('❌ Evento non salvato su Supabase. Riprova.\n\n'+String(syncErr&&syncErr.message||syncErr));btn.disabled=false;btn.textContent='💾 Crea Evento';return}}
   EVENTI.push(ev);generaNotifEvento(ev);
   chiudiDrawer();alert('✅ Evento creato!');
   const pc=document.getElementById('pc');if(pc){if(view==='calendario')cal(pc);else if(view==='dashboard')dash(pc)}
@@ -793,6 +794,7 @@ function apriModaleNoleggio(){
   };
   let salvati=[];try{salvati=JSON.parse(localStorage.getItem('ergo_noleggi'))||[]}catch(e){}
   salvati.push(nl);localStorage.setItem('ergo_noleggi',JSON.stringify(salvati));
+  if(window.ergoSupabaseSyncRentals){try{await window.ergoSupabaseSyncRentals(salvati);}catch(syncErr){alert('❌ Noleggio non salvato su Supabase. Riprova.\n\n'+String(syncErr&&syncErr.message||syncErr));btn.disabled=false;btn.textContent='💾 Crea Noleggio';return}}
   NOLEGGI.push(nl);generaNotifNoleggio(nl);
   chiudiDrawer();alert('✅ Noleggio creato!');
   const pc=document.getElementById('pc');if(pc){if(view==='calendario')cal(pc);else if(view==='dashboard')dash(pc)}
@@ -4372,6 +4374,7 @@ function apriModaleModificaNoleggio(nl){
   const idx=salv.findIndex(n=>n.id===nl.id);
   if(idx>=0)salv[idx]=nl;else salv.push(nl);
   localStorage.setItem('ergo_noleggi',JSON.stringify(salv));
+  if(window.ergoSupabaseSyncRentals){try{await window.ergoSupabaseSyncRentals(salv);}catch(syncErr){alert('❌ Noleggio non aggiornato su Supabase. Riprova.\n\n'+String(syncErr&&syncErr.message||syncErr));return}}
   chiudiDrawer();
   alert('✅ Noleggio aggiornato!');
   const pc=document.getElementById('pc');
