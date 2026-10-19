@@ -5885,9 +5885,12 @@ window.aggiornaCardCorrente=function(){
   window.notifichePerUtente=function(utente){
    var lista=_origNotifUtente.apply(this,arguments);
    if(utente.ruolo==='Amministratore'){
+    /* L'Admin non riceve come notifiche le proprie operazioni né le
+       comunicazioni che invia ai reparti. L'unica eccezione operativa è
+       un noleggio creato da Magazzino2. */
     return lista.filter(function(n){
-     var daChi=n.da||'';
-     return daChi.indexOf(utente.nome)<0&&daChi.indexOf(utente.username)<0;
+     var daChi=String(n.da||'');
+     return n.tipo==='noleggio' && /magazzino\s*2/i.test(daChi);
     });
    }
    return lista;
