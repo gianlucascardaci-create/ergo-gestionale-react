@@ -4283,8 +4283,11 @@ function apriModaleModificaEvento(ev){
 
  /* Salva */
  document.getElementById('me-salva').onclick=async()=>{
+  const saveButton=document.getElementById('me-salva');
+  if(saveButton.dataset.salvataggioInCorso==='1')return;
+  saveButton.dataset.salvataggioInCorso='1';saveButton.disabled=true;saveButton.textContent='⏳ Salvataggio...';
   const nome=document.getElementById('me-nome').value.trim();
-  if(!nome){alert('Il nome è obbligatorio.');return}
+  if(!nome){alert('Il nome è obbligatorio.');saveButton.disabled=false;saveButton.dataset.salvataggioInCorso='';saveButton.textContent='💾 Salva modifiche';return}
   const dataEvento=document.getElementById('me-data').value;
   ev.titolo=nome;
   ev.data=dataEvento;
@@ -4318,7 +4321,7 @@ function apriModaleModificaEvento(ev){
   const idx=salv.findIndex(e=>e.id===ev.id);
   if(idx>=0)salv[idx]=ev;else salv.push(ev);
   localStorage.setItem('ergo_eventi',JSON.stringify(salv));
-  if(window.ergoSupabaseSyncEvents){try{await window.ergoSupabaseSyncEvents(salv);}catch(syncErr){alert('Evento aggiornato solo localmente: sincronizzazione Supabase non riuscita.\n\n'+String(syncErr&&syncErr.message||syncErr));return}}
+  if(window.ergoSupabaseSyncEvents){try{await window.ergoSupabaseSyncEvents(salv);}catch(syncErr){alert('Evento aggiornato solo localmente: sincronizzazione Supabase non riuscita.\n\n'+String(syncErr&&syncErr.message||syncErr));saveButton.disabled=false;saveButton.dataset.salvataggioInCorso='';saveButton.textContent='💾 Salva modifiche';return}}
   chiudiDrawer();
   alert('✅ Evento aggiornato!');
   const pc=document.getElementById('pc');
@@ -7937,6 +7940,11 @@ window.mostraPopupBenvenuto=function(){
       originalSetItem.call(localStorage,'ergo_eventi',JSON.stringify(eRows));
       PRODOTTI.splice(0,PRODOTTI.length,...pRows);
       EVENTI.splice(0,EVENTI.length,...eRows); NOLEGGI.splice(0,NOLEGGI.length,...nRows);
+      /* Il feed deve essere ricostruito dopo il caricamento remoto: prima di
+         questo punto il ruolo può vedere solo la copia locale precedente. */
+      if(typeof user!=='undefined'&&user&&typeof sincronizzaNotificheDaStorico==='function'){
+        try{sincronizzaNotificheDaStorico(user);}catch(notificationErr){console.warn('Ricostruzione notifiche rinviata',notificationErr);}
+      }
       if(localProducts.some(function(lp){return lp&&lp.codice&&!remoteProducts.some(function(r){return r.codice===lp.codice;});})){
         try{await window.ergoSupabaseSyncProducts(pRows);}catch(syncErr){console.warn('Recupero prodotti locali rinviato',syncErr);}
       }
