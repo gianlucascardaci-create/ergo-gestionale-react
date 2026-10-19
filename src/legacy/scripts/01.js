@@ -4222,7 +4222,7 @@ function apriModaleModificaEvento(ev){
    <div class="campo"><label>Bambini</label><input id="me-bam" type="number" min="0" value="${ev.bambini||0}"></div>
    <div class="campo"><label>Staff</label><input id="me-stf" type="number" min="0" value="${ev.staff||0}"></div>
   </div>
-  <div class="divisore-modale event-editor-section">📝 Generale · tutti</div>
+  <div class="divisore-modale event-editor-section event-editor-all">📝 Generale · tutti</div>
   <div class="campo">
    ${renderStoricoNote(ev,'tutti')}
    <textarea id="me-n-tutti" placeholder="Scrivi un nuovo messaggio per tutti…" style="background:#eef2ff;border-color:#c7d2fe"></textarea>
@@ -4230,7 +4230,7 @@ function apriModaleModificaEvento(ev){
    <label style="display:block;font-size:.7rem;font-weight:700;color:#083278;margin-top:10px">+ Aggiungi nuovi allegati</label>
    <input type="file" id="me-f-tutti" multiple accept="image/*,.pdf">
   </div>
-  <div class="divisore-modale event-editor-section">🍽️ Comunicazioni · sala</div>
+  <div class="divisore-modale event-editor-section event-editor-sala">🍽️ Comunicazioni · sala</div>
   <div class="campo">
    ${renderStoricoNote(ev,'sala')}
    <textarea id="me-n-sala" placeholder="Scrivi un nuovo messaggio per la sala…" style="background:#f0fdf4;border-color:#bbf7d0"></textarea>
@@ -4238,7 +4238,7 @@ function apriModaleModificaEvento(ev){
    <label style="display:block;font-size:.7rem;font-weight:700;color:#083278;margin-top:10px">+ Aggiungi nuovi allegati</label>
    <input type="file" id="me-f-sala" multiple accept="image/*,.pdf">
   </div>
-  <div class="divisore-modale event-editor-section">👨‍🍳 Comunicazioni · cucina</div>
+  <div class="divisore-modale event-editor-section event-editor-cucina">👨‍🍳 Comunicazioni · cucina</div>
   <div class="campo">
    ${renderStoricoNote(ev,'cucina')}
    <textarea id="me-n-cucina" placeholder="Scrivi un nuovo messaggio per la cucina…" style="background:#fff7ed;border-color:#fed7aa"></textarea>
@@ -4246,7 +4246,7 @@ function apriModaleModificaEvento(ev){
    <label style="display:block;font-size:.7rem;font-weight:700;color:#083278;margin-top:10px">+ Aggiungi nuovi allegati</label>
    <input type="file" id="me-f-cucina" multiple accept="image/*,.pdf">
   </div>
-  <div class="divisore-modale event-editor-section">📦 Comunicazioni · magazzino</div>
+  <div class="divisore-modale event-editor-section event-editor-magazzino">📦 Comunicazioni · magazzino</div>
   <div class="campo">
    ${renderStoricoNote(ev,'magazzino')}
    <textarea id="me-n-mag" placeholder="Scrivi un nuovo messaggio per il magazzino…" style="background:#f5f3ff;border-color:#ddd6fe"></textarea>
@@ -4255,7 +4255,7 @@ function apriModaleModificaEvento(ev){
    <input type="file" id="me-f-mag" multiple accept="image/*,.pdf">
   </div>
   ${isAdmin?`
-  <div class="divisore-modale event-editor-section">🔒 Comunicazione privata Admin</div>
+  <div class="divisore-modale event-editor-section event-editor-private">🔒 Comunicazione privata Admin</div>
   <div class="campo">
    ${renderStoricoNote(ev,'admin')}
    <textarea id="me-n-priv" placeholder="Scrivi un nuovo messaggio privato…" style="background:#fdf4ff;border-color:#f5d0fe"></textarea>
