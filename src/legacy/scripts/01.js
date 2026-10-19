@@ -251,7 +251,7 @@ async function doLogin(){
  try{
   if(window.ergoSupabaseLogin){
    const f=await window.ergoSupabaseLogin(u,p);
-   if(f){user=f;UTENTI[f.username]={ruolo:f.ruolo,nome:f.nome,email:f.email,iniziali:(f.nome||f.username).split(' ').map(x=>x[0]).slice(0,2).join('').toUpperCase()};view='dashboard';filtroFeed='tutte';app();if(window.ergoSupabaseLoad)window.ergoSupabaseLoad();return;}
+   if(f){user=f;UTENTI[f.username]={ruolo:f.ruolo,nome:f.nome,email:f.email,iniziali:(f.nome||f.username).split(' ').map(x=>x[0]).slice(0,2).join('').toUpperCase()};view='dashboard';filtroFeed='tutte';if(window.ergoSupabaseLoad)await window.ergoSupabaseLoad();app();return;}
   }
   const f=UTENTI[u];
   if(f&&f.password&&f.password===p){user={username:u,...f};view='dashboard';filtroFeed='tutte';app();}
