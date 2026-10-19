@@ -115,11 +115,11 @@ function dataLocaleSicura(ev){const x=dataEventoCanonica(ev).split('-');if(x.len
 function timelineQuando(v){const d=new Date(v||Date.now());return isNaN(d.getTime())?'':d.toLocaleString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});}
 function renderCronologiaReparto(ev,reparto){
  const labels={sala:'Sala',cucina:'Cucina',magazzino:'Magazzino'};
- const noteReparti=['tutti',reparto],items=[],files=[];
- noteReparti.forEach(function(rep){storicoNote(ev,rep).forEach(function(m){items.push({kind:'note',rep:rep,quando:m.quando||ev.creatoIl||ev.created_at||ev.inizio,testo:m.testo,autore:m.da||'Utente',letto:!!m.letto,id:m.id});});});
- noteReparti.forEach(function(rep){const campo=rep==='tutti'?'allegatiTutti':rep==='sala'?'allegatiSala':rep==='cucina'?'allegatiCucina':'allegatiMagazzino';(ev[campo]||[]).forEach(function(a,i){items.push({kind:'file',rep:rep,quando:a.caricato_il||ev.creatoIl||ev.created_at||ev.inizio,nome:a.nome||a.nome_file||'Allegato',allegato:a,letto:a.letto===true,id:'file-'+rep+'-'+(a.path||a.url||a.nome||i)});});});
+ const noteReparti=['tutti',reparto],items=[],files=[];let sequenza=0;
+ noteReparti.forEach(function(rep){storicoNote(ev,rep).forEach(function(m){items.push({kind:'note',rep:rep,quando:m.quando||ev.creatoIl||ev.created_at||ev.inizio,testo:m.testo,autore:m.da||'Utente',letto:!!m.letto,id:m.id,ordine:sequenza++});});});
+ noteReparti.forEach(function(rep){const campo=rep==='tutti'?'allegatiTutti':rep==='sala'?'allegatiSala':rep==='cucina'?'allegatiCucina':'allegatiMagazzino';(ev[campo]||[]).forEach(function(a,i){items.push({kind:'file',rep:rep,quando:a.caricato_il||ev.creatoIl||ev.created_at||ev.inizio,nome:a.nome||a.nome_file||'Allegato',allegato:a,letto:a.letto===true,id:'file-'+rep+'-'+(a.path||a.url||a.nome||i),ordine:sequenza++});});});
  /* Il più recente è sempre in alto. L'evento creato, essendo il primo, resta in fondo. */
- items.sort(function(a,b){return new Date(b.quando)-new Date(a.quando)});
+ items.sort(function(a,b){const at=new Date(a.quando||0).getTime()||0,bt=new Date(b.quando||0).getTime()||0;return bt-at||b.ordine-a.ordine;});
  let html='<div class="timeline-role-head"><div><span class="timeline-kicker">Cronologia reparto · tocca un blocco per cambiare lo stato</span><strong>'+escapeHtml(labels[reparto]||reparto)+'</strong></div><span class="timeline-date">'+escapeHtml(dataLocaleSicura(ev))+'</span></div>';
  items.forEach(function(x){const unread=!x.letto;
   if(x.kind==='note'){
