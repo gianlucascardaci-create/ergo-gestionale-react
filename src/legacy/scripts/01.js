@@ -120,7 +120,9 @@ function renderCronologiaReparto(ev,reparto){
  noteReparti.forEach(function(rep){const campo=rep==='tutti'?'allegatiTutti':rep==='sala'?'allegatiSala':rep==='cucina'?'allegatiCucina':'allegatiMagazzino';(ev[campo]||[]).forEach(function(a,i){items.push({kind:'file',rep:rep,quando:a.caricato_il||ev.creatoIl||ev.created_at||ev.inizio,nome:a.nome||a.nome_file||'Allegato',allegato:a,letto:a.letto===true,id:'file-'+rep+'-'+(a.path||a.url||a.nome||i),ordine:sequenza++});});});
  /* Il più recente è sempre in alto. L'evento creato, essendo il primo, resta in fondo. */
  items.sort(function(a,b){const at=new Date(a.quando||0).getTime()||0,bt=new Date(b.quando||0).getTime()||0;return bt-at||b.ordine-a.ordine;});
- let html='<div class="timeline-role-head"><div><span class="timeline-kicker">Cronologia reparto · tocca un blocco per cambiare lo stato</span><strong>'+escapeHtml(labels[reparto]||reparto)+'</strong></div><span class="timeline-date">'+escapeHtml(dataLocaleSicura(ev))+'</span></div>';
+ const mtBase=String(ev.inizio||'').match(/T(\d{2}:\d{2})/);const oraBase=mtBase?mtBase[1]:'—';
+ let html='<div class="timeline-role-head"><div><span class="timeline-kicker">Comunicazioni dell’evento</span><strong>'+escapeHtml(ev.titolo||'Evento')+'</strong><span class="timeline-subtitle">'+escapeHtml(labels[reparto]||reparto)+' · apri ogni blocco per segnarlo come letto</span></div><span class="timeline-date">'+escapeHtml(dataLocaleSicura(ev))+'</span></div>';
+ html+='<div class="timeline-event-base"><div class="timeline-dot base">●</div><div><strong>Riepilogo evento</strong><span>📍 '+escapeHtml(ev.location||'Location non indicata')+(ev.citta?' · '+escapeHtml(ev.citta):'')+'</span><span>🕒 '+escapeHtml(oraBase)+' · 👥 Ospiti: '+Number(ev.ospiti||0)+' · Bambini: '+Number(ev.bambini||0)+' · Staff: '+Number(ev.staff||0)+'</span><small>Evento creato · informazioni generali</small></div></div><div class="timeline-section-label">Cronologia comunicazioni</div>';
  items.forEach(function(x){const unread=!x.letto;
   if(x.kind==='note'){
    html+='<div class="timeline-item '+(unread?'unread':'read')+'" role="button" tabindex="0" data-timeline-kind="note" data-timeline-rep="'+x.rep+'" data-timeline-id="'+escapeAttr(x.id)+'"><div class="timeline-dot">'+(unread?'!':'✓')+'</div><div class="timeline-card"><div class="timeline-card-head"><strong>'+escapeHtml(x.rep==='tutti'?'Nota per tutti':'Nuova nota '+labels[x.rep])+'</strong><span>'+escapeHtml(timelineQuando(x.quando))+'</span></div><div class="timeline-text">'+escapeHtml(x.testo)+'</div><small>'+escapeHtml(x.autore)+' · <span class="timeline-state">'+(unread?'Da leggere':'Visualizzato')+'</span></small></div></div>';
@@ -129,9 +131,6 @@ function renderCronologiaReparto(ev,reparto){
    html+='<div class="timeline-item '+(unread?'unread':'read')+'" role="button" tabindex="0" data-timeline-kind="file" data-timeline-rep="'+x.rep+'" data-timeline-id="'+escapeAttr(x.id)+'"><div class="timeline-dot">'+(unread?'!':'✓')+'</div><div class="timeline-card"><div class="timeline-card-head"><strong>Nuovo allegato</strong><span>'+escapeHtml(timelineQuando(x.quando))+'</span></div><div class="timeline-text">'+escapeHtml(x.nome)+'</div><small>'+escapeHtml(x.rep==='tutti'?'Per tutti':'Per '+labels[x.rep])+' · <span class="timeline-state">'+(unread?'Da leggere':'Visualizzato')+'</span></small><div class="timeline-file-actions"><button class="allegato-btn anteprima" data-timeline-preview="'+fid+'">👁️ Anteprima</button><button class="allegato-btn" data-timeline-download="'+fid+'">⬇️ Scarica</button></div></div></div>';
   }
  });
- /* Il blocco originario è sempre riconoscibile e chiude la cronologia in fondo. */
- const mtBase=String(ev.inizio||'').match(/T(\d{2}:\d{2})/);const oraBase=mtBase?mtBase[1]:'—';
- html+='<div class="timeline-event-base"><div class="timeline-dot base">●</div><div><strong>Evento creato · '+escapeHtml(ev.titolo||'Evento senza nome')+'</strong><span>📍 '+escapeHtml(ev.location||'Location non indicata')+(ev.citta?' · '+escapeHtml(ev.citta):'')+'</span><span>🕒 '+escapeHtml(oraBase)+' · 👥 Ospiti: '+Number(ev.ospiti||0)+' · Bambini: '+Number(ev.bambini||0)+' · Staff: '+Number(ev.staff||0)+'</span><small>'+escapeHtml(dataLocaleSicura(ev))+' · primo inserimento</small></div></div>';
  window._timelineFiles=files.reduce(function(acc,x){acc[x.id]=x.file;return acc;},{});
  return html;
 }
@@ -2025,7 +2024,7 @@ function apriDrawerEnt(tipo,obj){
    document.querySelectorAll('.timeline-item[data-timeline-id]').forEach(function(row){const fn=function(){toggleTimelineLetto(obj,row.dataset.timelineRep,row.dataset.timelineKind,row.dataset.timelineId,row)};row.onclick=fn;row.onkeydown=function(e){if(e.key==='Enter'||e.key===' ')fn();};});
    return;
   }
-  h+=`<h4>Dettagli evento</h4><div class="meta-grid"><div><small>Data</small><strong>${dataI}</strong></div><div><small>Orario</small><strong>${ora}</strong></div><div><small>Location</small><strong>${obj.location||'—'}</strong></div><div><small>Ospiti</small><strong>${obj.ospiti||0}${obj.bambini?' · '+obj.bambini+' bimbi':''}${obj.staff?' · '+obj.staff+' staff':''}</strong></div></div>`;
+  h+=`<section class="event-overview"><div class="event-section-kicker">Riepilogo evento</div><div class="meta-grid"><div><small>Data</small><strong>${dataI}</strong></div><div><small>Orario</small><strong>${ora}</strong></div><div><small>Location</small><strong>${obj.location||'—'}${obj.citta?' · '+obj.citta:''}</strong></div><div><small>Ospiti</small><strong>${obj.ospiti||0}${obj.bambini?' · '+obj.bambini+' bimbi':''}${obj.staff?' · '+obj.staff+' staff':''}</strong></div></div></section><div class="event-section-kicker event-section-kicker-space">Comunicazioni e cronologia</div>`;
   const vediSala=isAdmin||isWedding||user.ruolo==='Sala';
   const vediCucina=isAdmin||isWedding||user.ruolo==='Cucina';
   const vediMag=isAdmin||isWedding||isMag1||isMag2;
@@ -2033,11 +2032,11 @@ function apriDrawerEnt(tipo,obj){
   if(isAdmin&&obj.notePrivata){
    h+=`<h4>🔒 Cartella privata Admin</h4><div class="note-box" style="background:#fdf4ff;border-color:#f5d0fe;color:#86198f">${obj.notePrivata}</div>`;
   }
-  if(storicoNote(obj,'tutti').length)h+=`<h4>📝 Note per tutti</h4>${renderStoricoNote(obj,'tutti')}`;
-  if(vediSala&&storicoNote(obj,'sala').length)h+=`<h4>🍽️ Cronologia sala</h4>${renderStoricoNote(obj,'sala')}`;
-  if(vediCucina&&storicoNote(obj,'cucina').length)h+=`<h4>👨‍🍳 Cronologia cucina</h4>${renderStoricoNote(obj,'cucina')}`;
-  if(vediMag&&storicoNote(obj,'magazzino').length)h+=`<h4>📦 Cronologia magazzino</h4>${renderStoricoNote(obj,'magazzino')}`;
-  if(isAdmin&&storicoNote(obj,'admin').length)h+=`<h4>🔒 Cronologia privata Admin</h4>${renderStoricoNote(obj,'admin')}`;
+  if(storicoNote(obj,'tutti').length)h+=`<section class="event-communication-card event-communication-all"><div class="event-communication-head"><strong>📝 Generale · tutti</strong><span>${storicoNote(obj,'tutti').length} messaggi</span></div>${renderStoricoNote(obj,'tutti')}</section>`;
+  if(vediSala&&storicoNote(obj,'sala').length)h+=`<section class="event-communication-card event-communication-sala"><div class="event-communication-head"><strong>🍽️ Sala</strong><span>${storicoNote(obj,'sala').length} messaggi</span></div>${renderStoricoNote(obj,'sala')}</section>`;
+  if(vediCucina&&storicoNote(obj,'cucina').length)h+=`<section class="event-communication-card event-communication-cucina"><div class="event-communication-head"><strong>👨‍🍳 Cucina</strong><span>${storicoNote(obj,'cucina').length} messaggi</span></div>${renderStoricoNote(obj,'cucina')}</section>`;
+  if(vediMag&&storicoNote(obj,'magazzino').length)h+=`<section class="event-communication-card event-communication-magazzino"><div class="event-communication-head"><strong>📦 Magazzino</strong><span>${storicoNote(obj,'magazzino').length} messaggi</span></div>${renderStoricoNote(obj,'magazzino')}</section>`;
+  if(isAdmin&&storicoNote(obj,'admin').length)h+=`<section class="event-communication-card event-communication-private"><div class="event-communication-head"><strong>🔒 Privata Admin</strong><span>${storicoNote(obj,'admin').length} messaggi</span></div>${renderStoricoNote(obj,'admin')}</section>`;
   /* Allegati raggruppati per reparto: ogni file resta vicino alla propria sezione */
   const gruppiAllegati=[];
   const aggiungiGruppo=function(titolo,arr,visibile){if(visibile&&arr&&arr.length)gruppiAllegati.push({titolo:titolo,arr:arr});};
@@ -2048,7 +2047,7 @@ function apriDrawerEnt(tipo,obj){
   aggiungiGruppo('📦 Note per il magazzino',obj.allegatiMagazzino,vediMag);
   const tuttiAllegati=[];
   if(gruppiAllegati.length){
-   h+=`<h4>📎 Allegati organizzati per reparto</h4>`;
+   h+=`<div class="event-section-kicker event-section-kicker-space">📎 Allegati organizzati per reparto</div>`;
    gruppiAllegati.forEach(function(g){
     h+=`<div class="allegati-gruppo"><div class="allegati-gruppo-titolo">${g.titolo} <span>(${g.arr.length})</span></div>`;
     g.arr.forEach(function(a){
@@ -4209,6 +4208,7 @@ function apriModaleModificaEvento(ev){
  document.getElementById('d-eyebrow').textContent='Modifica evento';
  document.getElementById('d-titolo').textContent='✏️ '+ev.titolo;
  document.getElementById('d-body').innerHTML=`
+  <div class="event-editor-intro"><strong>Gestisci le comunicazioni dell’evento</strong><span>Le note già inviate restano nella cronologia. Scrivi sotto una nuova indicazione per il reparto interessato.</span></div>
   <div class="campo"><label>Nome evento <span style="color:#dc2626">*</span></label><input id="me-nome" value="${(ev.titolo||'').replace(/"/g,'&quot;')}"></div>
   <div class="campo-2">
    <div class="campo"><label>Data</label><input id="me-data" type="date" value="${dataIso}"></div>
@@ -4222,7 +4222,7 @@ function apriModaleModificaEvento(ev){
    <div class="campo"><label>Bambini</label><input id="me-bam" type="number" min="0" value="${ev.bambini||0}"></div>
    <div class="campo"><label>Staff</label><input id="me-stf" type="number" min="0" value="${ev.staff||0}"></div>
   </div>
-  <div class="divisore-modale">📝 Note per tutti</div>
+  <div class="divisore-modale event-editor-section">📝 Generale · tutti</div>
   <div class="campo">
    ${renderStoricoNote(ev,'tutti')}
    <textarea id="me-n-tutti" placeholder="Scrivi un nuovo messaggio per tutti…" style="background:#eef2ff;border-color:#c7d2fe"></textarea>
@@ -4230,7 +4230,7 @@ function apriModaleModificaEvento(ev){
    <label style="display:block;font-size:.7rem;font-weight:700;color:#083278;margin-top:10px">+ Aggiungi nuovi allegati</label>
    <input type="file" id="me-f-tutti" multiple accept="image/*,.pdf">
   </div>
-  <div class="divisore-modale">🍽️ Note per la sala</div>
+  <div class="divisore-modale event-editor-section">🍽️ Comunicazioni · sala</div>
   <div class="campo">
    ${renderStoricoNote(ev,'sala')}
    <textarea id="me-n-sala" placeholder="Scrivi un nuovo messaggio per la sala…" style="background:#f0fdf4;border-color:#bbf7d0"></textarea>
@@ -4238,7 +4238,7 @@ function apriModaleModificaEvento(ev){
    <label style="display:block;font-size:.7rem;font-weight:700;color:#083278;margin-top:10px">+ Aggiungi nuovi allegati</label>
    <input type="file" id="me-f-sala" multiple accept="image/*,.pdf">
   </div>
-  <div class="divisore-modale">👨‍🍳 Note per la cucina</div>
+  <div class="divisore-modale event-editor-section">👨‍🍳 Comunicazioni · cucina</div>
   <div class="campo">
    ${renderStoricoNote(ev,'cucina')}
    <textarea id="me-n-cucina" placeholder="Scrivi un nuovo messaggio per la cucina…" style="background:#fff7ed;border-color:#fed7aa"></textarea>
@@ -4246,7 +4246,7 @@ function apriModaleModificaEvento(ev){
    <label style="display:block;font-size:.7rem;font-weight:700;color:#083278;margin-top:10px">+ Aggiungi nuovi allegati</label>
    <input type="file" id="me-f-cucina" multiple accept="image/*,.pdf">
   </div>
-  <div class="divisore-modale">📦 Note per il magazzino</div>
+  <div class="divisore-modale event-editor-section">📦 Comunicazioni · magazzino</div>
   <div class="campo">
    ${renderStoricoNote(ev,'magazzino')}
    <textarea id="me-n-mag" placeholder="Scrivi un nuovo messaggio per il magazzino…" style="background:#f5f3ff;border-color:#ddd6fe"></textarea>
@@ -4255,7 +4255,7 @@ function apriModaleModificaEvento(ev){
    <input type="file" id="me-f-mag" multiple accept="image/*,.pdf">
   </div>
   ${isAdmin?`
-  <div class="divisore-modale">🔒 Cartella privata Admin</div>
+  <div class="divisore-modale event-editor-section">🔒 Comunicazione privata Admin</div>
   <div class="campo">
    ${renderStoricoNote(ev,'admin')}
    <textarea id="me-n-priv" placeholder="Scrivi un nuovo messaggio privato…" style="background:#fdf4ff;border-color:#f5d0fe"></textarea>
