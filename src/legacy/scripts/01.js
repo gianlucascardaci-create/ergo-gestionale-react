@@ -116,7 +116,7 @@ function renderCronologiaReparto(ev,reparto){
  const labels={sala:'Sala',cucina:'Cucina',magazzino:'Magazzino'};
  const noteReparti=['tutti',reparto],items=[],files=[];
  noteReparti.forEach(function(rep){storicoNote(ev,rep).forEach(function(m){items.push({kind:'note',rep:rep,quando:m.quando||ev.creatoIl||ev.created_at||ev.inizio,testo:m.testo,autore:m.da||'Utente',letto:!!m.letto,id:m.id});});});
- noteReparti.forEach(function(rep){const campo=rep==='tutti'?'allegatiTutti':rep==='sala'?'allegatiSala':rep==='cucina'?'allegatiCucina':'allegatiMagazzino';(ev[campo]||[]).forEach(function(a,i){items.push({kind:'file',rep:rep,quando:a.caricato_il||ev.creatoIl||ev.created_at||ev.inizio,nome:a.nome||a.nome_file||'Allegato',allegato:a,letto:!!a.letto,id:'file-'+rep+'-'+i});});});
+ noteReparti.forEach(function(rep){const campo=rep==='tutti'?'allegatiTutti':rep==='sala'?'allegatiSala':rep==='cucina'?'allegatiCucina':'allegatiMagazzino';(ev[campo]||[]).forEach(function(a,i){items.push({kind:'file',rep:rep,quando:a.caricato_il||ev.creatoIl||ev.created_at||ev.inizio,nome:a.nome||a.nome_file||'Allegato',allegato:a,letto:a.letto===true,id:'file-'+rep+'-'+(a.path||a.url||a.nome||i)});});});
  /* Il più recente è sempre in alto. L'evento creato, essendo il primo, resta in fondo. */
  items.sort(function(a,b){return new Date(b.quando)-new Date(a.quando)});
  let html='<div class="timeline-role-head"><div><span class="timeline-kicker">Cronologia reparto · tocca un blocco per cambiare lo stato</span><strong>'+escapeHtml(labels[reparto]||reparto)+'</strong></div><span class="timeline-date">'+escapeHtml(dataLocaleSicura(ev))+'</span></div>';
@@ -137,13 +137,13 @@ function renderCronologiaReparto(ev,reparto){
 function toggleTimelineLetto(ev,rep,kind,id,row){
  let target=null;
  if(kind==='note'){const arr=ev[CAMPI_STORICO_NOTE[rep]]||[];target=arr.find(function(m){return String(m.id)===String(id)});}
- else {const campo=rep==='tutti'?'allegatiTutti':rep==='sala'?'allegatiSala':rep==='cucina'?'allegatiCucina':'allegatiMagazzino';const idx=String(id).split('-').pop();target=(ev[campo]||[])[Number(idx)];}
+ else {const campo=rep==='tutti'?'allegatiTutti':rep==='sala'?'allegatiSala':rep==='cucina'?'allegatiCucina':'allegatiMagazzino';const prefix='file-'+rep+'-';const key=String(id).indexOf(prefix)===0?String(id).slice(prefix.length):'';const arr=ev[campo]||[];target=arr.find(function(a){return String(a.path||a.url||a.nome||'')===key;});if(!target)target=arr[Number(String(id).split('-').pop())];}
  if(!target)return;
  target.letto=!target.letto;row.classList.toggle('unread',!target.letto);row.classList.toggle('read',!!target.letto);
  const dot=row.querySelector('.timeline-dot');if(dot)dot.textContent=target.letto?'✓':'!';const st=row.querySelector('.timeline-state');if(st)st.textContent=target.letto?'Visualizzato':'Da leggere';
  let rows=[];try{rows=JSON.parse(localStorage.getItem('ergo_eventi')||'[]')}catch(e){};const ix=rows.findIndex(function(x){return x.id===ev.id});if(ix>=0){rows[ix]=ev;localStorage.setItem('ergo_eventi',JSON.stringify(rows));}
  /* La notifica collegata segue lo stesso stato del blocco. */
- NOTIFICHE.filter(function(n){return n.dettagli&&n.dettagli.messaggioId===id}).forEach(function(n){if(target.letto)segnaLetta(user.username,n.id);else{const l=getLette(user.username).filter(function(x){return x!==n.id});setLette(user.username,l);}});
+ NOTIFICHE.filter(function(n){return n.dettagli&&(n.dettagli.messaggioId===id||n.dettagli.fileId===String(id).slice(('file-'+rep+'-').length))}).forEach(function(n){if(target.letto)segnaLetta(user.username,n.id);else{const l=getLette(user.username).filter(function(x){return x!==n.id});setLette(user.username,l);}});
  if(window.ergoSupabaseSyncEvents)window.ergoSupabaseSyncEvents(rows).catch(function(e){console.warn('Stato letto non sincronizzato',e)});
 }
 
@@ -4292,13 +4292,13 @@ function apriModaleModificaEvento(ev){
   nuoviMessaggi.forEach(function(x){creaNotificaNotaStorica(ev,x[0],x[1]);});
   /* Aggiungi nuovi allegati a ciascuna sezione */
   const nuoviTutti=await leggiAllegati('me-f-tutti');
-  if(nuoviTutti.length)ev.allegatiTutti=(ev.allegatiTutti||[]).concat(nuoviTutti);
+  if(nuoviTutti.length){nuoviTutti.forEach(function(a){a.letto=false;a.caricato_il=a.caricato_il||new Date().toISOString();});ev.allegatiTutti=(ev.allegatiTutti||[]).concat(nuoviTutti);}
   const nuoviSala=await leggiAllegati('me-f-sala');
-  if(nuoviSala.length)ev.allegatiSala=(ev.allegatiSala||[]).concat(nuoviSala);
+  if(nuoviSala.length){nuoviSala.forEach(function(a){a.letto=false;a.caricato_il=a.caricato_il||new Date().toISOString();});ev.allegatiSala=(ev.allegatiSala||[]).concat(nuoviSala);}
   const nuoviCucina=await leggiAllegati('me-f-cucina');
-  if(nuoviCucina.length)ev.allegatiCucina=(ev.allegatiCucina||[]).concat(nuoviCucina);
+  if(nuoviCucina.length){nuoviCucina.forEach(function(a){a.letto=false;a.caricato_il=a.caricato_il||new Date().toISOString();});ev.allegatiCucina=(ev.allegatiCucina||[]).concat(nuoviCucina);}
   const nuoviMag=await leggiAllegati('me-f-mag');
-  if(nuoviMag.length)ev.allegatiMagazzino=(ev.allegatiMagazzino||[]).concat(nuoviMag);
+  if(nuoviMag.length){nuoviMag.forEach(function(a){a.letto=false;a.caricato_il=a.caricato_il||new Date().toISOString();});ev.allegatiMagazzino=(ev.allegatiMagazzino||[]).concat(nuoviMag);}
   if(isAdmin&&document.getElementById('me-f-priv')){
    const nuoviPriv=await leggiAllegati('me-f-priv');
    if(nuoviPriv.length)ev.allegatiPrivata=(ev.allegatiPrivata||[]).concat(nuoviPriv);
@@ -4543,7 +4543,11 @@ function sincronizzaNotificheDaStorico(utente){
    const eventId='nf-remote-event-'+String(ev.id);
    if(!NOTIFICHE.some(function(n){return n.id===eventId})){NOTIFICHE.push({id:eventId,tipo:'evento',reparto:'tutti',titolo:'Evento disponibile: '+ev.titolo,sottotitolo:(ev.location||'—')+' · '+formattaDataIt(ev.inizio),quando:ev.creatoIl||ev.inizio,dettagli:{evento:ev.titolo,data:formattaDataIt(ev.inizio),location:ev.location,ospiti:ev.ospiti}});}
   }
-  rep.forEach(function(r){storicoNote(ev,r).forEach(function(m){if(!m||m.letto||!m.id)return;const id='nf-note-'+ev.id+'-'+m.id;if(!NOTIFICHE.some(function(n){return n.id===id})){NOTIFICHE.unshift({id:id,tipo:'nota',reparto:r,titolo:'Nuova nota per '+(r==='tutti'?'tutti':r),sottotitolo:'Da '+(m.da||'utente')+' · '+ev.titolo,quando:m.quando,dettagli:{evento:ev.titolo,data:formattaDataIt(ev.inizio),messaggioId:m.id}});}});});
+  rep.forEach(function(r){
+   storicoNote(ev,r).forEach(function(m){if(!m||m.letto||!m.id)return;const id='nf-note-'+(ev.clientId||ev.id)+'-'+m.id;if(!NOTIFICHE.some(function(n){return n.id===id})){NOTIFICHE.unshift({id:id,tipo:'nota',reparto:r,titolo:'Nuova nota per '+(r==='tutti'?'tutti':r),sottotitolo:'Da '+(m.da||'utente')+' · '+ev.titolo,quando:m.quando,dettagli:{evento:ev.titolo,data:formattaDataIt(ev.inizio),messaggioId:m.id}});}});
+   var campo=r==='tutti'?'allegatiTutti':r==='sala'?'allegatiSala':r==='cucina'?'allegatiCucina':r==='magazzino'?'allegatiMagazzino':null;
+   if(campo)(ev[campo]||[]).forEach(function(a,i){if(!a||a.letto!==false)return;var aid=a.path||a.url||a.nome||String(i),id='nf-file-'+(ev.clientId||ev.id)+'-'+r+'-'+aid;if(!NOTIFICHE.some(function(n){return n.id===id})){NOTIFICHE.unshift({id:id,tipo:'allegato',reparto:r,titolo:'Nuovo allegato per '+(r==='tutti'?'tutti':r),sottotitolo:(a.nome||'Allegato')+' · '+ev.titolo,quando:a.caricato_il||ev.inizio,dettagli:{evento:ev.titolo,data:formattaDataIt(ev.inizio),fileId:aid}});}});
+  });
  });
 }
 
@@ -4552,6 +4556,9 @@ function notifichePerUtente(utente){
  const rep=mappa[utente.ruolo]||['tutti'];sincronizzaNotificheDaStorico(utente);
  return NOTIFICHE.filter(function(n){
   if(!rep.includes(n.reparto)||!eventoNotificaValida(n,utente))return false;
+  /* Gli aggiornamenti inviati dall'Admin a un reparto appartengono al destinatario,
+     non devono tornare nella sua dashboard come se fossero notifiche ricevute. */
+  if(utente.ruolo==='Amministratore'&&n.reparto!=='admin'&&n.da&&String(n.da)===String(utente.nome))return false;
   if(utente.ruolo==='Magazzino2')return n.tipo==='noleggio';
   if(utente.ruolo!=='Amministratore'&&n.reparto==='admin')return false;
   if((utente.ruolo==='Sala'||utente.ruolo==='Cucina')&&n.tipo==='noleggio')return false;
@@ -7691,6 +7698,19 @@ window.mostraPopupBenvenuto=function(){
   function eventPayload(e){
     return {client_id:e.clientId||e.id||null,nome_evento:e.titolo,data:dataEventoCanonica(e),data_display:dataEventoCanonica(e)+'T'+oraEventoCanonica(e),location:e.location||'',citta:e.citta||'',ospiti:Number(e.ospiti||0),bambini:Number(e.bambini||0),staff:Number(e.staff||0),note_tutti:e.noteTutti||'',allegati_tutti:e.allegatiTutti||[],note_sala:e.noteSala||'',allegati_sala:e.allegatiSala||[],note_cucina:e.noteCucina||'',allegati_cucina:e.allegatiCucina||[],note_magazzino:e.noteMagazzino||'',allegati_magazzino:e.allegatiMagazzino||[],allegati_privati:e.allegatiPrivata||[],lista_attrezzature:e.listaAttrezzature||[],note_storico_tutti:e.noteStoricoTutti||[],note_storico_sala:e.noteStoricoSala||[],note_storico_cucina:e.noteStoricoCucina||[],note_storico_magazzino:e.noteStoricoMagazzino||[],note_storico_admin:e.noteStoricoAdmin||[]};
   }
+  function isLegacyEventClientId(v){return !v||/^legacy-/.test(String(v));}
+  function eventCanonicalKey(e){return 'natural:'+normalizzaTesto((e&&e.titolo)||'')+'|'+dataEventoCanonica(e);}
+  function mergeEventLists(a,b){var out=[],seen={};(Array.isArray(a)?a:[]).concat(Array.isArray(b)?b:[]).forEach(function(x){if(!x)return;var key=String(x.path||x.url||x.id||x.nome||JSON.stringify(x))+'|'+String(x.testo||'')+'|'+String(x.quando||x.caricato_il||'');if(!seen[key]){seen[key]=true;out.push(x);}});return out;}
+  function mergeCanonicalEvents(rows){
+    var groups={};
+    (Array.isArray(rows)?rows:[]).filter(Boolean).forEach(function(e){var k=eventCanonicalKey(e),g=groups[k];if(!g){groups[k]=JSON.parse(JSON.stringify(e));return;}
+      var prefer=!isLegacyEventClientId(e.clientId)&&isLegacyEventClientId(g.clientId);
+      Object.keys(e).forEach(function(key){if(['allegatiTutti','allegatiSala','allegatiCucina','allegatiMagazzino','allegatiPrivata','noteStoricoTutti','noteStoricoSala','noteStoricoCucina','noteStoricoMagazzino','noteStoricoAdmin'].indexOf(key)>=0)return;if(prefer||(e[key]!==null&&e[key]!==undefined&&String(e[key])!==''))g[key]=e[key];});
+      if(prefer)g.clientId=e.clientId;
+      ['allegatiTutti','allegatiSala','allegatiCucina','allegatiMagazzino','allegatiPrivata','noteStoricoTutti','noteStoricoSala','noteStoricoCucina','noteStoricoMagazzino','noteStoricoAdmin'].forEach(function(key){g[key]=mergeEventLists(g[key],e[key]);});
+    });
+    return Object.keys(groups).map(function(k){return groups[k];});
+  }
   function firstAttachment(n,key){var a=(n[key]||[])[0]||{};return {name:a.nome||'',url:a.url||'',mime:a.mime||'',path:a.path||''};}
   function rentalPayload(n){
     var b=firstAttachment(n,'allegatiBolla'),d=firstAttachment(n,'allegatiDDT'),v=firstAttachment(n,'allegatiVario');
@@ -7709,7 +7729,7 @@ window.mostraPopupBenvenuto=function(){
     /* Eventi e noleggi vengono sincronizzati per chiave naturale: così gli ID
        numerici generati da Supabase restano la fonte ufficiale. */
     if(kind==='evento'){
-      var eventRows=rows.filter(Boolean).map(eventPayload);
+      var eventRows=mergeCanonicalEvents(rows.filter(Boolean).map(eventPayload));
       var er=await sb.rpc('ergo_sync_events',{p_token:token,p_rows:eventRows});
       if(er.error) throw er.error;
     }
@@ -7741,7 +7761,7 @@ window.mostraPopupBenvenuto=function(){
     try{await upsertCollection(kind,Array.isArray(rows)?rows:[]);}
     finally{syncing=wasSyncing;}
   }
-  window.ergoSupabaseSyncEvents=function(rows){return syncRemoteCollection('evento',rows);};
+  window.ergoSupabaseSyncEvents=function(rows){var clean=mergeCanonicalEvents(rows);originalSetItem.call(localStorage,'ergo_eventi',JSON.stringify(clean));return syncRemoteCollection('evento',clean);};
   window.ergoSupabaseSyncRentals=function(rows){return syncRemoteCollection('noleggio',rows);};
 
   /* Evita richieste ripetute: una singola operazione batch per collezione. */
@@ -7811,7 +7831,7 @@ window.mostraPopupBenvenuto=function(){
       var name=a.nome_file||a.nome||'allegato';
       var url=a.url||a.data||' ';url=url.trim();
       /* Per gli allegati Storage conserviamo il solo URL firmato; data resta solo per il fallback locale. */
-      return {nome:name,nome_file:name,mime:a.mime||'application/octet-stream',size:a.size||0,url:url,data:a.data&&String(a.data).startsWith('data:')?a.data:'',path:a.path||'',bucket:a.bucket||'allegati_noleggi',caricato_il:a.caricato_il||''};
+      return {nome:name,nome_file:name,mime:a.mime||'application/octet-stream',size:a.size||0,url:url,data:a.data&&String(a.data).startsWith('data:')?a.data:'',path:a.path||'',bucket:a.bucket||'allegati_noleggi',caricato_il:a.caricato_il||'',letto:a.letto===true};
     });
   }
   function mapProduct(row){
@@ -7878,7 +7898,7 @@ window.mostraPopupBenvenuto=function(){
       var localProducts=[]; try{localProducts=JSON.parse(localStorage.getItem('ergo_prodotti')||'[]');}catch(e){localProducts=[];}
       var pRows=remoteProducts.slice();
       localProducts.forEach(function(lp){if(lp&&lp.codice&&!pRows.some(function(r){return r.codice===lp.codice;}))pRows.push(lp);});
-      var nRows=(rentals.data||[]).map(mapRental), eRows=(events.data||[]).map(mapEvent);
+      var nRows=(rentals.data||[]).map(mapRental), eRows=mergeCanonicalEvents((events.data||[]).map(mapEvent));
       for(const product of pRows) await firmaFotoProdotto(product);
       if(localCollectionRevision!==loadRevision){
         console.warn('Caricamento Supabase non applicato: sono intervenute modifiche locali più recenti');
