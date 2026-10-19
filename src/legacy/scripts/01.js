@@ -89,8 +89,9 @@ function storicoNote(ev,reparto){
  return arr;
 }
 function renderStoricoNote(ev,reparto){
- const arr=storicoNote(ev,reparto);if(!arr.length)return '<div class="note-thread-empty">Nessun messaggio ancora. Scrivi il primo aggiornamento qui sotto.</div>';
- return '<div class="note-thread">'+arr.map(function(m,i){return '<div class="note-thread-msg"><div class="note-thread-meta"><strong>'+escapeHtml(m.da||'Utente')+'</strong><span>'+new Date(m.quando||Date.now()).toLocaleString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})+'</span></div><div class="note-thread-text">'+escapeHtml(m.testo||'')+'</div><div class="note-thread-state">'+(m.legacy||m.letto?'✓ Visualizzato':'Nuovo messaggio')+'</div></div>';}).join('')+'</div>';
+ const arr=storicoNote(ev,reparto).slice().sort(function(a,b){return new Date(b.quando||0)-new Date(a.quando||0);});
+ if(!arr.length)return '<div class="note-thread-empty">Nessun messaggio ancora. Scrivi il primo aggiornamento qui sotto.</div>';
+ return '<div class="note-thread"><div class="note-thread-order">Cronologia messaggi · più recente in alto</div>'+arr.map(function(m,i){return '<div class="note-thread-msg"><div class="note-thread-meta"><strong>'+escapeHtml(m.da||'Utente')+'</strong><span>'+new Date(m.quando||Date.now()).toLocaleString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})+'</span></div><div class="note-thread-text">'+escapeHtml(m.testo||'')+'</div><div class="note-thread-state">'+(m.legacy||m.letto?'✓ Visualizzato':'Nuovo messaggio')+'</div></div>';}).join('')+'</div>';
 }
 function marcaStoricoNoteLette(ev,reparto){
  const campo=CAMPI_STORICO_NOTE[reparto];if(!campo||!ev||!Array.isArray(ev[campo]))return;
