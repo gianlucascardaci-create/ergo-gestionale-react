@@ -2660,15 +2660,15 @@ function apriModaleEventoCitta(){
    <div class="campo"><label>Bambini</label><input id="ev-bam" type="number" min="0" value="0" style="font-size:1rem;font-weight:700;text-align:center;color:#083278"></div>
    <div class="campo"><label>Staff</label><input id="ev-stf" type="number" min="0" value="0" style="font-size:1rem;font-weight:700;text-align:center;color:#083278"></div>
   </div>
-  <div class="divisore-modale">📝 Note per tutti</div>
+  <div class="divisore-modale event-editor-section event-editor-all">📝 Generale · tutti</div>
   <div class="campo"><textarea id="ev-n-tutti" style="background:#eef2ff;border-color:#c7d2fe"></textarea><input type="file" id="ev-f-tutti" multiple accept="image/*,.pdf" style="margin-top:8px"></div>
-  <div class="divisore-modale">🍽️ Note per la sala</div>
+  <div class="divisore-modale event-editor-section event-editor-sala">🍽️ Comunicazioni · sala</div>
   <div class="campo"><textarea id="ev-n-sala" style="background:#f0fdf4;border-color:#bbf7d0"></textarea><input type="file" id="ev-f-sala" multiple accept="image/*,.pdf" style="margin-top:8px"></div>
-  <div class="divisore-modale">👨‍🍳 Note per la cucina</div>
+  <div class="divisore-modale event-editor-section event-editor-cucina">👨‍🍳 Comunicazioni · cucina</div>
   <div class="campo"><textarea id="ev-n-cucina" style="background:#fff7ed;border-color:#fed7aa"></textarea><input type="file" id="ev-f-cucina" multiple accept="image/*,.pdf" style="margin-top:8px"></div>
-  <div class="divisore-modale">📦 Note per il magazzino</div>
+  <div class="divisore-modale event-editor-section event-editor-magazzino">📦 Comunicazioni · magazzino</div>
   <div class="campo"><textarea id="ev-n-mag" style="background:#f5f3ff;border-color:#ddd6fe"></textarea><input type="file" id="ev-f-mag" multiple accept="image/*,.pdf" style="margin-top:8px"></div>
-  ${isAdmin?`<div class="divisore-modale">🔒 Cartella privata Admin</div><div class="campo"><textarea id="ev-n-priv" style="background:#fdf4ff;border-color:#f5d0fe"></textarea><input type="file" id="ev-f-priv" multiple accept="image/*,.pdf" style="margin-top:8px"></div>`:''}
+  ${isAdmin?`<div class="divisore-modale event-editor-section event-editor-private">🔒 Comunicazione privata Admin</div><div class="campo"><textarea id="ev-n-priv" style="background:#fdf4ff;border-color:#f5d0fe"></textarea><input type="file" id="ev-f-priv" multiple accept="image/*,.pdf" style="margin-top:8px"></div>`:''}
  `;
  document.getElementById('d-foot').innerHTML=`<button class="btn-ghost" onclick="chiudiDrawer()">Annulla</button><button class="btn-primary" id="ev-salva" style="background:#3e765e">💾 Crea Evento</button>`;
  ['ev-f-tutti','ev-f-sala','ev-f-cucina','ev-f-mag','ev-f-priv'].forEach(function(id){
