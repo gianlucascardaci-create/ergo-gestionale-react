@@ -86,6 +86,11 @@ function storicoNote(ev,reparto){
  const campo=CAMPI_STORICO_NOTE[reparto];let arr=ev&&campo&&Array.isArray(ev[campo])?ev[campo].slice():[];
  const legacy=ev&&ev['note'+(reparto==='tutti'?'Tutti':reparto==='sala'?'Sala':reparto==='cucina'?'Cucina':reparto==='magazzino'?'Magazzino':'Privata')];
  if(!arr.length&&legacy&&String(legacy).trim())arr=[{id:'legacy-'+reparto,testo:String(legacy),da:'Nota originale',ruolo:'',quando:ev.updated_at||ev.creato_il||new Date().toISOString(),legacy:true}];
+ if(arr.length>1){
+  const visti=new Set();
+  arr=arr.filter(function(m){const t=new Date(m.quando||0).getTime()||0;const chiave=String(m.da||'')+'|'+String(m.testo||'').trim()+'|'+Math.floor(t/5000);if(visti.has(chiave))return false;visti.add(chiave);return true;});
+  if(ev&&campo&&Array.isArray(ev[campo])&&ev[campo].length!==arr.length)ev[campo]=arr;
+ }
  return arr;
 }
 function renderStoricoNote(ev,reparto){
@@ -101,12 +106,16 @@ function titoloRepartoNota(reparto){return {tutti:'Note per tutti',sala:'Convers
 
 function aggiungiNotaStorica(ev,reparto,testo){
  const testoPulito=String(testo||'').trim(),campo=CAMPI_STORICO_NOTE[reparto];if(!campo||!testoPulito)return null;
- const arr=storicoNote(ev,reparto);const msg={id:'nota-'+Date.now()+'-'+Math.random().toString(36).slice(2,7),testo:testoPulito,da:user?user.nome:'Utente',ruolo:user?user.ruolo:'',quando:new Date().toISOString(),letto:false};arr.push(msg);ev[campo]=arr;
+ const arr=storicoNote(ev,reparto),autore=user?user.nome:'Utente',adesso=Date.now();
+ const ultimo=arr[arr.length-1];
+ if(ultimo&&String(ultimo.testo||'').trim()===testoPulito&&String(ultimo.da||'')===String(autore)&&adesso-(new Date(ultimo.quando||0).getTime()||0)<5000)return null;
+ const msg={id:'nota-'+Date.now()+'-'+Math.random().toString(36).slice(2,7),testo:testoPulito,da:autore,ruolo:user?user.ruolo:'',quando:new Date().toISOString(),letto:false};arr.push(msg);ev[campo]=arr;
  const legacyCampo='note'+(reparto==='tutti'?'Tutti':reparto==='sala'?'Sala':reparto==='cucina'?'Cucina':reparto==='magazzino'?'Magazzino':'Privata');ev[legacyCampo]=testoPulito;
  return msg;
 }
 function creaNotificaNotaStorica(ev,reparto,msg){
  if(!msg)return;
+ if(NOTIFICHE.some(function(n){return n.dettagli&&n.dettagli.messaggioId===msg.id}))return;
  const nomi={tutti:'tutti',sala:'sala',cucina:'cucina',magazzino:'magazzino',admin:'Admin'};
  const n={id:'nf-'+Date.now()+'-nota-'+Math.random().toString(36).slice(2,7),tipo:'nota',reparto:reparto==='admin'?'admin':reparto,titolo:'Nuovo messaggio per la '+nomi[reparto],sottotitolo:'Da '+(msg.da||'utente')+' · '+ev.titolo,quando:msg.quando,da:msg.da,dettagli:{evento:ev.titolo,data:formattaDataIt(ev.inizio),testoNota:msg.testo,sezione:'Conversazione · '+nomi[reparto],messaggioId:msg.id}};
  NOTIFICHE.unshift(n);let salvate=[];try{salvate=JSON.parse(localStorage.getItem('ergo_notifiche')||'[]')}catch(e){};salvate.unshift(n);localStorage.setItem('ergo_notifiche',JSON.stringify(salvate.slice(0,200)));
@@ -4530,14 +4539,18 @@ function eventoNotificaValida(n,utente){
  const dm=String(det.data||'').match(/(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4})/);
  const stessaData=!dm||dataEventoCanonica(ev)===dm[3]+'-'+String(dm[2]).padStart(2,'0')+'-'+String(dm[1]).padStart(2,'0');
  if(!stessaData)return false;
- /* Sala, Cucina e Magazzino vedono solo aggiornamenti di eventi ancora attuali. */
- if(utente&&utente.ruolo!=='Amministratore'&&utente.ruolo!=='Wedding'&&dataEventoPassato(ev))return false;
+ /* Un evento passato non deve riapparire come nuovo evento, ma una nota o un
+    allegato appena aggiunti devono comunque arrivare al reparto interessato. */
+ if(utente&&utente.ruolo!=='Amministratore'&&utente.ruolo!=='Wedding'&&dataEventoPassato(ev)){
+  if(n.tipo==='evento')return false;
+  const quando=new Date(n.quando||0).getTime();
+  if(!quando||Date.now()-quando>48*60*60*1000)return false;
+ }
  return true;
 }
 function sincronizzaNotificheDaStorico(utente){
  const rep=utente.ruolo==='Amministratore'?['tutti','sala','cucina','magazzino','admin']:(utente.ruolo==='Cucina'?['tutti','cucina']:utente.ruolo==='Sala'?['tutti','sala']:utente.ruolo==='Magazzino'?['tutti','magazzino']:['tutti']);
  EVENTI.forEach(function(ev){
-  if(utente.ruolo!=='Amministratore'&&utente.ruolo!=='Wedding'&&utente.ruolo!=='Magazzino2'&&dataEventoPassato(ev))return;
   /* La notifica di creazione viene ricostruita dai dati remoti, così un ruolo
      che accede da un altro browser non dipende dal localStorage dell'Admin. */
   if(utente.ruolo!=='Magazzino2' && rep.includes('tutti')){
@@ -4557,6 +4570,10 @@ function notifichePerUtente(utente){
  const rep=mappa[utente.ruolo]||['tutti'];sincronizzaNotificheDaStorico(utente);
  return NOTIFICHE.filter(function(n){
   if(!rep.includes(n.reparto)||!eventoNotificaValida(n,utente))return false;
+  if(n.tipo==='nota'&&n.dettagli&&n.dettagli.messaggioId){
+   const evNota=EVENTI.find(function(x){return String(x.titolo||'').trim().toLowerCase()===String(n.dettagli.evento||'').trim().toLowerCase()});
+   if(!evNota||!storicoNote(evNota,n.reparto).some(function(m){return String(m.id)===String(n.dettagli.messaggioId)}))return false;
+  }
   /* Gli aggiornamenti inviati dall'Admin a un reparto appartengono al destinatario,
      non devono tornare nella sua dashboard come se fossero notifiche ricevute. */
   if(utente.ruolo==='Amministratore'&&n.reparto!=='admin'&&n.da&&String(n.da)===String(utente.nome))return false;
