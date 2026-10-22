@@ -2304,7 +2304,14 @@ let _allegatoApertoDa=null;
 let _allegatoApertoTipo=null;
 let _allegatoApertoObj=null;
 
-function apriAnteprimaAllega(allegato){
+async function apriAnteprimaAllega(allegato){
+ if(!allegato)return;
+ /* Rigenera sempre il link prima di creare img/iframe: evita InvalidJWT. */
+ try{if(window.ergoRefreshAttachmentUrl)await window.ergoRefreshAttachmentUrl(allegato)}catch(e){
+  var errBody=document.getElementById('d-body');
+  if(errBody)errBody.innerHTML='<div class="note-box" style="text-align:center;padding:30px;color:#b91c1c"><b>Allegato non disponibile</b><br>Non riesco a rigenerare il collegamento sicuro.</div>';
+  return;
+ }
  _allegatoApertoDa=allegato.sezione||'Allegati';
  _allegatoApertoTipo=window._tipoAperto||'evento';
  _allegatoApertoObj=window._objAperto||null;
@@ -7849,6 +7856,19 @@ window.mostraPopupBenvenuto=function(){
     if(signed.error) throw signed.error;
     return {url:signed.data.signedUrl,path:path,bucket:bucket,name:file.name,mime:file.type,size:file.size};
   };
+  /* Gli URL firmati durano solo un'ora: non vengono mai riutilizzati
+     per anteprime o download successivi. Il path Storage è la fonte stabile. */
+  window.ergoRefreshAttachmentUrl = async function(allegato){
+    if(!allegato) return allegato;
+    if(allegato.data && String(allegato.data).indexOf('data:')===0) return allegato;
+    if(!sb || !allegato.path) return allegato;
+    var bucket=allegato.bucket||'allegati_noleggi';
+    var signed=await sb.storage.from(bucket).createSignedUrl(allegato.path,3600);
+    if(signed.error) throw signed.error;
+    if(!signed.data||!signed.data.signedUrl) throw new Error('URL_ALLEGATO_NON_DISPONIBILE');
+    allegato.url=signed.data.signedUrl;
+    return allegato;
+  };
 
   window.ergoSupabaseRemoveAttachment=async function(a){
     if(!sb||!a||!a.path)return {remote:false};
@@ -8078,10 +8098,17 @@ window.mostraPopupBenvenuto=function(){
   };
 
   /* Sovrascrive il download per gestire sia Base64 sia URL Storage. */
-  window.scaricaAllega = function(allegato){
-    if(!allegato || !(allegato.data||allegato.url)) return;
-    var a=document.createElement('a'); a.href=allegato.url||allegato.data; a.download=allegato.nome||'allegato'; a.target='_blank'; a.rel='noopener'; document.body.appendChild(a); a.click(); a.remove();
-    window.assistentePersonale({testo:'<b>Download avviato</b><br>'+String(allegato.nome||'Allegato').replace(/</g,'&lt;'),emoji:'📥',colore:'#0891b2'});
+  window.scaricaAllega = async function(allegato){
+    if(!allegato)return;
+    try{
+      if(window.ergoRefreshAttachmentUrl)await window.ergoRefreshAttachmentUrl(allegato);
+      var href=allegato.data||allegato.url;
+      if(!href)throw new Error('ALLEGATO_SENZA_LINK');
+      var a=document.createElement('a'); a.href=href; a.download=allegato.nome||'allegato'; a.target='_blank'; a.rel='noopener'; document.body.appendChild(a); a.click(); a.remove();
+      window.assistentePersonale({testo:'<b>Download avviato</b><br>'+String(allegato.nome||'Allegato').replace(/</g,'&lt;'),emoji:'📥',colore:'#0891b2'});
+    }catch(e){
+      window.assistentePersonale({testo:'<b>Allegato non disponibile</b><br>Il collegamento sicuro non è più valido: ne ho richiesto uno nuovo, ma il file non è raggiungibile.',emoji:'⚠️',negativo:true,colore:'#b91c1c',autoClose:true,durata:10000});
+    }
   };
 
   /* PDF unico: l’app continua a usare la funzione esistente, ma comunica l’esito. */
