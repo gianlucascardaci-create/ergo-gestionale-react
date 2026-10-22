@@ -8043,7 +8043,14 @@ window.mostraPopupBenvenuto=function(){
       view='dashboard';filtroFeed='tutte';app();
       wait(function(){var feed=document.querySelector('.feed');if(feed)feed.scrollIntoView({behavior:'smooth',block:'start'});},450);
     };
-    var testoBenvenuto='<b>'+(identita&&identita.welcome||'Bentornato!')+'</b>';
+    /* Saluto variabile: il primo accesso del giorno presenta l'assistente;
+       ogni rientro successivo dello stesso utente usa Bentornato. */
+    var oggiLocale=(function(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')})();
+    var chiaveIngresso='ergo_assistente_ingresso_'+String(user.username||user.ruolo)+'_'+oggiLocale;
+    var primoIngresso=localStorage.getItem(chiaveIngresso)!=='1';
+    localStorage.setItem(chiaveIngresso,'1');
+    var salutoIngresso=primoIngresso?(identita&&identita.welcome||'Piacere, sono il tuo assistente personale.'):'Bentornato, '+String(user.nome||'')+'!';
+    var testoBenvenuto='<b>'+salutoIngresso+'</b>';
     if(notifiche.length){
       testoBenvenuto+='<br><span style="display:inline-block;margin-top:7px;font-weight:800;color:#b91c1c">🔔 Hai '+notifiche.length+' '+(notifiche.length===1?'nuova notifica':'nuove notifiche')+'.</span><br><span style="font-weight:500">Premi il pulsante per vedere gli aggiornamenti recenti.</span>';
     }else{
