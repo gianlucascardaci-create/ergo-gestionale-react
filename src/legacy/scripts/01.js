@@ -1903,10 +1903,21 @@ function suggerisciProdottoInventario(query,tutti){
  window._ultimoSuggerimentoInventario=key;
  candidati.sort(function(a,b){return distanzaNomeProdotto(q,a.nome)-distanzaNomeProdotto(q,b.nome);});
  const scelto=candidati[0];if(!scelto||!window.assistentePersonale)return;
- const nome=String(scelto.nome||'prodotto').replace(/[<>]/g,'');
+ /* Per Opera A e Opera B il suggerimento deve proporre il termine comune. */
+ const normalNome=function(v){return normalizzaTesto(String(v||'')).replace(/[^a-z0-9\s]/g,' ').replace(/\s+/g,' ').trim();};
+ const parole=normalNome(scelto.nome).split(' ');
+ let termine=parole[0]||normalNome(q);
+ const famiglia=candidati.filter(function(p){return normalNome(p.nome).split(' ')[0]===termine;});
+ if(famiglia.length>1){
+  const primi=famiglia.map(function(p){return normalNome(p.nome).split(' ')[0]||''});
+  let comune=primi[0]||termine;
+  primi.slice(1).forEach(function(v){let i=0;while(i<Math.min(comune.length,v.length)&&comune[i]===v[i])i++;comune=comune.slice(0,i);});
+  if(comune.length>=3)termine=comune;
+ }
+ const nome=(String(termine||scelto.nome||'prodotto').replace(/[<>]/g,'')).trim();
  window.assistentePersonale({testo:'Stai per caso cercando <b>'+nome+'</b>?',emoji:'🔎',colore:'#083278',autoClose:true,durata:10000,bottoni:[
   {label:'Sì, mostra '+nome,colore:'#083278',azione:function(){
-   invRicerca=String(scelto.nome||'');invStatoPerUtente[chiaveRicercaInventario()]={ricerca:invRicerca,categoria:invCategoria};
+   invRicerca=nome;invStatoPerUtente[chiaveRicercaInventario()]={ricerca:invRicerca,categoria:invCategoria};
    const inp=document.getElementById('inv-input-q');if(inp)inp.value=invRicerca;
    const pc=document.getElementById('pc');if(pc&&view==='inventario')inv(pc);
   }},{label:'No, continuo la ricerca',colore:'#94a3b8'}]});
@@ -6650,7 +6661,11 @@ function mostraPopupBenvenuto(){
  var notifiche=notifichePerUtente(user);
  var nuove=notifiche.filter(function(n){return !isLetta(user.username,n.id)});
  var emoji={'Amministratore':'👑','Wedding':'💍','Cucina':'👨‍🍳','Sala':'🤵','Magazzino':'📦','Magazzino2':'🚚'}[user.ruolo]||'👋';
- var saluto=(window.ergoAssistantIdentity&&window.ergoAssistantIdentity[user.ruolo]&&window.ergoAssistantIdentity[user.ruolo].welcome)||'Bentornato!';
+ var saluto=(window.ergoAssistantIdentity&&window.ergoAssistantIdentity[user.ruolo]&&window.ergoAssistantIdentity[user.ruolo].welcome)||'Benvenuto!';
+ var giornoSaluto=new Date().toISOString().slice(0,10);
+ var chiaveSaluto='ergo_saluto_'+String(user.username||user.ruolo)+'_'+giornoSaluto;
+ var bentornato=localStorage.getItem(chiaveSaluto)==='1';
+ localStorage.setItem(chiaveSaluto,'1');
  var ov=document.createElement('div');
  ov.className='benvenuto-overlay';
  var html='<div class="benvenuto-card">';
@@ -7888,7 +7903,11 @@ window.mostraPopupBenvenuto=function(){
     return {id:String(row.id),clientId:row.client_id||('legacy-'+row.id),data:raw,tipo:'evento',titolo:row.nome_evento,inizio:raw+'T'+ora,fine:raw+'T23:59:59',creatoIl:row.created_at||row.updated_at||'',location:row.location||'',citta:row.citta||'',ospiti:Number(row.ospiti||0),bambini:Number(row.bambini||0),staff:Number(row.staff||0),noteTutti:row.note_tutti||'',noteSala:row.note_sala||'',noteCucina:row.note_cucina||'',noteMagazzino:row.note_magazzino||'',noteStoricoTutti:Array.isArray(row.note_storico_tutti)?row.note_storico_tutti:[],noteStoricoSala:Array.isArray(row.note_storico_sala)?row.note_storico_sala:[],noteStoricoCucina:Array.isArray(row.note_storico_cucina)?row.note_storico_cucina:[],noteStoricoMagazzino:Array.isArray(row.note_storico_magazzino)?row.note_storico_magazzino:[],noteStoricoAdmin:Array.isArray(row.note_storico_admin)?row.note_storico_admin:[],allegatiTutti:mapFileList(row.allegati_tutti),allegatiSala:mapFileList(row.allegati_sala),allegatiCucina:mapFileList(row.allegati_cucina),allegatiMagazzino:mapFileList(row.allegati_magazzino),allegatiPrivata:mapFileList(row.allegati_privati),listaAttrezzature:Array.isArray(row.lista_attrezzature)?row.lista_attrezzature:[],stato:'confermato'};
   }
   function mapRental(row){
-    return {id:String(row.id),clientId:row.client_id||('legacy-'+row.id),tipo:'noleggio',titolo:row.titolo,inizio:row.inizio,fine:row.fine,creatoIl:row.created_at||row.updated_at||'',stato:row.stato||'confermato',location:row.location||'',citta:row.citta||'',referente:row.referente||'',telefono:row.telefono||'',note:row.note||'',bolla_path:row.bolla_path||'',ddt_path:row.ddt_path||'',vario_path:row.vario_path||'',allegatiBolla:mapFileList(row.bolla_url||row.bolla),allegatiDDT:mapFileList(row.ddt_url||row.ddt),allegatiVario:mapFileList(row.vario_url||row.vario)};
+    /* Normalizza in vista i vecchi record con inizio/fine invertiti. */
+    var inizio=row.inizio||'', fine=row.fine||'';
+    var di=new Date(inizio).getTime(), df=new Date(fine).getTime();
+    if(di&&df&&di>df){var tmp=inizio;inizio=fine;fine=tmp;}
+    return {id:String(row.id),clientId:row.client_id||('legacy-'+row.id),tipo:'noleggio',titolo:row.titolo,inizio:inizio,fine:fine,creatoIl:row.created_at||row.updated_at||'',stato:row.stato||'confermato',location:row.location||'',citta:row.citta||'',referente:row.referente||'',telefono:row.telefono||'',note:row.note||'',bolla_path:row.bolla_path||'',ddt_path:row.ddt_path||'',vario_path:row.vario_path||'',allegatiBolla:mapFileList(row.bolla_url||row.bolla),allegatiDDT:mapFileList(row.ddt_url||row.ddt),allegatiVario:mapFileList(row.vario_url||row.vario)};
   }
   async function purgeExpiredAttachments(){
     if(!sb)return;
@@ -8304,4 +8323,43 @@ window.mostraPopupBenvenuto=function(){
   });
   return finali;
  };
+})();
+
+/* === PATCH 2026-10-22: preview, dimensioni e assistente === */
+(function(){
+  var oldDrawer=window.apriDrawerEnt;
+  if(!oldDrawer||window._previewRoleGroupsFix)return;
+  window._previewRoleGroupsFix=true;
+  window.apriDrawerEnt=function(tipo,obj){
+    var result=oldDrawer.apply(this,arguments);
+    if(tipo!=='evento')return result;
+    setTimeout(function(){
+      var body=document.getElementById('d-body'); if(!body)return;
+      var groups=body.querySelectorAll('.allegati-gruppo');
+      if(!groups.length)return;
+      var cards=body.querySelectorAll('.event-communication-card');
+      Array.prototype.forEach.call(groups,function(group){
+        var title=(group.querySelector('.allegati-gruppo-titolo')||{}).textContent||'';
+        var target=null;
+        if(/tutti/i.test(title))target=Array.prototype.find.call(cards,function(c){return /tutti/i.test(c.textContent)});
+        else if(/sala/i.test(title))target=Array.prototype.find.call(cards,function(c){return /sala/i.test(c.textContent)});
+        else if(/cucina/i.test(title))target=Array.prototype.find.call(cards,function(c){return /cucina/i.test(c.textContent)});
+        else if(/magazzino/i.test(title))target=Array.prototype.find.call(cards,function(c){return /magazzino/i.test(c.textContent)});
+        else if(/privat/i.test(title))target=Array.prototype.find.call(cards,function(c){return /privat/i.test(c.textContent)});
+        if(target){var label=target.querySelector('.event-communication-head');if(label)label.insertAdjacentElement('afterend',group);else target.appendChild(group);}
+      });
+    },80);
+    return result;
+  };
+})();
+(function(){
+  var st=document.createElement('style');
+  st.textContent=""+
+    ".inv-griglia{grid-template-columns:repeat(auto-fill,minmax(245px,1fr))!important;gap:15px!important}"+
+    ".inv-foto{height:165px!important}.inv-body{padding:14px!important;gap:6px!important}"+
+    ".inv-qta{padding:8px!important;font-size:.95rem!important}.inv-btn{min-height:36px!important;padding:8px 7px!important}"+
+    ".event-communication-card .allegati-gruppo{margin:10px 0 2px!important;border-radius:10px!important}"+
+    ".event-communication-card .allegati-gruppo-titolo{font-size:.7rem!important}"+
+    "@media(min-width:1800px){.inv-griglia{grid-template-columns:repeat(auto-fill,minmax(250px,1fr))!important}.inv-foto{height:175px!important}.assistente-person{width:195px!important;min-width:195px!important}.assistente-person .assistant-character-image{width:195px!important;height:293px!important}.assistente-card{min-width:315px!important;max-width:395px!important;padding:18px 20px!important}.assistente-text{font-size:1rem!important}}";
+  document.head.appendChild(st);
 })();
