@@ -8360,6 +8360,6 @@ window.mostraPopupBenvenuto=function(){
     ".inv-qta{padding:8px!important;font-size:.95rem!important}.inv-btn{min-height:36px!important;padding:8px 7px!important}"+
     ".event-communication-card .allegati-gruppo{margin:10px 0 2px!important;border-radius:10px!important}"+
     ".event-communication-card .allegati-gruppo-titolo{font-size:.7rem!important}"+
-    "@media(min-width:1800px){.inv-griglia{grid-template-columns:repeat(auto-fill,minmax(250px,1fr))!important}.inv-foto{height:175px!important}.assistente-person{width:195px!important;min-width:195px!important}.assistente-person .assistant-character-image{width:195px!important;height:293px!important}.assistente-card{min-width:315px!important;max-width:395px!important;padding:18px 20px!important}.assistente-text{font-size:1rem!important}}";
+    "@media(min-width:1800px){.inv-griglia{grid-template-columns:repeat(auto-fill,minmax(250px,1fr))!important}.inv-foto{height:175px!important}.assistente-person{width:320px!important;min-width:320px!important}.assistente-person .assistant-character-image{width:320px!important;height:480px!important}.assistente-card{min-width:420px!important;max-width:550px!important;padding:24px 28px!important}.assistente-text{font-size:1.15rem!important}}";
   document.head.appendChild(st);
 })();
