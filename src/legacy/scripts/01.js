@@ -6656,7 +6656,7 @@ function mostraPopupBenvenuto(){
  var html='<div class="benvenuto-card">';
  html+='<div class="benvenuto-emoji">'+emoji+'</div>';
  html+='<div class="benvenuto-nome">'+saluto+'</div>';
- html+='<div class="benvenuto-testo">Ciao <b>'+user.nome+'</b>, benvenuto nel gestionale</div>';
+ html+='<div class="benvenuto-testo">'+(bentornato?'Bentornato':'Ciao')+' <b>'+user.nome+'</b>, '+(bentornato?'eccoti di nuovo':'benvenuto')+' nel gestionale</div>';
  if(nuove.length>0){
   html+='<div class="benvenuto-notif"><strong>'+nuove.length+'</strong><span>'+(nuove.length===1?'nuova notifica per te':'nuove notifiche per te')+'</span></div>';
  }else{
@@ -6784,7 +6784,11 @@ window.mostraPopupBenvenuto=function(){
   var notifiche=notifichePerUtente(user);
   var nuove=notifiche.filter(function(n){return !isLetta(user.username,n.id)});
   var emoji={'Amministratore':'👑','Wedding':'💍','Cucina':'👨‍🍳','Sala':'🤵','Magazzino':'📦','Magazzino2':'🚚'}[user.ruolo]||'👋';
-  var saluto=(window.ergoAssistantIdentity&&window.ergoAssistantIdentity[user.ruolo]&&window.ergoAssistantIdentity[user.ruolo].welcome)||'Bentornato!';
+  var saluto=(window.ergoAssistantIdentity&&window.ergoAssistantIdentity[user.ruolo]&&window.ergoAssistantIdentity[user.ruolo].welcome)||'Benvenuto!';
+  var giornoSaluto=new Date().toISOString().slice(0,10);
+  var chiaveSaluto='ergo_saluto_'+String(user.username||user.ruolo)+'_'+giornoSaluto;
+  var bentornato=localStorage.getItem(chiaveSaluto)==='1';
+  localStorage.setItem(chiaveSaluto,'1');
 
   var ov=document.createElement('div');
   ov.className='benvenuto-overlay';
