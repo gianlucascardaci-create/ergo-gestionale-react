@@ -259,13 +259,35 @@ async function doLogin(){
  const btn=document.getElementById('go'); if(btn)btn.disabled=true;
  try{
   if(window.ergoSupabaseLogin){
-   const f=await window.ergoSupabaseLogin(u,p);
-   if(f){user=f;UTENTI[f.username]={ruolo:f.ruolo,nome:f.nome,email:f.email,iniziali:(f.nome||f.username).split(' ').map(x=>x[0]).slice(0,2).join('').toUpperCase()};view='dashboard';filtroFeed='tutte';calMese=new Date().getMonth();calAnno=new Date().getFullYear();invRicerca='';invCategoria='Tutte';listaRicerca='';listaCategoria='Tutte';listaAttrezzature=[];Object.keys(invStatoPerUtente).forEach(function(k){delete invStatoPerUtente[k]});window._ultimoSuggerimentoInventario='';if(window.ergoSupabaseLoad)await window.ergoSupabaseLoad();app();return;}
+   const f=await Promise.race([
+    Promise.resolve().then(function(){return window.ergoSupabaseLogin(u,p);}),
+    new Promise(function(_,reject){setTimeout(function(){reject(new Error('LOGIN_TIMEOUT'));},15000);})
+   ]);
+   if(f){
+    user=f;UTENTI[f.username]={ruolo:f.ruolo,nome:f.nome,email:f.email,iniziali:(f.nome||f.username).split(' ').map(x=>x[0]).slice(0,2).join('').toUpperCase()};
+    view='dashboard';filtroFeed='tutte';calMese=new Date().getMonth();calAnno=new Date().getFullYear();invRicerca='';invCategoria='Tutte';listaRicerca='';listaCategoria='Tutte';listaAttrezzature=[];Object.keys(invStatoPerUtente).forEach(function(k){delete invStatoPerUtente[k]});window._ultimoSuggerimentoInventario='';
+    /* Mostra subito l’app dopo l’autenticazione. Il caricamento remoto non deve
+       bloccare Safari sulla login: aggiornerà la dashboard quando termina. */
+    app();
+    if(window.ergoSupabaseLoad){
+     var utenteLogin=f;
+     Promise.race([
+      Promise.resolve().then(function(){return window.ergoSupabaseLoad();}),
+      new Promise(function(resolve){setTimeout(resolve,10000);})
+     ]).then(function(){if(user===utenteLogin&&typeof app==='function')app();}).catch(function(e){console.warn('Caricamento Supabase post-login rinviato',e);});
+    }
+    return;
+   }
   }
   const f=UTENTI[u];
   if(f&&f.password&&f.password===p){user={username:u,...f};view='dashboard';filtroFeed='tutte';calMese=new Date().getMonth();calAnno=new Date().getFullYear();invRicerca='';invCategoria='Tutte';listaRicerca='';listaCategoria='Tutte';listaAttrezzature=[];Object.keys(invStatoPerUtente).forEach(function(k){delete invStatoPerUtente[k]});window._ultimoSuggerimentoInventario='';app();}
   else document.getElementById('e').innerHTML='<div class="err">Credenziali non corrette.</div>';
- }catch(err){document.getElementById('e').innerHTML='<div class="err">Accesso non disponibile. Riprova.</div>';console.warn(err)}
+ }catch(err){
+  var loginMsg=String((err&&err.message)||err||'');
+  var testoLogin=loginMsg==='LOGIN_TIMEOUT'?'Il collegamento al server sta impiegando troppo tempo. Controlla la connessione e riprova.':'Accesso non disponibile. Riprova.';
+  var erroreLogin=document.getElementById('e');if(erroreLogin)erroreLogin.innerHTML='<div class="err">'+testoLogin+'</div>';
+  console.warn(err);
+ }
  finally{if(btn)btn.disabled=false;}
 }
 function mostraBootstrap(){
