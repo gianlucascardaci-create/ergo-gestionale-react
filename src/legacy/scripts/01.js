@@ -260,10 +260,10 @@ async function doLogin(){
  try{
   if(window.ergoSupabaseLogin){
    const f=await window.ergoSupabaseLogin(u,p);
-   if(f){user=f;UTENTI[f.username]={ruolo:f.ruolo,nome:f.nome,email:f.email,iniziali:(f.nome||f.username).split(' ').map(x=>x[0]).slice(0,2).join('').toUpperCase()};view='dashboard';filtroFeed='tutte';if(window.ergoSupabaseLoad)await window.ergoSupabaseLoad();app();return;}
+   if(f){user=f;UTENTI[f.username]={ruolo:f.ruolo,nome:f.nome,email:f.email,iniziali:(f.nome||f.username).split(' ').map(x=>x[0]).slice(0,2).join('').toUpperCase()};view='dashboard';filtroFeed='tutte';calMese=new Date().getMonth();calAnno=new Date().getFullYear();invRicerca='';invCategoria='Tutte';listaRicerca='';listaCategoria='Tutte';listaAttrezzature=[];Object.keys(invStatoPerUtente).forEach(function(k){delete invStatoPerUtente[k]});window._ultimoSuggerimentoInventario='';if(window.ergoSupabaseLoad)await window.ergoSupabaseLoad();app();return;}
   }
   const f=UTENTI[u];
-  if(f&&f.password&&f.password===p){user={username:u,...f};view='dashboard';filtroFeed='tutte';app();}
+  if(f&&f.password&&f.password===p){user={username:u,...f};view='dashboard';filtroFeed='tutte';calMese=new Date().getMonth();calAnno=new Date().getFullYear();invRicerca='';invCategoria='Tutte';listaRicerca='';listaCategoria='Tutte';listaAttrezzature=[];Object.keys(invStatoPerUtente).forEach(function(k){delete invStatoPerUtente[k]});window._ultimoSuggerimentoInventario='';app();}
   else document.getElementById('e').innerHTML='<div class="err">Credenziali non corrette.</div>';
  }catch(err){document.getElementById('e').innerHTML='<div class="err">Accesso non disponibile. Riprova.</div>';console.warn(err)}
  finally{if(btn)btn.disabled=false;}
@@ -989,6 +989,8 @@ function apriAnteprimaAllega(allegato){
  document.getElementById('d-close').onclick=chiudiDrawer;
  bg.onclick=chiudiDrawer;
  document.getElementById('d-scarica').onclick=()=>scaricaAllega(allegato);
+ const frame=document.querySelector('#d-body iframe');
+ if(frame&&!frame.src)frame.src=allegato.url||allegato.data||'';
 }
 
 function scaricaAllega(allegato){
@@ -1419,6 +1421,7 @@ function lista(el){
  });
  document.getElementById('lista-select-cat').addEventListener('change',e=>{
   listaCategoria=e.target.value;
+  listaRicerca='';
   lista(el);
  });
  agganciaAggiungi(tutti);
@@ -2310,6 +2313,8 @@ function apriAnteprimaAllega(allegato){
   }
  };
  document.getElementById('d-scarica').onclick=()=>scaricaAllega(allegato);
+ const frame=document.querySelector('#d-body iframe');
+ if(frame&&!frame.src)frame.src=allegato.url||allegato.data||'';
 }
   /* ============================================================
    FIX: NOTIFICHE - SOLO NON LETTE ALLA RIENTRO
@@ -7876,10 +7881,10 @@ window.mostraPopupBenvenuto=function(){
   function mapEvent(row){
     var raw=String(row.data||row.data_display||'').slice(0,10);
     var dm=String(row.data_display||'').match(/T(\d{2}:\d{2}(?::\d{2})?)/);var ora=dm?(dm[1].length===5?dm[1]+':00':dm[1]):'12:00:00';
-    return {id:String(row.id),clientId:row.client_id||('legacy-'+row.id),data:raw,tipo:'evento',titolo:row.nome_evento,inizio:raw+'T'+ora,fine:raw+'T23:59:59',location:row.location||'',citta:row.citta||'',ospiti:Number(row.ospiti||0),bambini:Number(row.bambini||0),staff:Number(row.staff||0),noteTutti:row.note_tutti||'',noteSala:row.note_sala||'',noteCucina:row.note_cucina||'',noteMagazzino:row.note_magazzino||'',noteStoricoTutti:Array.isArray(row.note_storico_tutti)?row.note_storico_tutti:[],noteStoricoSala:Array.isArray(row.note_storico_sala)?row.note_storico_sala:[],noteStoricoCucina:Array.isArray(row.note_storico_cucina)?row.note_storico_cucina:[],noteStoricoMagazzino:Array.isArray(row.note_storico_magazzino)?row.note_storico_magazzino:[],noteStoricoAdmin:Array.isArray(row.note_storico_admin)?row.note_storico_admin:[],allegatiTutti:mapFileList(row.allegati_tutti),allegatiSala:mapFileList(row.allegati_sala),allegatiCucina:mapFileList(row.allegati_cucina),allegatiMagazzino:mapFileList(row.allegati_magazzino),allegatiPrivata:mapFileList(row.allegati_privati),listaAttrezzature:Array.isArray(row.lista_attrezzature)?row.lista_attrezzature:[],stato:'confermato'};
+    return {id:String(row.id),clientId:row.client_id||('legacy-'+row.id),data:raw,tipo:'evento',titolo:row.nome_evento,inizio:raw+'T'+ora,fine:raw+'T23:59:59',creatoIl:row.created_at||row.updated_at||'',location:row.location||'',citta:row.citta||'',ospiti:Number(row.ospiti||0),bambini:Number(row.bambini||0),staff:Number(row.staff||0),noteTutti:row.note_tutti||'',noteSala:row.note_sala||'',noteCucina:row.note_cucina||'',noteMagazzino:row.note_magazzino||'',noteStoricoTutti:Array.isArray(row.note_storico_tutti)?row.note_storico_tutti:[],noteStoricoSala:Array.isArray(row.note_storico_sala)?row.note_storico_sala:[],noteStoricoCucina:Array.isArray(row.note_storico_cucina)?row.note_storico_cucina:[],noteStoricoMagazzino:Array.isArray(row.note_storico_magazzino)?row.note_storico_magazzino:[],noteStoricoAdmin:Array.isArray(row.note_storico_admin)?row.note_storico_admin:[],allegatiTutti:mapFileList(row.allegati_tutti),allegatiSala:mapFileList(row.allegati_sala),allegatiCucina:mapFileList(row.allegati_cucina),allegatiMagazzino:mapFileList(row.allegati_magazzino),allegatiPrivata:mapFileList(row.allegati_privati),listaAttrezzature:Array.isArray(row.lista_attrezzature)?row.lista_attrezzature:[],stato:'confermato'};
   }
   function mapRental(row){
-    return {id:String(row.id),clientId:row.client_id||('legacy-'+row.id),tipo:'noleggio',titolo:row.titolo,inizio:row.inizio,fine:row.fine,stato:row.stato||'confermato',location:row.location||'',referente:row.referente||'',telefono:row.telefono||'',note:row.note||'',bolla_path:row.bolla_path||'',ddt_path:row.ddt_path||'',vario_path:row.vario_path||'',allegatiBolla:mapFileList(row.bolla_url||row.bolla),allegatiDDT:mapFileList(row.ddt_url||row.ddt),allegatiVario:mapFileList(row.vario_url||row.vario)};
+    return {id:String(row.id),clientId:row.client_id||('legacy-'+row.id),tipo:'noleggio',titolo:row.titolo,inizio:row.inizio,fine:row.fine,creatoIl:row.created_at||row.updated_at||'',stato:row.stato||'confermato',location:row.location||'',citta:row.citta||'',referente:row.referente||'',telefono:row.telefono||'',note:row.note||'',bolla_path:row.bolla_path||'',ddt_path:row.ddt_path||'',vario_path:row.vario_path||'',allegatiBolla:mapFileList(row.bolla_url||row.bolla),allegatiDDT:mapFileList(row.ddt_url||row.ddt),allegatiVario:mapFileList(row.vario_url||row.vario)};
   }
   async function purgeExpiredAttachments(){
     if(!sb)return;
@@ -8233,4 +8238,66 @@ window.mostraPopupBenvenuto=function(){
       if(action==='elimina'&&typeof eliminaUtente==='function')eliminaUtente(username);
     },true);
   }
+})();
+
+/* === FINAL POLICY: notifiche canoniche per ruolo === */
+(function(){
+ function notaTempo(ev,m){
+  var t=new Date(m&&m.quando||0).getTime()||0;
+  var c=new Date(ev&&ev.creatoIl||0).getTime()||0;
+  return {t:t,c:c};
+ }
+ function iniziale(ev,m){
+  var z=notaTempo(ev,m);
+  /* Le note inserite nella creazione non sono notifiche aggiuntive: fanno parte
+     della singola notifica "Evento creato". Le note successive sì. */
+  return !z.t || (z.c&&z.t<=z.c+120000);
+ }
+ function dedup(lista){
+  var out=[],seen={};
+  (lista||[]).sort(function(a,b){return new Date(b.quando||0)-new Date(a.quando||0)}).forEach(function(n){
+   var d=n.dettagli||{};
+   var key=n.tipo+'|'+(d.messaggioId||d.fileId||d.allegato||d.evento||n.id);
+   if(!seen[key]){seen[key]=true;out.push(n);}
+  });
+  return out;
+ }
+ window.notifichePerUtente=function(utente){
+  if(!utente)return [];
+  try{if(typeof sincronizzaNotificheDaStorico==='function')sincronizzaNotificheDaStorico(utente);}catch(e){console.warn('Feed non ricostruito',e)}
+  var rep={Amministratore:['magazzino'],Wedding:['tutti','sala','cucina','magazzino'],Cucina:['tutti','cucina'],Sala:['tutti','sala'],Magazzino:['tutti','magazzino'],Magazzino2:['magazzino']}[utente.ruolo]||['tutti'];
+  var candidati=NOTIFICHE.filter(function(n){
+   var d=n.dettagli||{};
+   if(!n||!rep.includes(n.reparto)||!eventoNotificaValida(n,utente))return false;
+   /* Admin riceve solo nuovi noleggi creati da Magazzino2, mai le proprie
+      creazioni/modifiche di eventi o note. */
+   if(utente.ruolo==='Amministratore'){
+    if(n.tipo!=='noleggio')return false;
+    var da=String(n.da||'').toLowerCase();
+    return da.includes('magazzino2')||da.includes('simona')||da.includes('elena');
+   }
+   if(utente.ruolo==='Magazzino2')return n.tipo==='noleggio';
+   if(n.reparto==='admin'||n.tipo==='noleggio')return false;
+   var ev=d.evento?EVENTI.find(function(x){return String(x.titolo||'').toLowerCase()===String(d.evento||'').toLowerCase()}):null;
+   /* Elimina le copie legacy senza identificatore: la cronologia è la fonte. */
+   if((n.tipo==='nota'||n.tipo==='allegato')&&!d.messaggioId&&!d.fileId){
+    if(ev&&iniziale(ev,{quando:n.quando}))return false;
+   }
+   if(n.tipo==='nota'&&d.messaggioId&&ev&&!storicoNote(ev,n.reparto).some(function(m){return String(m.id)===String(d.messaggioId)}))return false;
+   return true;
+  });
+  var finali=dedup(candidati);
+  /* Per una creazione iniziale resta una sola riga evento, non una riga per
+     ogni nota/allegato inserito nello stesso salvataggio. */
+  var eventiCreati={};
+  finali=finali.filter(function(n){
+   var d=n.dettagli||{}, ev=d.evento?EVENTI.find(function(x){return String(x.titolo||'').toLowerCase()===String(d.evento||'').toLowerCase()}):null;
+   if(!ev||n.tipo==='noleggio')return true;
+   var key=String(ev.clientId||ev.id||d.evento);
+   if(n.tipo==='evento'){eventiCreati[key]=true;return true;}
+   if(eventiCreati[key]&&iniziale(ev,{quando:n.quando}))return false;
+   return true;
+  });
+  return finali;
+ };
 })();
