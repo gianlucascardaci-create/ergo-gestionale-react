@@ -1893,28 +1893,42 @@ function suggerisciProdottoInventario(query,tutti){
  const q=String(query||'').trim();if(q.length<3)return;
  const key=chiaveRicercaInventario()+'|'+normalizzaTesto(q);
  if(window._ultimoSuggerimentoInventario===key)return;
+ const normalNome=function(v){return normalizzaTesto(String(v||'')).replace(/[^a-z0-9\s]/g,' ').replace(/\s+/g,' ').trim();};
+ const qNorm=normalNome(q).replace(/\s+/g,'');
+ const paroleNome=function(v){return normalNome(v).split(' ').filter(function(x){return x.length>=3});};
+ const parolaVicino=function(p){
+  return paroleNome(p.nome).some(function(parola){
+   const n=parola.replace(/\s+/g,'');
+   return n===qNorm||n.includes(qNorm)||qNorm.includes(n)||distanzaTesto(qNorm,n)<=Math.max(1,Math.floor(Math.max(n.length,qNorm.length)*0.35));
+  });
+ };
  const candidati=(tutti||[]).filter(function(p){
-  const nome=normalizzaTesto(p.nome||'').replace(/\s+/g,'');
+  const nome=normalNome(p.nome).replace(/\s+/g,'');
   const cerca=ricercaIntelligente(q,[p.nome,p.codice,p.categoria,p.posizione,p.note]);
-  const vicino=nome&&distanzaTesto(normalizzaTesto(q).replace(/\s+/g,''),nome)<=Math.max(1,Math.floor(Math.max(nome.length,normalizzaTesto(q).length)*0.25));
-  return (cerca||vicino)&&!testoProdottoEsatto(q,p);
+  const vicino=nome&&distanzaTesto(qNorm,nome)<=Math.max(1,Math.floor(Math.max(nome.length,qNorm.length)*0.25));
+  return (cerca||vicino||parolaVicino(p))&&!testoProdottoEsatto(q,p);
  });
  if(!candidati.length)return;
  window._ultimoSuggerimentoInventario=key;
- candidati.sort(function(a,b){return distanzaNomeProdotto(q,a.nome)-distanzaNomeProdotto(q,b.nome);});
+ const distanzaMigliore=function(p){
+  const valori=paroleNome(p.nome).map(function(parola){return distanzaTesto(qNorm,parola.replace(/\s+/g,''));});
+  return valori.length?Math.min.apply(null,valori):999;
+ };
+ candidati.sort(function(a,b){return distanzaMigliore(a)-distanzaMigliore(b);});
  const scelto=candidati[0];if(!scelto||!window.assistentePersonale)return;
- /* Per Opera A e Opera B il suggerimento deve proporre il termine comune. */
- const normalNome=function(v){return normalizzaTesto(String(v||'')).replace(/[^a-z0-9\s]/g,' ').replace(/\s+/g,' ').trim();};
- const parole=normalNome(scelto.nome).split(' ');
- let termine=parole[0]||normalNome(q);
- const famiglia=candidati.filter(function(p){return normalNome(p.nome).split(' ')[0]===termine;});
- if(famiglia.length>1){
-  const primi=famiglia.map(function(p){return normalNome(p.nome).split(' ')[0]||''});
-  let comune=primi[0]||termine;
-  primi.slice(1).forEach(function(v){let i=0;while(i<Math.min(comune.length,v.length)&&comune[i]===v[i])i++;comune=comune.slice(0,i);});
-  if(comune.length>=3)termine=comune;
- }
- const nome=(String(termine||scelto.nome||'prodotto').replace(/[<>]/g,'')).trim();
+ /* Cerca il termine più vicino in tutte le parole del nome, non soltanto nella prima. */
+ let termineNorm='';let termineDistanza=999;let termineDisplay='';
+ candidati.forEach(function(p){
+  const originali=String(p.nome||'').split(/\s+/).filter(Boolean);
+  originali.forEach(function(originale){
+   const token=normalNome(originale).replace(/\s+/g,'');if(token.length<3)return;
+   const distanza=distanzaTesto(qNorm,token);
+   if(distanza<termineDistanza||(distanza===termineDistanza&&token.length>=termineNorm.length)){
+    termineDistanza=distanza;termineNorm=token;termineDisplay=originale;
+   }
+  });
+ });
+ const nome=(String(termineDisplay||termineNorm||scelto.nome||'prodotto').replace(/[<>]/g,'')).trim();
  window.assistentePersonale({testo:'Stai per caso cercando <b>'+nome+'</b>?',emoji:'🔎',colore:'#083278',autoClose:true,durata:10000,bottoni:[
   {label:'Sì, mostra '+nome,colore:'#083278',azione:function(){
    invRicerca=nome;invStatoPerUtente[chiaveRicercaInventario()]={ricerca:invRicerca,categoria:invCategoria};
@@ -1922,7 +1936,6 @@ function suggerisciProdottoInventario(query,tutti){
    const pc=document.getElementById('pc');if(pc&&view==='inventario')inv(pc);
   }},{label:'No, continuo la ricerca',colore:'#94a3b8'}]});
 }
-
 /* Fallback robusto: intercetta sempre il campo inventario, anche quando un override legacy
    avvolge la funzione inv() con lo skeleton di caricamento. */
 document.addEventListener('input',function(e){
