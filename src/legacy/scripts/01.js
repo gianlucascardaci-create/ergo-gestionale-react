@@ -58,6 +58,14 @@ function tempoFa(iso){
    STATO GLOBALE
    ============================================================ */
 let user=null,view='dashboard',timer=null,filtroFeed='tutte';
+let ergoInstallPrompt=null;
+window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();ergoInstallPrompt=e;document.querySelectorAll('#install-app').forEach(function(b){b.hidden=false;});});
+window.addEventListener('appinstalled',function(){ergoInstallPrompt=null;document.querySelectorAll('#install-app').forEach(function(b){b.hidden=true;});});
+function installaGestionale(){
+ if(ergoInstallPrompt){ergoInstallPrompt.prompt();ergoInstallPrompt.userChoice.then(function(){ergoInstallPrompt=null;}).catch(function(){});return;}
+ if(window.assistentePersonale)window.assistentePersonale({testo:'Per installare il gestionale: apri il menu del browser e scegli <b>Installa app</b> oppure <b>Aggiungi alla schermata Home</b>.',emoji:'⌄',colore:'#083278',autoClose:true,durata:9000});
+ else alert('Apri il menu del browser e scegli “Installa app” oppure “Aggiungi alla schermata Home”.');
+}
 let calFiltro='tutti';
 let listaAttrezzature=[];
 let invRicerca='',invCategoria='Tutte',invRicercaTimer=null;
@@ -322,6 +330,7 @@ function app(){
     <button class="mobile-btn" id="mm">☰</button>
     <div class="crumb"><span>Gestionale</span><span>/</span><strong>${titolo}</strong></div>
     <div style="display:flex;gap:12px;align-items:center">
+     <button class="install-app-btn" id="install-app" type="button" title="Installa il gestionale come app" aria-label="Installa il gestionale come app">⇩ <span>Installa app</span></button>
      <div class="user"><span class="avatar">${user.iniziali}</span><span>${user.nome}</span></div>
     </div>
    </header>
@@ -338,6 +347,8 @@ function app(){
   nav.appendChild(b);
  });
  document.getElementById('mm').onclick=()=>document.getElementById('sb').classList.toggle('open');
+ const installButton=document.getElementById('install-app');
+ if(installButton){installButton.onclick=installaGestionale;installButton.hidden=!!(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches);}
  document.getElementById('out').onclick=()=>{user=null;login()};
  const pc=document.getElementById('pc');
  if(view==='dashboard'){dash(pc);pc.classList.remove('dash-anim');void pc.offsetWidth;pc.classList.add('dash-anim');wait(function(){if(pc)pc.classList.remove('dash-anim')},7200);}
