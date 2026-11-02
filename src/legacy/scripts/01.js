@@ -270,10 +270,8 @@ async function doLogin(){
     R.innerHTML='<div class="login-page"><div class="login-box" style="text-align:center"><div class="eyebrow">Sincronizzazione dati</div><h1>Caricamento aggiornamenti…</h1><p class="sub">Sto recuperando eventi, noleggi e notifiche da Supabase.</p></div></div>';
     if(window.ergoSupabaseLoad){
      var utenteLogin=f;
-     Promise.race([
-      Promise.resolve().then(function(){return window.ergoSupabaseLoad();}),
-      new Promise(function(resolve){setTimeout(resolve,10000);})
-     ]).then(function(){if(user===utenteLogin&&typeof app==='function')app();}).catch(function(e){console.warn('Caricamento Supabase post-login rinviato',e);if(user===utenteLogin)app();});
+     var fallbackTimer=setTimeout(function(){if(user===utenteLogin&&typeof app==='function')app();},10000);
+     Promise.resolve().then(function(){return window.ergoSupabaseLoad();}).then(function(){clearTimeout(fallbackTimer);if(user===utenteLogin&&typeof app==='function')app();}).catch(function(e){clearTimeout(fallbackTimer);console.warn('Caricamento Supabase post-login rinviato',e);if(user===utenteLogin)app();});
     }else app();
     return;
    }
