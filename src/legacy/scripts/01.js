@@ -551,7 +551,15 @@ const MESI=['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Ag
 const GIORNI=['Lun','Mar','Mer','Gio','Ven','Sab','Dom'];
 let calMese=new Date().getMonth(),calAnno=new Date().getFullYear();
 
+// NOV2: normalizza noleggi per il calendario anche quando arrivano con campi data diversi.
+function normalizzaNoleggioCalendario(n){
+ if(!n)return n;
+ const inizio=n.inizio||n.dataInizio||n.data||n.data_ritiro||n.dataRitiro||n.start;
+ const fine=n.fine||n.dataFine||n.data_restituzione||n.dataRestituzione||n.end||inizio;
+ return {...n,inizio,fine,data:inizio,tipo:'noleggio'};
+}
 function cal(el){
+ NOLEGGI=(NOLEGGI||[]).map(normalizzaNoleggioCalendario).filter(n=>n.inizio);
  const anno=calAnno,mese=calMese;
  const oggi=new Date();oggi.setHours(0,0,0,0);
  const primo=new Date(anno,mese,1);
@@ -1385,6 +1393,9 @@ function coloreCategoria(cat){
 let listaRicerca='',listaCategoria='Tutte';
 
 function lista(el){
+ // Ogni apertura parte da una ricerca vuota: lo stato non passa da un ruolo all'altro.
+ listaRicerca='';
+ listaCategoria='Tutte';
  const isAdmin=user.ruolo==='Amministratore';
  if(!isAdmin){
   el.innerHTML='<div class="page"><p class="eyebrow">Sezione</p><h1 class="title">Accesso negato</h1></div>';
@@ -1431,7 +1442,7 @@ function lista(el){
  inp.addEventListener('input',e=>{
   listaRicerca=e.target.value;
   const nf=tutti.filter(p=>{
-   const matchCat=listaCategoria==='Tutte'||(p.categoria||'').toUpperCase().includes(listaCategoria.toUpperCase());
+   const matchCat=listaRicerca.trim()!==''||listaCategoria==='Tutte'||(p.categoria||'').toUpperCase().includes(listaCategoria.toUpperCase());
    const matchTxt=ricercaIntelligente(listaRicerca,[p.nome,p.codice,p.categoria,p.posizione]);
    return matchCat&&matchTxt;
   });
@@ -3821,6 +3832,7 @@ function notifichePerUtente(utente){
 
 /* 3) Calendario: Magazzino2 vede solo noleggi */
 function cal(el){
+ NOLEGGI=(NOLEGGI||[]).map(normalizzaNoleggioCalendario).filter(n=>n.inizio);
  if(user.ruolo==='Magazzino2'){
   /* Forza filtro su noleggi */
   calFiltro='noleggi';
@@ -8429,6 +8441,6 @@ window.mostraPopupBenvenuto=function(){
     ".inv-qta{padding:8px!important;font-size:.95rem!important}.inv-btn{min-height:36px!important;padding:8px 7px!important}"+
     ".event-communication-card .allegati-gruppo{margin:10px 0 2px!important;border-radius:10px!important}"+
     ".event-communication-card .allegati-gruppo-titolo{font-size:.7rem!important}"+
-    "@media(min-width:1800px){.inv-griglia{grid-template-columns:repeat(auto-fill,minmax(250px,1fr))!important}.inv-foto{height:175px!important}.assistente-person{width:320px!important;min-width:320px!important}.assistente-person .assistant-character-image{width:320px!important;height:480px!important}.assistente-card{min-width:420px!important;max-width:550px!important;padding:24px 28px!important}.assistente-text{font-size:1.15rem!important}}";
+    "@media(min-width:1800px){.inv-griglia{grid-template-columns:repeat(auto-fill,minmax(250px,1fr))!important}.inv-foto{height:175px!important}.assistente-person{width:300px!important;min-width:300px!important}.assistente-person .assistant-character-image{width:300px!important;height:450px!important}.assistente-card{min-width:400px!important;max-width:520px!important;padding:22px 26px!important}.assistente-text{font-size:1.1rem!important}}";
   document.head.appendChild(st);
 })();

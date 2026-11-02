@@ -1,0 +1,11 @@
+{
+  "name": "Ergo & Scardaci Gestionale",
+  "short_name": "Ergo Gestionale",
+  "description": "Gestionale eventi, noleggi e inventario",
+  "lang": "it",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f7f9fc",
+  "theme_color": "#083278",
+  "icons": []
+}

@@ -599,3 +599,15 @@ h1.title{font-size:clamp(1.8rem,3vw,2.6rem);margin-top:8px;line-height:1.08}
 .event-editor-magazzino{color:#6d28d9!important;background:#f5f3ff!important;border-color:#ddd6fe!important}.event-editor-magazzino + .campo{background:#faf9ff;border-color:#ddd6fe}.event-editor-magazzino + .campo textarea{border-color:#ddd6fe!important}
 .event-editor-private{color:#9333ea!important;background:#fdf4ff!important;border-color:#f5d0fe!important}.event-editor-private + .campo{background:#fffaff;border-color:#f5d0fe}.event-editor-private + .campo textarea{border-color:#f5d0fe!important}
 .event-editor-section + .campo .note-thread{max-height:210px}
+
+/* NOV 2026 — layout più compatto su notebook e lista inizialmente vuota */
+@media (min-width:900px) and (max-width:1599px){
+ .inv-griglia{grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:12px!important}
+ .inv-foto{height:135px!important}
+ .inv-body{padding:11px!important}
+ .inv-nome{font-size:.8rem!important}
+}
+@media (min-width:1600px){
+ .inv-griglia{grid-template-columns:repeat(6,minmax(0,1fr))!important;gap:14px!important}
+ .inv-foto{height:150px!important}
+}
