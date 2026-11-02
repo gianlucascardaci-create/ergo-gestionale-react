@@ -266,16 +266,15 @@ async function doLogin(){
    if(f){
     user=f;UTENTI[f.username]={ruolo:f.ruolo,nome:f.nome,email:f.email,iniziali:(f.nome||f.username).split(' ').map(x=>x[0]).slice(0,2).join('').toUpperCase()};
     view='dashboard';filtroFeed='tutte';calMese=new Date().getMonth();calAnno=new Date().getFullYear();invRicerca='';invCategoria='Tutte';listaRicerca='';listaCategoria='Tutte';listaAttrezzature=[];Object.keys(invStatoPerUtente).forEach(function(k){delete invStatoPerUtente[k]});window._ultimoSuggerimentoInventario='';
-    /* Mostra subito l’app dopo l’autenticazione. Il caricamento remoto non deve
-       bloccare Safari sulla login: aggiornerà la dashboard quando termina. */
-    app();
+    /* Prima sincronizza Supabase: non mostrare la vecchia copia locale del browser. */
+    R.innerHTML='<div class="login-page"><div class="login-box" style="text-align:center"><div class="eyebrow">Sincronizzazione dati</div><h1>Caricamento aggiornamenti…</h1><p class="sub">Sto recuperando eventi, noleggi e notifiche da Supabase.</p></div></div>';
     if(window.ergoSupabaseLoad){
      var utenteLogin=f;
      Promise.race([
       Promise.resolve().then(function(){return window.ergoSupabaseLoad();}),
       new Promise(function(resolve){setTimeout(resolve,10000);})
-     ]).then(function(){if(user===utenteLogin&&typeof app==='function')app();}).catch(function(e){console.warn('Caricamento Supabase post-login rinviato',e);});
-    }
+     ]).then(function(){if(user===utenteLogin&&typeof app==='function')app();}).catch(function(e){console.warn('Caricamento Supabase post-login rinviato',e);if(user===utenteLogin)app();});
+    }else app();
     return;
    }
   }
@@ -8043,7 +8042,7 @@ window.mostraPopupBenvenuto=function(){
       if(localProducts.some(function(lp){return lp&&lp.codice&&!remoteProducts.some(function(r){return r.codice===lp.codice;});})){
         try{await window.ergoSupabaseSyncProducts(pRows);}catch(syncErr){console.warn('Recupero prodotti locali rinviato',syncErr);}
       }
-      if(typeof user!=='undefined'&&user&&typeof app==='function') app();
+      /* La dashboard viene renderizzata dal flusso di login dopo la sincronizzazione. */
     }catch(e){ console.warn('Dati Streamlit/Supabase non disponibili: uso il fallback locale',e); }
     finally{ syncing=false; }
   }
