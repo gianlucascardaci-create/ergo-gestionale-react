@@ -3008,9 +3008,8 @@ function cardProd(p,isAdmin,vedePrezzo){
   <div class="inv-body">
    <div class="inv-nome">${p.nome||''}</div>
    <div class="inv-codice">Cod. ${p.codice||'—'}</div>
-   <div class="inv-qta">📦 Quantità: ${p.quantita||0}</div>
-   <div class="inv-info"><span class="inv-label">Posizione</span><b>${p.posizione||'—'}</b></div>
-   ${vedePrezzo?`<div class="inv-prezzo"><span class="inv-label">Prezzo</span><strong>€ ${(p.prezzo||0).toFixed(2)}</strong></div>`:''}
+   <div class="inv-qta"><span class="inv-label">Quantità</span><strong>${p.quantita||0}</strong><span class="inv-qta-unita">disponibili</span></div>
+   <div class="inv-dati"><div class="inv-info"><span class="inv-label">Posizione</span><b>${p.posizione||'—'}</b></div>${vedePrezzo?`<div class="inv-prezzo"><span class="inv-label">Prezzo</span><strong>€ ${(p.prezzo||0).toFixed(2)}</strong></div>`:''}</div>
    ${p.note?`<div style="font-size:.7rem;color:#94a3b8;line-height:1.4;margin-top:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">📝 ${p.note}</div>`:''}
    <div class="inv-azioni">
     <button class="inv-btn primario" data-azione="scheda" data-codice="${p.codice}">📋 Scheda</button>

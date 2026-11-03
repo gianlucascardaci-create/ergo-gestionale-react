@@ -622,3 +622,16 @@ h1.title{font-size:clamp(1.8rem,3vw,2.6rem);margin-top:8px;line-height:1.08}
 .inv-prezzo{margin-top:2px; color:var(--sage); font-size:.9rem;}
 .inv-prezzo strong{font-family:inherit; font-size:.92rem; font-weight:800; letter-spacing:normal;}
 .inv-foto.no-foto::before{content:"📦";font-size:2.6rem;opacity:.35}
+
+/* Inventario — gerarchia tipografica pulita per quantità, posizione e prezzo */
+.inv-qta{display:flex;align-items:baseline;gap:7px;background:#f4f7fb;border:1px solid #dbe5f0;border-radius:11px;padding:10px 12px;margin:2px 0 1px;color:#173b70;font-family:inherit;letter-spacing:normal;text-align:left}
+.inv-qta .inv-label,.inv-info .inv-label,.inv-prezzo .inv-label{color:#718096;font-family:inherit;font-size:.66rem;font-weight:600;letter-spacing:normal;text-transform:none;line-height:1.2}
+.inv-qta strong{color:#083278;font-family:inherit;font-size:1.3rem;font-weight:800;line-height:1;font-variant-numeric:tabular-nums}
+.inv-qta-unita{color:#8996a8;font-family:inherit;font-size:.63rem;font-weight:500;margin-left:auto}
+.inv-dati{display:grid;grid-template-columns:1fr;gap:7px;margin-top:1px}
+.inv-dati:has(.inv-prezzo){grid-template-columns:1fr 1fr}
+.inv-info,.inv-prezzo{min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:3px;margin:0;padding:7px 9px;border-radius:8px;background:#fafbfd;border:1px solid #edf1f6;color:var(--ink);font-family:inherit;letter-spacing:normal;text-transform:none}
+.inv-info b,.inv-prezzo strong{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#263b57;font-family:inherit;font-size:.78rem;font-weight:750;letter-spacing:normal;text-transform:none;font-variant-numeric:tabular-nums}
+.inv-prezzo{background:#f5fbf7;border-color:#dcefe3}
+.inv-prezzo strong{color:#28734f;font-size:.82rem}
+@media(max-width:700px){.inv-dati:has(.inv-prezzo){grid-template-columns:1fr 1fr}.inv-qta{padding:8px 9px}.inv-qta strong{font-size:1.1rem}}
