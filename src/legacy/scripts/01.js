@@ -1809,7 +1809,7 @@ function apriQRPubblico(token,prodottoRemoto){
  }
  const scheda=prod.scheda||{};
  const hasFoto=!!prod.foto;
- const fotoHtml=hasFoto?'<img referrerpolicy="no-referrer" src="'+prod.foto+'" onerror="this.style.display='none'">':'<div style="font-size:4rem;opacity:.4">📦</div>';
+ const fotoHtml=hasFoto?'<img referrerpolicy="no-referrer" src="'+prod.foto+'" onerror="this.style.display=\'none\'">':'<div style="font-size:4rem;opacity:.4">📦</div>';
  let techHtml='';
  [['Dimensione',scheda.dimensione]].forEach(([k,v])=>{
   if(v&&v.trim())techHtml+='<div class="qr-tech-item"><span>'+k+'</span><b>'+v+'</b></div>';
