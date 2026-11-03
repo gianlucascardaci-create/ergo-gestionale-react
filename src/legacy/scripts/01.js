@@ -59,12 +59,33 @@ function tempoFa(iso){
    ============================================================ */
 let user=null,view='dashboard',timer=null,filtroFeed='tutte';
 let ergoInstallPrompt=null;
-window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();ergoInstallPrompt=e;document.querySelectorAll('#install-app').forEach(function(b){b.hidden=false;});});
-window.addEventListener('appinstalled',function(){ergoInstallPrompt=null;document.querySelectorAll('#install-app').forEach(function(b){b.hidden=true;});});
+window.addEventListener('beforeinstallprompt',function(e){
+ e.preventDefault();
+ ergoInstallPrompt=e;
+ document.querySelectorAll('#install-app').forEach(function(b){b.hidden=false;});
+});
+window.addEventListener('appinstalled',function(){
+ ergoInstallPrompt=null;
+ document.querySelectorAll('#install-app').forEach(function(b){b.hidden=true;});
+});
 function installaGestionale(){
- if(ergoInstallPrompt){ergoInstallPrompt.prompt();ergoInstallPrompt.userChoice.then(function(){ergoInstallPrompt=null;}).catch(function(){});return;}
- if(window.assistentePersonale)window.assistentePersonale({testo:'Per installare il gestionale: apri il menu del browser e scegli <b>Installa app</b> oppure <b>Aggiungi alla schermata Home</b>.',emoji:'⌄',colore:'#083278',autoClose:true,durata:9000});
- else alert('Apri il menu del browser e scegli “Installa app” oppure “Aggiungi alla schermata Home”.');
+ if(ergoInstallPrompt){
+  var promptEvent=ergoInstallPrompt;
+  ergoInstallPrompt=null;
+  promptEvent.prompt();
+  promptEvent.userChoice.then(function(){
+   document.querySelectorAll('#install-app').forEach(function(b){b.hidden=true;});
+  }).catch(function(){
+   document.querySelectorAll('#install-app').forEach(function(b){b.hidden=false;});
+  });
+  return;
+ }
+ var standalone=window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches;
+ var testo=standalone
+  ? 'Il gestionale è già installato come app su questo dispositivo.'
+  : 'Il browser non ha ancora attivato il pulsante automatico. Apri il menu del browser e scegli <b>Installa app</b> oppure <b>Aggiungi alla schermata Home</b>.';
+ if(window.assistentePersonale)window.assistentePersonale({testo:testo,emoji:standalone?'✅':'⌄',colore:standalone?'#3e765e':'#083278',autoClose:true,durata:9000});
+ else alert(testo.replace(/<[^>]+>/g,''));
 }
 let calFiltro='tutti';
 let listaAttrezzature=[];
