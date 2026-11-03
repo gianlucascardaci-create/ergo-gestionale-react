@@ -166,6 +166,7 @@ function toggleTimelineLetto(ev,rep,kind,id,row){
 
 function nuovoQrToken(){try{if(window.crypto&&crypto.getRandomValues){const a=new Uint8Array(18);crypto.getRandomValues(a);return Array.from(a).map(x=>x.toString(16).padStart(2,'0')).join('')}}catch(e){}return 'qr_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,14)}
 function assicuraQrToken(p){if(p&&!p.qrToken)p.qrToken=nuovoQrToken();return p&&p.qrToken||''}
+function urlQrPubblico(token){return 'https://ergo-gestionale-react.vercel.app/?qr='+encodeURIComponent(token||'');}
 
 function normalizzaTesto(t){
  return String(t||'').toLowerCase()
@@ -1339,7 +1340,7 @@ function apriSchedaProd(p){
  setTimeout(()=>{
   const c=document.getElementById('qr-canvas');
   if(c){
-   const url=location.origin+location.pathname+'?qr='+encodeURIComponent(assicuraQrToken(p));
+   const url=urlQrPubblico(assicuraQrToken(p));
    const img=new Image();img.crossOrigin='anonymous';
    img.onload=()=>{const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,180,180);x.drawImage(img,0,0,180,180)};
    img.onerror=()=>{const x=c.getContext('2d');x.fillStyle='#f8fafc';x.fillRect(0,0,180,180);x.fillStyle='#98a2b3';x.font='12px sans-serif';x.textAlign='center';x.fillText('QR non disponibile',90,84);x.fillText('(richiede internet)',90,102)};
@@ -1808,7 +1809,7 @@ function apriQRPubblico(token,prodottoRemoto){
  }
  const scheda=prod.scheda||{};
  const hasFoto=!!prod.foto;
- const fotoHtml=hasFoto?'<img src="'+prod.foto+'">':'<div style="font-size:4rem;opacity:.4">📦</div>';
+ const fotoHtml=hasFoto?'<img referrerpolicy="no-referrer" src="'+prod.foto+'" onerror="this.style.display='none'">':'<div style="font-size:4rem;opacity:.4">📦</div>';
  let techHtml='';
  [['Dimensione',scheda.dimensione]].forEach(([k,v])=>{
   if(v&&v.trim())techHtml+='<div class="qr-tech-item"><span>'+k+'</span><b>'+v+'</b></div>';
@@ -2311,7 +2312,7 @@ function apriSchedaProd(p){
  setTimeout(()=>{
   const c=document.getElementById('qr-canvas');
   if(c){
-   const url=location.origin+location.pathname+'?qr='+encodeURIComponent(assicuraQrToken(p));
+   const url=urlQrPubblico(assicuraQrToken(p));
    const img=new Image();
    img.crossOrigin='anonymous';
    img.onload=()=>{
@@ -2979,14 +2980,16 @@ async function mostraMeteoIn(idElemento,citta,dataEvento){
 /* 3) Inventario: input quantità senza zero iniziale + più dati nella card */
 function cardProd(p,isAdmin,vedePrezzo){
  const hasFoto=!!p.foto;
+ const catColor=coloreCategoria(p.categoria);
+ const foto=hasFoto?`<img loading="lazy" referrerpolicy="no-referrer" src="${p.foto}" onerror="this.style.display='none';this.parentNode.classList.add('no-foto')">`:'';
  return `<div class="inv-card">
-  <div class="inv-foto">${hasFoto?`<img loading="lazy" src="${p.foto}">`:''}<span class="inv-badge-cat">${p.categoria||'—'}</span></div>
+  <div class="inv-foto">${foto}<span class="inv-badge-cat" style="background:${catColor};color:#fff">${p.categoria||'—'}</span></div>
   <div class="inv-body">
    <div class="inv-nome">${p.nome||''}</div>
    <div class="inv-codice">Cod. ${p.codice||'—'}</div>
    <div class="inv-qta">📦 Quantità: ${p.quantita||0}</div>
-   <div class="inv-info">📍 Posizione: <b>${p.posizione||'—'}</b></div>
-   ${vedePrezzo?`<div class="inv-prezzo">€ ${(p.prezzo||0).toFixed(2)}</div>`:''}
+   <div class="inv-info"><span class="inv-label">Posizione</span><b>${p.posizione||'—'}</b></div>
+   ${vedePrezzo?`<div class="inv-prezzo"><span class="inv-label">Prezzo</span><strong>€ ${(p.prezzo||0).toFixed(2)}</strong></div>`:''}
    ${p.note?`<div style="font-size:.7rem;color:#94a3b8;line-height:1.4;margin-top:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">📝 ${p.note}</div>`:''}
    <div class="inv-azioni">
     <button class="inv-btn primario" data-azione="scheda" data-codice="${p.codice}">📋 Scheda</button>
@@ -3027,7 +3030,7 @@ function apriSchedaProd(p){
  setTimeout(()=>{
   const c=document.getElementById('qr-canvas');
   if(c){
-   const url=location.origin+location.pathname+'?qr='+encodeURIComponent(assicuraQrToken(p));
+   const url=urlQrPubblico(assicuraQrToken(p));
    const img=new Image();img.crossOrigin='anonymous';
    img.onload=()=>{const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,180,180);x.drawImage(img,0,0,180,180)};
    img.onerror=()=>{const x=c.getContext('2d');x.fillStyle='#f8fafc';x.fillRect(0,0,180,180);x.fillStyle='#98a2b3';x.font='12px sans-serif';x.textAlign='center';x.fillText('QR non disponibile',90,84);x.fillText('(richiede internet)',90,102)};
@@ -8046,6 +8049,9 @@ window.mostraPopupBenvenuto=function(){
       originalSetItem.call(localStorage,'ergo_eventi',JSON.stringify(eRows));
       PRODOTTI.splice(0,PRODOTTI.length,...pRows);
       EVENTI.splice(0,EVENTI.length,...eRows); NOLEGGI.splice(0,NOLEGGI.length,...nRows);
+      /* Le foto Supabase sono URL firmati: ridisegniamo l'inventario dopo il refresh,
+         evitando di lasciare a video la copia locale con URL scaduti. */
+      if(typeof view!=='undefined'&&view==='inventario'){var invPage=document.getElementById('pc');if(invPage&&typeof inv==='function')inv(invPage);}
       /* Il feed deve essere ricostruito dopo il caricamento remoto: prima di
          questo punto il ruolo può vedere solo la copia locale precedente. */
       if(typeof user!=='undefined'&&user&&typeof sincronizzaNotificheDaStorico==='function'){

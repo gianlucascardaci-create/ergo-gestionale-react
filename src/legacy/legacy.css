@@ -614,3 +614,11 @@ h1.title{font-size:clamp(1.8rem,3vw,2.6rem);margin-top:8px;line-height:1.08}
 /* Installazione PWA: il gestionale può essere aggiunto come app al desktop. */
 .install-app-btn{display:inline-flex;align-items:center;gap:6px;border:1px solid #c9d9ee;background:#f5f9ff;color:#083278;border-radius:10px;padding:8px 11px;font-size:.72rem;font-weight:800;cursor:pointer;transition:background .18s,border-color .18s,transform .18s}.install-app-btn:hover{background:#e8f1ff;border-color:#8fb2dd;transform:translateY(-1px)}.install-app-btn[hidden]{display:none}
 @media(max-width:700px){.install-app-btn span{display:none}.install-app-btn{width:34px;height:34px;justify-content:center;padding:0;font-size:1rem}.topbar .user>span:last-child{display:none}}
+
+/* Inventario — leggibilità prezzo/posizione e badge categoria cromatici */
+.inv-info,.inv-prezzo{ text-transform:none; letter-spacing:normal; font-family:inherit; display:flex; align-items:center; gap:6px; }
+.inv-info .inv-label,.inv-prezzo .inv-label{font-size:.64rem; color:#7b8798; font-weight:600; text-transform:none; white-space:nowrap;}
+.inv-info b{font-weight:700; color:var(--ink); text-transform:none;}
+.inv-prezzo{margin-top:2px; color:var(--sage); font-size:.9rem;}
+.inv-prezzo strong{font-family:inherit; font-size:.92rem; font-weight:800; letter-spacing:normal;}
+.inv-foto.no-foto::before{content:"📦";font-size:2.6rem;opacity:.35}
