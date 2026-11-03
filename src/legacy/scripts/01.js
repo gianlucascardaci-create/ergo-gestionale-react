@@ -1398,12 +1398,11 @@ function coloreCategoria(cat){
 /* ============================================================
    LISTA ATTREZZATURE
    ============================================================ */
-let listaRicerca='',listaCategoria='Tutte';
+let listaRicerca='',listaCategoria='Tutte',listaAttiva=false;
 
-function lista(el){
- // Ogni apertura parte da una ricerca vuota: lo stato non passa da un ruolo all'altro.
- listaRicerca='';
- listaCategoria='Tutte';
+function lista(el,conReset){
+ // Una nuova apertura parte vuota; i rerender interni conservano il filtro selezionato.
+ if(conReset!==false){listaRicerca='';listaCategoria='Tutte';listaAttiva=false;}
  const isAdmin=user.ruolo==='Amministratore';
  if(!isAdmin){
   el.innerHTML='<div class="page"><p class="eyebrow">Sezione</p><h1 class="title">Accesso negato</h1></div>';
@@ -1412,11 +1411,11 @@ function lista(el){
  let salvati=[];
  try{salvati=JSON.parse(localStorage.getItem('ergo_prodotti'))||[]}catch(e){}
  const tutti=tuttiProds(salvati);
- const filtrati=tutti.filter(p=>{
+ const filtrati=listaAttiva?tutti.filter(p=>{
   const matchCat=listaCategoria==='Tutte'||(p.categoria||'').toUpperCase().includes(listaCategoria.toUpperCase());
   const matchTxt=ricercaIntelligente(listaRicerca,[p.nome,p.codice,p.categoria,p.posizione]);
   return matchCat&&matchTxt;
- });
+ }):[];
  el.innerHTML=`<div class="page">
   <div style="margin-bottom:20px">
    <p class="eyebrow">Preparazione evento</p>
@@ -1431,9 +1430,11 @@ function lista(el){
      <select id="lista-select-cat"><option value="Tutte">Tutte le categorie</option>${CATEGORIE_INV.map(c=>`<option value="${c}" ${listaCategoria===c?'selected':''}>${c}</option>`).join('')}</select>
     </div>
     <div class="lista-prodotti" id="lista-prodotti">
-     ${filtrati.length===0
-      ?'<div style="text-align:center;padding:30px;color:#94a3b8;font-size:.8rem">Nessun prodotto trovato</div>'
-      :filtrati.map(p=>rigaProdottoLista(p)).join('')}
+     ${!listaAttiva
+      ?'<div style="text-align:center;padding:30px;color:#94a3b8;font-size:.8rem">Scegli una categoria oppure cerca un prodotto.</div>'
+      :filtrati.length===0
+       ?'<div style="text-align:center;padding:30px;color:#94a3b8;font-size:.8rem">Nessun prodotto trovato</div>'
+       :filtrati.map(p=>rigaProdottoLista(p)).join('')}
     </div>
    </div>
    <div class="lista-pannello">
@@ -1449,6 +1450,7 @@ function lista(el){
  const inp=document.getElementById('lista-input-q');
  inp.addEventListener('input',e=>{
   listaRicerca=e.target.value;
+  listaAttiva=true;
   const nf=tutti.filter(p=>{
    const matchCat=listaRicerca.trim()!==''||listaCategoria==='Tutte'||(p.categoria||'').toUpperCase().includes(listaCategoria.toUpperCase());
    const matchTxt=ricercaIntelligente(listaRicerca,[p.nome,p.codice,p.categoria,p.posizione]);
@@ -1463,7 +1465,8 @@ function lista(el){
  document.getElementById('lista-select-cat').addEventListener('change',e=>{
   listaCategoria=e.target.value;
   listaRicerca='';
-  lista(el);
+  listaAttiva=true;
+  lista(el,false);
  });
  agganciaAggiungi(tutti);
  document.getElementById('lista-svuota').onclick=()=>{
@@ -8444,11 +8447,11 @@ window.mostraPopupBenvenuto=function(){
 (function(){
   var st=document.createElement('style');
   st.textContent=""+
-    ".inv-griglia{grid-template-columns:repeat(auto-fill,minmax(245px,1fr))!important;gap:15px!important}"+
+    "@media(min-width:900px){.inv-griglia{grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:12px!important}"+
     ".inv-foto{height:165px!important}.inv-body{padding:14px!important;gap:6px!important}"+
-    ".inv-qta{padding:8px!important;font-size:.95rem!important}.inv-btn{min-height:36px!important;padding:8px 7px!important}"+
+    ".inv-qta{padding:8px!important;font-size:.95rem!important}.inv-btn{min-height:36px!important;padding:8px 7px!important}}"+
     ".event-communication-card .allegati-gruppo{margin:10px 0 2px!important;border-radius:10px!important}"+
     ".event-communication-card .allegati-gruppo-titolo{font-size:.7rem!important}"+
-    "@media(min-width:1800px){.inv-griglia{grid-template-columns:repeat(auto-fill,minmax(250px,1fr))!important}.inv-foto{height:175px!important}.assistente-person{width:300px!important;min-width:300px!important}.assistente-person .assistant-character-image{width:300px!important;height:450px!important}.assistente-card{min-width:400px!important;max-width:520px!important;padding:22px 26px!important}.assistente-text{font-size:1.1rem!important}}";
+    "@media(min-width:1600px){.inv-griglia{grid-template-columns:repeat(6,minmax(0,1fr))!important}.inv-foto{height:175px!important}.assistente-person{width:300px!important;min-width:300px!important}.assistente-person .assistant-character-image{width:300px!important;height:450px!important}.assistente-card{min-width:400px!important;max-width:520px!important;padding:22px 26px!important}.assistente-text{font-size:1.1rem!important}}";
   document.head.appendChild(st);
 })();
