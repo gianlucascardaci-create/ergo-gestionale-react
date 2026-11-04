@@ -4,6 +4,8 @@
 const UTENTI={};
 
 const CATEGORIE_INV=['TAVOLI','SEDIE','CALTAGIRONE','COMPLEMENTI VARI','PIATTI E SOTTOPIATTI','BICCHIERI','CUCINA','ARREDO','TOVAGLIATO','ARGENTERIA','POSATERIA','VASSOI','LUCI E CANDELABRI'];
+const MESI=['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+const GIORNI=['Lun','Mar','Mer','Gio','Ven','Sab','Dom'];
 
 const EVENTI=[];
 const NOLEGGI=[];
