@@ -2550,7 +2550,7 @@ function eseguiAggiornamentoLista(ev){
    FIX PDF LISTA — Grafica sobria e pulita
    ============================================================ */
 function cal(el){
- NOLEGGI=(NOLEGGI||[]).map(normalizzaNoleggioCalendario).filter(n=>n.inizio);
+ const noleggiCalendario=(NOLEGGI||[]).map(normalizzaNoleggioCalendario).filter(n=>n.inizio);
  if(user.ruolo==='Magazzino2'){
   /* Forza filtro su noleggi */
   calFiltro='noleggi';
@@ -2598,7 +2598,7 @@ function cal(el){
    ${celle.map((d,i)=>{
      if(!d)return `<div class="cal-giorno vuoto"></div>`;
      const eventiG=vedE?EVENTI.filter(e=>stessaData(e.inizio,d)):[];
-     const nolG=vedN?NOLEGGI.filter(n=>inRange(d,n)):[];
+     const nolG=vedN?noleggiCalendario.filter(n=>inRange(d,n)):[];
      const isOggi=d.getTime()===oggi.getTime();
      let cls='cal-giorno';
      if(eventiG.length&&nolG.length)cls+=' ha-entrambi';
