@@ -1340,8 +1340,6 @@ function apriSchedaProd(p){
   if(v&&v.trim())righe+=`<div style="display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px dashed #c9dcf0;font-size:.8rem"><span style="color:#6b778c;font-weight:600">${k}</span><span style="color:#344054;font-weight:600;text-align:right">${v}</span></div>`;
  });
  const tech=righe?`<div style="background:#f3f8ff;border:1px solid #d7e7fa;border-radius:12px;padding:14px;margin-top:12px"><div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.12em;color:#083278;font-weight:800;margin-bottom:10px">Scheda tecnica</div>${righe}</div>`:'';
- const dataCreazione=p.createdAt?new Date(p.createdAt).toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'}):'non disponibile';
- const dataAggiornamento=p.updatedAt?new Date(p.updatedAt).toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'}):dataCreazione;
  const d=document.getElementById('d-panel'),bg=document.getElementById('d-bg');
  document.getElementById('d-eyebrow').textContent='Scheda prodotto';
  document.getElementById('d-titolo').textContent=p.nome;
@@ -1352,6 +1350,8 @@ function apriSchedaProd(p){
   <div class="prod-cronologia"><button type="button" class="btn-mini" id="prod-cronologia-btn">Cronologia</button><div id="prod-cronologia-box" hidden><div class="prod-cronologia-titolo">Valori nel tempo</div><div>Creato il <b>${dataCreazione}</b></div><div>Quantità iniziale <b>${p.quantitaIniziale!==undefined&&p.quantitaIniziale!==null?p.quantitaIniziale:'—'}</b></div><div>Quantità ultima modifica <b>${p.quantita!==undefined&&p.quantita!==null?p.quantita:'—'}</b></div><div>Ultimo aggiornamento <b>${dataAggiornamento}</b></div>${user.ruolo==='Amministratore'?`<div>Prezzo iniziale <b>€ ${(Number(p.prezzoIniziale)||0).toFixed(2)}</b></div>`:''}</div></div>
   <div class="meta-grid"><div><small>Quantità attuale</small><strong>${p.quantita||0}</strong></div><div><small>Posizione</small><strong>${p.posizione||'—'}</strong></div></div>
   <div class="prod-cronologia"><button type="button" class="btn-mini" id="prod-cronologia-btn">Cronologia</button><div id="prod-cronologia-box" hidden><div class="prod-cronologia-titolo">Valori nel tempo</div><div>Creato il <b>${dataCreazione}</b></div><div>Quantità iniziale <b>${p.quantitaIniziale!==undefined&&p.quantitaIniziale!==null?p.quantitaIniziale:'—'}</b></div><div>Quantità ultima modifica <b>${p.quantita!==undefined&&p.quantita!==null?p.quantita:'—'}</b></div><div>Ultimo aggiornamento <b>${dataAggiornamento}</b></div>${user.ruolo==='Amministratore'?`<div>Prezzo iniziale <b>€ ${(Number(p.prezzoIniziale)||0).toFixed(2)}</b></div>`:''}</div></div>
+  <div class="meta-grid"><div><small>Quantità attuale</small><strong>${p.quantita||0}</strong></div><div><small>Posizione</small><strong>${p.posizione||'—'}</strong></div></div>
+  <div class="prod-cronologia"><button type="button" class="btn-mini" id="prod-cronologia-btn">Cronologia</button><div id="prod-cronologia-box" hidden><div class="prod-cronologia-titolo">Valori nel tempo</div><div>Creato il <b>${cronDataCreazione}</b></div><div>Quantità iniziale <b>${p.quantitaIniziale!==undefined&&p.quantitaIniziale!==null?p.quantitaIniziale:'—'}</b></div><div>Quantità ultima modifica <b>${p.quantita!==undefined&&p.quantita!==null?p.quantita:'—'}</b></div><div>Ultimo aggiornamento <b>${cronDataAggiornamento}</b></div>${user.ruolo==='Amministratore'?`<div>Prezzo iniziale <b>€ ${(Number(p.prezzoIniziale)||0).toFixed(2)}</b></div>`:''}</div></div>
   ${tech}
   <div style="background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;text-align:center;margin-top:14px">
    <div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.12em;color:#083278;font-weight:800;margin-bottom:10px">QR Code</div>
@@ -1362,6 +1362,8 @@ function apriSchedaProd(p){
  d.classList.add('open');bg.classList.add('open');
  document.getElementById('d-close').onclick=chiudiDrawer;
  bg.onclick=chiudiDrawer;
+ const cronBtn2=document.getElementById('prod-cronologia-btn'),cronBox2=document.getElementById('prod-cronologia-box');
+ if(cronBtn2&&cronBox2)cronBtn2.onclick=function(){cronBox2.hidden=!cronBox2.hidden;cronBtn2.classList.toggle('active',!cronBox2.hidden);};
  const cronBtn=document.getElementById('prod-cronologia-btn'),cronBox=document.getElementById('prod-cronologia-box');
  if(cronBtn&&cronBox)cronBtn.onclick=function(){cronBox.hidden=!cronBox.hidden;cronBtn.classList.toggle('active',!cronBox.hidden);};
  const cronBtn=document.getElementById('prod-cronologia-btn'),cronBox=document.getElementById('prod-cronologia-box');
