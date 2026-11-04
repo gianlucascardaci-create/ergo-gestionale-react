@@ -2069,7 +2069,7 @@ function inv(el){
    ${isAdmin?'<button class="inv-add" id="inv-btn-nuovo">＋ Nuovo prodotto</button>':''}
   </div>
   ${!catalogoAttivo
-   ?'<div class="inv-vuoto"><span class="emo">📦</span>Catalogo pronto. Cerca un prodotto per visualizzarlo.</div><div class="inv-griglia" id="inv-griglia" style="display:none"></div>'
+   ?'<div class="inv-vuoto" id="inv-empty-start"><span class="emo">📦</span>Catalogo pronto. Cerca un prodotto per visualizzarlo.</div><div class="inv-griglia" id="inv-griglia" style="display:none"></div>'
    :filtrati.length===0
    ?'<div class="inv-vuoto"><span class="emo">🔍</span>Nessun prodotto trovato'+(invRicerca?' per "'+invRicerca+'"':'')+'.</div>'
    :`<div class="inv-griglia" id="inv-griglia">${filtrati.map(p=>cardProd(p,isAdmin,vedePrezzo)).join('')}</div>`}
@@ -2084,6 +2084,8 @@ function inv(el){
    return matchCat&&matchTxt;
   });
   if(lede)lede.textContent=nf.length+' prodott'+(nf.length===1?'o':'i')+' trovat'+(nf.length===1?'o':'i')+(invRicerca?' per "'+invRicerca+'"':'');
+  const emptyStart=document.getElementById('inv-empty-start');
+  if(emptyStart)emptyStart.style.display=(invRicerca.trim()||invCategoria!=='Tutte')?'none':'';
   if(griglia){
    griglia.style.display=(invRicerca.trim()||invCategoria!=='Tutte')?'':'none';
    griglia.innerHTML=nf.length===0
@@ -2092,8 +2094,19 @@ function inv(el){
    agganciaBottoniCard(griglia,tutti);
   }
  };
+ const correggiCategoriaRicerca=()=>{
+  const q=invRicerca.trim();if(!q)return;
+  const trovati=tutti.filter(p=>testoProdottoEsatto(q,p));
+  const categorie=[...new Set(trovati.flatMap(p=>String(p.categoria||'').split(',').map(c=>c.trim()).filter(Boolean)))];
+  if(categorie.length!==1||invCategoria==='Tutte'||categorie[0].toUpperCase()===invCategoria.toUpperCase())return;
+  const categoria=categorie[0];
+  invCategoria=categoria;
+  if(sc)sc.value=categoria;
+  if(window.assistentePersonale)window.assistentePersonale({testo:'<b>'+q+'</b> è nella categoria <b>'+categoria+'</b>. Ho aggiornato automaticamente il filtro.',emoji:'✓',colore:'#15803d',autoClose:true,durata:5000});
+ };
  if(inp)inp.addEventListener('input',e=>{
   invRicerca=e.target.value;
+  correggiCategoriaRicerca();
   invStatoPerUtente[statoKey]={ricerca:invRicerca,categoria:invCategoria,attivo:true};
   riRender();
   if(invRicercaTimer)clearTimeout(invRicercaTimer);
@@ -2102,6 +2115,7 @@ function inv(el){
  const sc=document.getElementById('inv-select-cat');
  if(sc)sc.addEventListener('change',e=>{
   invCategoria=e.target.value;
+  correggiCategoriaRicerca();
   invStatoPerUtente[statoKey]={ricerca:invRicerca,categoria:invCategoria,attivo:true};
   riRender();
  });
@@ -8093,8 +8107,14 @@ window.mostraPopupBenvenuto=function(){
       var products={data:payload.products||[],error:null};
       var rentals={data:payload.rentals||[],error:null};
       var events={data:payload.events||[],error:null};
-      var remoteProducts=(products.data||[]).map(mapProduct);
       var localProducts=[]; try{localProducts=JSON.parse(localStorage.getItem('ergo_prodotti')||'[]');}catch(e){localProducts=[];}
+      var remoteProducts=(products.data||[]).map(function(row){
+        var mapped=mapProduct(row), local=localProducts.find(function(lp){return lp&&lp.codice===mapped.codice;});
+        /* La creazione è immutabile: se il record locale contiene la data originale,
+           non la sostituiamo con la data dell'ultimo upsert remoto. */
+        if(local&&local.createdAt)mapped.createdAt=local.createdAt;
+        return mapped;
+      });
       var pRows=remoteProducts.slice();
       localProducts.forEach(function(lp){if(lp&&lp.codice&&!pRows.some(function(r){return r.codice===lp.codice;}))pRows.push(lp);});
       var nRows=(rentals.data||[]).map(mapRental), eRows=mergeCanonicalEvents((events.data||[]).map(mapEvent));

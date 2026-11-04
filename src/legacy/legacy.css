@@ -653,10 +653,11 @@ h1.title{font-size:clamp(1.8rem,3vw,2.6rem);margin-top:8px;line-height:1.08}
    ============================================================ */
 @media (max-width: 700px){
  html,body,#root,#app-root{width:100%;max-width:100%;overflow-x:hidden}
- body{font-size:14px}
+ html{background:#f7f9fc}
+ body{font-size:14px;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);overscroll-behavior-y:none;-webkit-tap-highlight-color:transparent}
  .app{display:block;min-height:100vh;width:100%;overflow-x:hidden}
  .main{width:100%;min-width:0;overflow-x:hidden}
- .topbar{height:58px;padding:0 12px;gap:8px}
+ .topbar{height:calc(58px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 12px 0;gap:8px}
  .topbar .crumb{min-width:0;gap:6px;font-size:.68rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
  .topbar .crumb strong{overflow:hidden;text-overflow:ellipsis}
  .topbar .user{gap:5px;font-size:.68rem;min-width:0}
