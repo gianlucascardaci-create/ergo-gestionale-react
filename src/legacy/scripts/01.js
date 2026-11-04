@@ -82,6 +82,7 @@ function installaGestionale(){
  else alert(testo.replace(/<[^>]+>/g,''));
 }
 let calFiltro='tutti';
+let calMese=new Date().getMonth(),calAnno=new Date().getFullYear();
 let listaAttrezzature=[];
 let invRicerca='',invCategoria='Tutte',invRicercaTimer=null;
 const invStatoPerUtente={};
@@ -5060,7 +5061,7 @@ window.cal=function(el){
  for(var i=0;i<inizioSett;i++)celle.push(null);
  for(var d=1;d<=ggMese;d++)celle.push(new Date(anno,mese,d));
  while(celle.length%7!==0)celle.push(null);
- var filtroAttivo=window.calFiltro||'tutti';
+ var filtroAttivo=calFiltro||'tutti';
  var mostraEventi=filtroAttivo==='tutti'||filtroAttivo==='catering';
  var mostraNoleggi=filtroAttivo==='tutti'||filtroAttivo==='noleggi';
  var vedE=puoVedere(user.ruolo,'evento')&&mostraEventi;
@@ -5128,7 +5129,7 @@ window.cal=function(el){
     ev.preventDefault();
     ev.stopPropagation();
     var nuovoFiltro=this.dataset.filtro;
-    window.calFiltro=nuovoFiltro;
+    calFiltro=nuovoFiltro;
     /* Ricarica il calendario SUBITO */
     cal(el);
     return false;
