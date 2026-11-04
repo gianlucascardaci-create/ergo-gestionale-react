@@ -2060,7 +2060,7 @@ function inv(el){
  const isAdmin=user.ruolo==='Amministratore';
  const vedePrezzo=user.ruolo==='Amministratore'||user.ruolo==='Magazzino2';
  el.innerHTML=`<div class="page">
-  <div style="margin-bottom:20px"><p class="eyebrow">Catalogo</p><h1 class="title">Inventario</h1><p class="lede">${filtrati.length} prodott${filtrati.length===1?'o':'i'} trovat${filtrati.length===1?'o':'i'}${invRicerca?' per "'+invRicerca+'"':''}</p></div>
+  <div style="margin-bottom:20px"><p class="eyebrow">Catalogo</p><h1 class="title">Inventario</h1><p class="lede">${catalogoAttivo?filtrati.length:tutti.length} prodott${(catalogoAttivo?filtrati.length:tutti.length)===1?'o':'i'} ${catalogoAttivo?'trovati':'presenti in inventario'}${invRicerca?' per "'+invRicerca+'"':''}</p></div>
   <div class="inv-toolbar">
    <div class="inv-filtri">
     <div class="inv-search"><input id="inv-input-q" placeholder="Cerca nome, codice, categoria…" value="${invRicerca.replace(/"/g,'&quot;')}" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></div>
@@ -2068,7 +2068,9 @@ function inv(el){
    </div>
    ${isAdmin?'<button class="inv-add" id="inv-btn-nuovo">＋ Nuovo prodotto</button>':''}
   </div>
-  ${filtrati.length===0
+  ${!catalogoAttivo
+   ?'<div class="inv-vuoto"><span class="emo">📦</span>Catalogo pronto. Cerca un prodotto per visualizzarlo.</div>'
+   :filtrati.length===0
    ?'<div class="inv-vuoto"><span class="emo">🔍</span>Nessun prodotto trovato'+(invRicerca?' per "'+invRicerca+'"':'')+'.</div>'
    :`<div class="inv-griglia" id="inv-griglia">${filtrati.map(p=>cardProd(p,isAdmin,vedePrezzo)).join('')}</div>`}
  </div>`;
