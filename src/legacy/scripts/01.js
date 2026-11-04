@@ -2052,7 +2052,7 @@ function inv(el){
  let salvati=[];
  try{salvati=JSON.parse(localStorage.getItem('ergo_prodotti'))||[]}catch(e){}
  const tutti=tuttiProds(salvati);
- const filtrati=catalogoAttivo?tutti.filter(p=>{
+ const filtrati=tutti.filter(p=>{
   const matchCat=invRicerca.trim()!==''||invCategoria==='Tutte'||(p.categoria||'').toUpperCase().includes(invCategoria.toUpperCase());
   const matchTxt=invRicerca.trim()?testoProdottoEsatto(invRicerca,p):true;
   return matchCat&&matchTxt;
@@ -2068,9 +2068,7 @@ function inv(el){
    </div>
    ${isAdmin?'<button class="inv-add" id="inv-btn-nuovo">＋ Nuovo prodotto</button>':''}
   </div>
-  ${!catalogoAttivo
-   ?'<div class="inv-vuoto" id="inv-empty-start"><span class="emo">🔎</span>Inizia cercando un prodotto per nome, codice o categoria.</div><div class="inv-griglia" id="inv-griglia"></div>'
-   :filtrati.length===0
+  ${filtrati.length===0
    ?'<div class="inv-vuoto"><span class="emo">🔍</span>Nessun prodotto trovato'+(invRicerca?' per "'+invRicerca+'"':'')+'.</div>'
    :`<div class="inv-griglia" id="inv-griglia">${filtrati.map(p=>cardProd(p,isAdmin,vedePrezzo)).join('')}</div>`}
  </div>`;
@@ -2078,13 +2076,11 @@ function inv(el){
  const griglia=document.getElementById('inv-griglia');
  const lede=el.querySelector('.lede');
  const riRender=()=>{
-  const nf=(catalogoAttivo||invRicerca.trim()||invCategoria!=='Tutte')?tutti.filter(p=>{
+  const nf=tutti.filter(p=>{
    const matchCat=invRicerca.trim()!==''||invCategoria==='Tutte'||(p.categoria||'').toUpperCase().includes(invCategoria.toUpperCase());
    const matchTxt=invRicerca.trim()?testoProdottoEsatto(invRicerca,p):true;
    return matchCat&&matchTxt;
   }):[];
-  const emptyStart=document.getElementById('inv-empty-start');
-  if(emptyStart)emptyStart.style.display=(invRicerca.trim()||invCategoria!=='Tutte')?'none':'';
   if(lede)lede.textContent=nf.length+' prodott'+(nf.length===1?'o':'i')+' trovat'+(nf.length===1?'o':'i')+(invRicerca?' per "'+invRicerca+'"':'');
   if(griglia){
    griglia.innerHTML=nf.length===0
