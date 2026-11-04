@@ -770,3 +770,16 @@ h1.title{font-size:clamp(1.8rem,3vw,2.6rem);margin-top:8px;line-height:1.08}
  .assistente-person svg,.assistente-person .assistant-character-image{width:102px!important;height:153px!important;max-width:102px!important}
  .assistente-text{font-size:.72rem!important}
 }
+.inv-clear-q{position:absolute;right:8px;top:50%;transform:translateY(-50%);width:28px;height:28px;border-radius:50%;display:grid;place-items:center;color:#718096;background:#e8eef6;font-size:1.15rem;line-height:1;font-weight:700;cursor:pointer;z-index:2}
+.inv-clear-q:hover{background:#d8e3f1;color:#083278}
+.inv-search:has(.inv-clear-q:not([hidden])) input{padding-right:46px}
+@supports (-webkit-touch-callout:none){
+ @media (max-width:700px){
+  html,body,#root,#app-root{position:relative;width:100%;max-width:100%;overflow-x:hidden!important;overscroll-behavior-x:none}
+  .app,.main,.page,.topbar,.inv-toolbar{max-width:100%;min-width:0}
+  .page{overflow-x:clip}
+  .inv-search{width:100%;max-width:100%;min-width:0}
+  .inv-search input{max-width:100%;padding-right:46px}
+  .inv-clear-q{right:7px;width:30px;height:30px}
+ }
+}

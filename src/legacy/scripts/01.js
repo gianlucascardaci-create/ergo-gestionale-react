@@ -1583,7 +1583,7 @@ function inv(el){
   <div style="margin-bottom:20px"><p class="eyebrow">Catalogo</p><h1 class="title">Inventario</h1><p class="lede">${catalogoAttivo?filtrati.length:tutti.length} prodott${(catalogoAttivo?filtrati.length:tutti.length)===1?'o':'i'} ${catalogoAttivo?'trovati':'presenti in inventario'}${invRicerca?' per "'+invRicerca+'"':''}</p></div>
   <div class="inv-toolbar">
    <div class="inv-filtri">
-    <div class="inv-search"><input id="inv-input-q" placeholder="Cerca nome, codice, categoria…" value="${invRicerca.replace(/"/g,'&quot;')}" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></div>
+   <div class="inv-search"><input id="inv-input-q" placeholder="Cerca nome, codice, categoria…" value="${invRicerca.replace(/"/g,'&quot;')}" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"><button type="button" id="inv-clear-q" class="inv-clear-q" aria-label="Cancella ricerca" title="Cancella ricerca" ${invRicerca?'':'hidden'}>×</button></div>
     <select class="inv-select" id="inv-select-cat"><option value="Tutte">Tutte le categorie</option>${CATEGORIE_INV.map(c=>`<option value="${c}" ${invCategoria===c?'selected':''}>${c}</option>`).join('')}</select>
    </div>
    ${isAdmin?'<button class="inv-add" id="inv-btn-nuovo">＋ Nuovo prodotto</button>':''}
@@ -1628,6 +1628,7 @@ function inv(el){
   const nuovaRicerca=e.target.value;
   if(nuovaRicerca!==invRicerca)window._ultimoSuggerimentoInventario='';
   invRicerca=nuovaRicerca;
+  const clearButton=document.getElementById('inv-clear-q');if(clearButton)clearButton.hidden=!invRicerca;
   correggiCategoriaRicerca();
   invStatoPerUtente[statoKey]={ricerca:invRicerca,categoria:invCategoria,attivo:true};
   riRender();
@@ -1641,6 +1642,16 @@ function inv(el){
   invStatoPerUtente[statoKey]={ricerca:invRicerca,categoria:invCategoria,attivo:true};
   riRender();
  });
+ const clearSearch=document.getElementById('inv-clear-q');
+ if(clearSearch)clearSearch.onclick=()=>{
+  invRicerca='';
+  window._ultimoSuggerimentoInventario='';
+  invStatoPerUtente[statoKey]={ricerca:'',categoria:invCategoria,attivo:invCategoria!=='Tutte'};
+  if(inp)inp.value='';
+  clearSearch.hidden=true;
+  riRender();
+  if(inp)inp.focus();
+ };
  const bn=document.getElementById('inv-btn-nuovo');
  if(bn)bn.onclick=()=>apriModaleProdotto();
  agganciaBottoniCard(el,tutti);
