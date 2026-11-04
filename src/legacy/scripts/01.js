@@ -2056,7 +2056,7 @@ function inv(el){
   const matchCat=invRicerca.trim()!==''||invCategoria==='Tutte'||(p.categoria||'').toUpperCase().includes(invCategoria.toUpperCase());
   const matchTxt=invRicerca.trim()?testoProdottoEsatto(invRicerca,p):true;
   return matchCat&&matchTxt;
- }):[];
+ });
  const isAdmin=user.ruolo==='Amministratore';
  const vedePrezzo=user.ruolo==='Amministratore'||user.ruolo==='Magazzino2';
  el.innerHTML=`<div class="page">
@@ -2082,7 +2082,7 @@ function inv(el){
    const matchCat=invRicerca.trim()!==''||invCategoria==='Tutte'||(p.categoria||'').toUpperCase().includes(invCategoria.toUpperCase());
    const matchTxt=invRicerca.trim()?testoProdottoEsatto(invRicerca,p):true;
    return matchCat&&matchTxt;
-  }):[];
+  });
   if(lede)lede.textContent=nf.length+' prodott'+(nf.length===1?'o':'i')+' trovat'+(nf.length===1?'o':'i')+(invRicerca?' per "'+invRicerca+'"':'');
   if(griglia){
    griglia.innerHTML=nf.length===0
