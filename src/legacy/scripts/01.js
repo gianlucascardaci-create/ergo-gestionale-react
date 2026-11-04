@@ -1583,7 +1583,7 @@ function inv(el){
   <div style="margin-bottom:20px"><p class="eyebrow">Catalogo</p><h1 class="title">Inventario</h1><p class="lede">${catalogoAttivo?filtrati.length:tutti.length} prodott${(catalogoAttivo?filtrati.length:tutti.length)===1?'o':'i'} ${catalogoAttivo?'trovati':'presenti in inventario'}${invRicerca?' per "'+invRicerca+'"':''}</p></div>
   <div class="inv-toolbar">
    <div class="inv-filtri">
-   <div class="inv-search"><input id="inv-input-q" placeholder="Cerca nome, codice, categoria…" value="${invRicerca.replace(/"/g,'&quot;')}" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"><button type="button" id="inv-clear-q" class="inv-clear-q" aria-label="Cancella ricerca" title="Cancella ricerca" ${invRicerca?'':'hidden'}>×</button></div>
+   <div class="inv-search"><input id="inv-input-q" placeholder="Cerca nome, codice, categoria…" value="${invRicerca.replace(/"/g,'&quot;')}" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"><button type="button" id="inv-clear-q" class="inv-clear-q" aria-label="Cancella" ${invRicerca?'':'hidden'}>×</button></div>
     <select class="inv-select" id="inv-select-cat"><option value="Tutte">Tutte le categorie</option>${CATEGORIE_INV.map(c=>`<option value="${c}" ${invCategoria===c?'selected':''}>${c}</option>`).join('')}</select>
    </div>
    ${isAdmin?'<button class="inv-add" id="inv-btn-nuovo">＋ Nuovo prodotto</button>':''}
