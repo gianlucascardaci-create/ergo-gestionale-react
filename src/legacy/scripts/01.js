@@ -2069,7 +2069,7 @@ function inv(el){
    ${isAdmin?'<button class="inv-add" id="inv-btn-nuovo">＋ Nuovo prodotto</button>':''}
   </div>
   ${!catalogoAttivo
-   ?'<div class="inv-vuoto"><span class="emo">📦</span>Catalogo pronto. Cerca un prodotto per visualizzarlo.</div>'
+   ?'<div class="inv-vuoto"><span class="emo">📦</span>Catalogo pronto. Cerca un prodotto per visualizzarlo.</div><div class="inv-griglia" id="inv-griglia" style="display:none"></div>'
    :filtrati.length===0
    ?'<div class="inv-vuoto"><span class="emo">🔍</span>Nessun prodotto trovato'+(invRicerca?' per "'+invRicerca+'"':'')+'.</div>'
    :`<div class="inv-griglia" id="inv-griglia">${filtrati.map(p=>cardProd(p,isAdmin,vedePrezzo)).join('')}</div>`}
@@ -2077,7 +2077,7 @@ function inv(el){
  const inp=document.getElementById('inv-input-q');
  const griglia=document.getElementById('inv-griglia');
  const lede=el.querySelector('.lede');
- const riRender=()=>{
+  const riRender=()=>{
   const nf=tutti.filter(p=>{
    const matchCat=invRicerca.trim()!==''||invCategoria==='Tutte'||(p.categoria||'').toUpperCase().includes(invCategoria.toUpperCase());
    const matchTxt=invRicerca.trim()?testoProdottoEsatto(invRicerca,p):true;
@@ -2085,6 +2085,7 @@ function inv(el){
   });
   if(lede)lede.textContent=nf.length+' prodott'+(nf.length===1?'o':'i')+' trovat'+(nf.length===1?'o':'i')+(invRicerca?' per "'+invRicerca+'"':'');
   if(griglia){
+   griglia.style.display=(invRicerca.trim()||invCategoria!=='Tutte')?'':'none';
    griglia.innerHTML=nf.length===0
     ?'<div class="inv-vuoto" style="grid-column:1/-1"><span class="emo">🔍</span>Nessun prodotto trovato.</div>'
     :nf.map(p=>cardProd(p,isAdmin,vedePrezzo)).join('');
