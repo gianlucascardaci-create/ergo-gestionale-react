@@ -71,11 +71,14 @@ function installaGestionale(){
   });
   return;
  }
- var standalone=window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches;
+ var standalone=(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)||window.navigator.standalone===true;
+ var ios=/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
  var testo=standalone
   ? 'Il gestionale è già installato come app su questo dispositivo.'
+  : ios
+  ? '<b>Per installare il gestionale su iPhone:</b><br>1. Premi il pulsante <b>Condividi</b> del browser.<br>2. Scorri il menu e scegli <b>Aggiungi alla schermata Home</b>.<br>3. Premi <b>Aggiungi</b>.<br><small>Su iPhone Chrome non può avviare automaticamente l’installazione: è una limitazione di iOS.</small>'
   : 'Il browser non ha ancora attivato il pulsante automatico. Apri il menu del browser e scegli <b>Installa app</b> oppure <b>Aggiungi alla schermata Home</b>.';
- if(window.assistentePersonale)window.assistentePersonale({testo:testo,emoji:standalone?'✅':'⌄',colore:standalone?'#3e765e':'#083278',autoClose:true,durata:9000});
+ if(window.assistentePersonale)window.assistentePersonale({testo:testo,emoji:standalone?'✅':ios?'↗':'⌄',colore:standalone?'#3e765e':'#083278',autoClose:true,durata:12000});
  else alert(testo.replace(/<[^>]+>/g,''));
 }
 let calFiltro='tutti';
