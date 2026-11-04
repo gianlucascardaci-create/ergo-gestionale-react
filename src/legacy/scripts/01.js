@@ -1557,6 +1557,16 @@ function suggerisciProdottoInventario(query,tutti){
   });
  });
  const nome=(String(termineDisplay||termineNorm||scelto.nome||'prodotto').replace(/[<>]/g,'')).trim();
+ const telefonoAttivo=window.matchMedia&&window.matchMedia('(max-width:700px)').matches;
+ if(telefonoAttivo){
+  /* Sul telefono la tastiera copre l'assistente: applica direttamente la
+     correzione fuzzy e mostra tutti i prodotti che corrispondono al termine. */
+  invRicerca=nome;
+  invStatoPerUtente[chiaveRicercaInventario()]={ricerca:invRicerca,categoria:invCategoria,attivo:true};
+  const inputMobile=document.getElementById('inv-input-q');if(inputMobile)inputMobile.value=invRicerca;
+  const pcMobile=document.getElementById('pc');if(pcMobile&&view==='inventario')inv(pcMobile);
+  return;
+ }
  window.assistentePersonale({testo:'Stai per caso cercando <b>'+nome+'</b>?',emoji:'🔎',colore:'#083278',autoClose:true,durata:10000,bottoni:[
   {label:'Sì, mostra '+nome,colore:'#083278',azione:function(){
    invRicerca=nome;invStatoPerUtente[chiaveRicercaInventario()]={ricerca:invRicerca,categoria:invCategoria};
