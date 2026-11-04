@@ -160,3 +160,7 @@ as $$
   from public.prodotti_noleggio p where p.qr_token=p_token limit 1;
 $$;
 grant execute on function public.get_prodotto_qr(text) to anon, authenticated;
+
+-- Migrazione 2026-11-04 applicata al progetto React:
+-- ergo_read_data include created_at e updated_at nei prodotti;
+-- ergo_sync_products aggiorna updated_at=now() sui prodotti già esistenti.
