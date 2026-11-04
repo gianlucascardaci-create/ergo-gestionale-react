@@ -3053,6 +3053,10 @@ function cardProd(p,isAdmin,vedePrezzo){
 function apriSchedaProd(p){
  const scheda=p.scheda||{};
  const hasFoto=!!p.foto;
+ const cronQuantitaIniziale=p.quantitaIniziale!==undefined&&p.quantitaIniziale!==null?Number(p.quantitaIniziale):Number(p.quantita||0);
+ const cronQuantitaAttuale=Number(p.quantita||0);
+ const cronDataCreazione=p.createdAt?new Date(p.createdAt).toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'}):'non disponibile';
+ const cronDataAggiornamento=p.updatedAt?new Date(p.updatedAt).toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'}):cronDataCreazione;
  const fotoHtml=hasFoto?`<img loading="lazy" src="${p.foto}" style="width:100%;height:100%;object-fit:cover">`:`<div style="font-size:4rem;opacity:.4">📦</div>`;
  let righe='';
  [['Materiale',scheda.materiale],['Colore',scheda.colore],['Dimensione',scheda.dimensione]].forEach(([k,v])=>{
@@ -3066,6 +3070,8 @@ function apriSchedaProd(p){
  document.getElementById('d-body').innerHTML=`
   <div style="width:100%;aspect-ratio:1;background:linear-gradient(145deg,#eef4fa,#f8fafc);border-radius:14px;display:grid;place-items:center;overflow:hidden;color:#9ab1c9;margin-bottom:14px">${fotoHtml}</div>
   <div style="font-size:.75rem;color:#98a2b3;letter-spacing:.06em;margin-bottom:14px;text-transform:uppercase;font-weight:700">COD. ${p.codice}</div>
+  <div class="meta-grid"><div><small>Quantità attuale</small><strong>${cronQuantitaAttuale}</strong></div><div><small>Posizione</small><strong>${p.posizione||'—'}</strong></div></div>
+  <div class="prod-cronologia"><button type="button" class="btn-mini" id="prod-cronologia-btn">Cronologia</button><div id="prod-cronologia-box" hidden><div class="prod-cronologia-titolo">Valori nel tempo</div><div>Creato il <b>${cronDataCreazione}</b></div><div>Quantità iniziale <b>${cronQuantitaIniziale}</b></div><div>Quantità ultima modifica <b>${cronQuantitaAttuale}</b></div><div>Ultimo aggiornamento <b>${cronDataAggiornamento}</b></div>${user.ruolo==='Amministratore'?`<div>Prezzo iniziale <b>€ ${(Number(p.prezzoIniziale)||Number(p.prezzo)||0).toFixed(2)}</b></div>`:''}</div></div>
   ${tech}
   <div style="background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;text-align:center;margin-top:14px">
    <div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.12em;color:#083278;font-weight:800;margin-bottom:10px">🎫 QR Code prodotto</div>
@@ -3076,6 +3082,8 @@ function apriSchedaProd(p){
  d.classList.add('open');bg.classList.add('open');
  document.getElementById('d-close').onclick=chiudiDrawer;
  bg.onclick=chiudiDrawer;
+ const cronBtn=document.getElementById('prod-cronologia-btn'),cronBox=document.getElementById('prod-cronologia-box');
+ if(cronBtn&&cronBox)cronBtn.onclick=function(){cronBox.hidden=!cronBox.hidden;cronBtn.classList.toggle('active',!cronBox.hidden);};
  setTimeout(()=>{
   const c=document.getElementById('qr-canvas');
   if(c){
