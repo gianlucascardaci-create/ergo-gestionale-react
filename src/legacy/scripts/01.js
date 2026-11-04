@@ -1106,58 +1106,43 @@ function tuttiProds(salvati){
  (salvati||[]).forEach(p=>{if(!base.find(x=>x.codice===p.codice))base.push(p)});
  return base;
 }
+function filtraInventarioProdotti(tutti,query,categoria){
+ const q=String(query||'').trim();
+ const esisteCorrispondenzaEsatta=q&&tutti.some(function(p){return testoProdottoEsatto(q,p)});
+ return tutti.filter(function(p){
+  const matchCat=q!==''||categoria==='Tutte'||(p.categoria||'').toUpperCase().includes(String(categoria||'Tutte').toUpperCase());
+  const matchTxt=!q?true:(esisteCorrispondenzaEsatta?testoProdottoEsatto(q,p):ricercaIntelligente(q,[p.nome,p.codice,p.categoria,p.posizione,p.note]));
+  return matchCat&&matchTxt;
+ });
+}
 
 
 
 function inv(el){
+ const statoKey=chiaveRicercaInventario();
+ const stato=invStatoPerUtente[statoKey]||{ricerca:'',categoria:'Tutte',attivo:false};
+ invRicerca=stato.ricerca||'';invCategoria=stato.categoria||'Tutte';
  let salvati=[];
  try{salvati=JSON.parse(localStorage.getItem('ergo_prodotti'))||[]}catch(e){}
  const tutti=tuttiProds(salvati);
- const filtrati=catalogoAttivo?tutti.filter(p=>{
-  const matchCat=invRicerca.trim()!==''||invCategoria==='Tutte'||(p.categoria||'').toUpperCase().includes(invCategoria.toUpperCase());
-  const matchTxt=ricercaIntelligente(invRicerca,[p.nome,p.codice,p.categoria,p.posizione,p.note]);
-  return matchCat&&matchTxt;
- }):[];
+ const catalogoAttivo=!!invRicerca.trim()||invCategoria!=='Tutte';
+ const filtrati=catalogoAttivo?filtraInventarioProdotti(tutti,invRicerca,invCategoria):[];
  const isAdmin=user.ruolo==='Amministratore';
  el.innerHTML=`<div class="page">
-  <div style="margin-bottom:20px"><p class="eyebrow">Catalogo</p><h1 class="title">Inventario</h1><p class="lede">${filtrati.length} prodott${filtrati.length===1?'o':'i'} trovat${filtrati.length===1?'o':'i'}${invRicerca?' per "'+invRicerca+'"':''}</p></div>
-  <div class="inv-toolbar">
-   <div class="inv-filtri">
-    <div class="inv-search"><input id="inv-input-q" placeholder="Cerca nome, codice, categoria…" value="${invRicerca.replace(/"/g,'&quot;')}" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></div>
-    <select class="inv-select" id="inv-select-cat"><option value="Tutte">Tutte le categorie</option>${CATEGORIE_INV.map(c=>`<option value="${c}" ${invCategoria===c?'selected':''}>${c}</option>`).join('')}</select>
-   </div>
-   ${isAdmin?'<button class="inv-add" id="inv-btn-nuovo">＋ Nuovo prodotto</button>':''}
-  </div>
-  ${!catalogoAttivo
-   ?'<div class="inv-vuoto" id="inv-empty-start"><span class="emo">🔎</span>Inizia cercando un prodotto per nome, codice o categoria.</div><div class="inv-griglia" id="inv-griglia"></div>'
-   :filtrati.length===0
-   ?'<div class="inv-vuoto"><span class="emo">🔍</span>Nessun prodotto trovato'+(invRicerca?' per "'+invRicerca+'"':'')+'.</div>'
-   :`<div class="inv-griglia" id="inv-griglia">${filtrati.map(p=>cardProd(p,isAdmin)).join('')}</div>`}
+  <div style="margin-bottom:20px"><p class="eyebrow">Catalogo</p><h1 class="title">Inventario</h1><p class="lede">${catalogoAttivo?filtrati.length+' prodott'+(filtrati.length===1?'o':'i')+' trovat'+(filtrati.length===1?'o':'i')+(invRicerca?' per "'+invRicerca+'"':''):'Totale inventario: '+tutti.length+' prodott'+(tutti.length===1?'o':'i')}</p></div>
+  <div class="inv-toolbar"><div class="inv-filtri"><div class="inv-search"><input id="inv-input-q" placeholder="Cerca nome, codice, categoria…" value="${invRicerca.replace(/"/g,'&quot;')}" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></div><select class="inv-select" id="inv-select-cat"><option value="Tutte">Tutte le categorie</option>${CATEGORIE_INV.map(c=>`<option value="${c}" ${invCategoria===c?'selected':''}>${c}</option>`).join('')}</select></div>${isAdmin?'<button class="inv-add" id="inv-btn-nuovo">＋ Nuovo prodotto</button>':''}</div>
+  ${!catalogoAttivo?'<div class="inv-vuoto" id="inv-empty-start"><span class="emo">🔎</span>Inizia cercando un prodotto per nome, codice o categoria.</div><div class="inv-griglia" id="inv-griglia"></div>':filtrati.length===0?'<div class="inv-vuoto"><span class="emo">🔍</span>Nessun prodotto trovato per la ricerca.</div>':`<div class="inv-griglia" id="inv-griglia">${filtrati.map(p=>cardProd(p,isAdmin)).join('')}</div>`}
  </div>`;
- const inp=document.getElementById('inv-input-q');
- const griglia=document.getElementById('inv-griglia');
- const lede=el.querySelector('.lede');
+ const inp=document.getElementById('inv-input-q'),griglia=document.getElementById('inv-griglia'),lede=el.querySelector('.lede');
  const riRender=()=>{
-  const nf=catalogoAttivo||invRicerca.trim()||invCategoria!=='Tutte'?tutti.filter(p=>{
-   const matchCat=invRicerca.trim()!==''||invCategoria==='Tutte'||(p.categoria||'').toUpperCase().includes(invCategoria.toUpperCase());
-   const matchTxt=ricercaIntelligente(invRicerca,[p.nome,p.codice,p.categoria,p.posizione,p.note]);
-   return matchCat&&matchTxt;
-  }):[];
-  const emptyStart=document.getElementById('inv-empty-start');
-  if(emptyStart)emptyStart.style.display=(invRicerca.trim()||invCategoria!=='Tutte')?'none':'';
-  if(lede)lede.textContent=nf.length+' prodott'+(nf.length===1?'o':'i')+' trovat'+(nf.length===1?'o':'i')+(invRicerca?' per "'+invRicerca+'"':'');
-  if(griglia){
-   griglia.innerHTML=nf.length===0
-    ?'<div class="inv-vuoto" style="grid-column:1/-1"><span class="emo">🔍</span>Nessun prodotto trovato.</div>'
-    :nf.map(p=>cardProd(p,isAdmin)).join('');
-   agganciaBottoniCard(griglia,tutti);
-  }
+  const nf=(invRicerca.trim()||invCategoria!=='Tutte')?filtraInventarioProdotti(tutti,invRicerca,invCategoria):[];
+  const emptyStart=document.getElementById('inv-empty-start');if(emptyStart)emptyStart.style.display=(invRicerca.trim()||invCategoria!=='Tutte')?'none':'';
+  if(lede)lede.textContent=(invRicerca.trim()||invCategoria!=='Tutte')?nf.length+' prodott'+(nf.length===1?'o':'i')+' trovat'+(nf.length===1?'o':'i')+(invRicerca?' per "'+invRicerca+'"':''):'Totale inventario: '+tutti.length+' prodott'+(tutti.length===1?'o':'i');
+  if(griglia){griglia.innerHTML=nf.length===0?'<div class="inv-vuoto" style="grid-column:1/-1"><span class="emo">🔍</span>Nessun prodotto trovato per la ricerca.</div>':nf.map(p=>cardProd(p,isAdmin)).join('');agganciaBottoniCard(griglia,tutti)}
  };
- if(inp)inp.addEventListener('input',e=>{invRicerca=e.target.value;riRender()});
- const sc=document.getElementById('inv-select-cat');
- if(sc)sc.addEventListener('change',e=>{invCategoria=e.target.value;riRender()});
- const bn=document.getElementById('inv-btn-nuovo');
- if(bn)bn.onclick=()=>apriModaleProdotto();
+ if(inp)inp.addEventListener('input',e=>{invRicerca=e.target.value;invStatoPerUtente[statoKey]={ricerca:invRicerca,categoria:invCategoria,attivo:true};riRender()});
+ const sc=document.getElementById('inv-select-cat');if(sc)sc.addEventListener('change',e=>{invCategoria=e.target.value;invStatoPerUtente[statoKey]={ricerca:invRicerca,categoria:invCategoria,attivo:true};riRender()});
+ const bn=document.getElementById('inv-btn-nuovo');if(bn)bn.onclick=()=>apriModaleProdotto();
  agganciaBottoniCard(el,tutti);
 }
 
@@ -1347,6 +1332,8 @@ async function salvaProdotto(modifica,p,nuovaFoto){
 function apriSchedaProd(p){
  const scheda=p.scheda||{};
  const hasFoto=!!p.foto;
+ const dataCreazione=p.createdAt?new Date(p.createdAt).toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'}):'non disponibile';
+ const dataAggiornamento=p.updatedAt?new Date(p.updatedAt).toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'}):dataCreazione;
  const fotoHtml=hasFoto?`<img loading="lazy" src="${p.foto}" style="width:100%;height:100%;object-fit:cover">`:`<div style="font-size:4rem;opacity:.4">📦</div>`;
  let righe='';
  [['Materiale',scheda.materiale],['Colore',scheda.colore],['Dimensione',scheda.dimensione]].forEach(([k,v])=>{
@@ -1363,6 +1350,8 @@ function apriSchedaProd(p){
   <div style="font-size:.75rem;color:#98a2b3;letter-spacing:.06em;margin-bottom:12px">COD. ${p.codice}</div>
   <div class="meta-grid"><div><small>Quantità attuale</small><strong>${p.quantita||0}</strong></div><div><small>Categoria</small><strong>${p.categoria||'—'}</strong></div><div><small>Posizione</small><strong>${p.posizione||'—'}</strong></div>${user.ruolo==='Amministratore'?`<div><small>Prezzo attuale</small><strong>€ ${(p.prezzo||0).toFixed(2)}</strong></div>`:''}</div>
   <div class="prod-cronologia"><button type="button" class="btn-mini" id="prod-cronologia-btn">Cronologia</button><div id="prod-cronologia-box" hidden><div class="prod-cronologia-titolo">Valori nel tempo</div><div>Creato il <b>${dataCreazione}</b></div><div>Quantità iniziale <b>${p.quantitaIniziale!==undefined&&p.quantitaIniziale!==null?p.quantitaIniziale:'—'}</b></div><div>Quantità ultima modifica <b>${p.quantita!==undefined&&p.quantita!==null?p.quantita:'—'}</b></div><div>Ultimo aggiornamento <b>${dataAggiornamento}</b></div>${user.ruolo==='Amministratore'?`<div>Prezzo iniziale <b>€ ${(Number(p.prezzoIniziale)||0).toFixed(2)}</b></div>`:''}</div></div>
+  <div class="meta-grid"><div><small>Quantità attuale</small><strong>${p.quantita||0}</strong></div><div><small>Posizione</small><strong>${p.posizione||'—'}</strong></div></div>
+  <div class="prod-cronologia"><button type="button" class="btn-mini" id="prod-cronologia-btn">Cronologia</button><div id="prod-cronologia-box" hidden><div class="prod-cronologia-titolo">Valori nel tempo</div><div>Creato il <b>${dataCreazione}</b></div><div>Quantità iniziale <b>${p.quantitaIniziale!==undefined&&p.quantitaIniziale!==null?p.quantitaIniziale:'—'}</b></div><div>Quantità ultima modifica <b>${p.quantita!==undefined&&p.quantita!==null?p.quantita:'—'}</b></div><div>Ultimo aggiornamento <b>${dataAggiornamento}</b></div>${user.ruolo==='Amministratore'?`<div>Prezzo iniziale <b>€ ${(Number(p.prezzoIniziale)||0).toFixed(2)}</b></div>`:''}</div></div>
   ${tech}
   <div style="background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;text-align:center;margin-top:14px">
    <div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.12em;color:#083278;font-weight:800;margin-bottom:10px">QR Code</div>
@@ -1373,6 +1362,8 @@ function apriSchedaProd(p){
  d.classList.add('open');bg.classList.add('open');
  document.getElementById('d-close').onclick=chiudiDrawer;
  bg.onclick=chiudiDrawer;
+ const cronBtn=document.getElementById('prod-cronologia-btn'),cronBox=document.getElementById('prod-cronologia-box');
+ if(cronBtn&&cronBox)cronBtn.onclick=function(){cronBox.hidden=!cronBox.hidden;cronBtn.classList.toggle('active',!cronBox.hidden);};
  const cronBtn=document.getElementById('prod-cronologia-btn'),cronBox=document.getElementById('prod-cronologia-box');
  if(cronBtn&&cronBox)cronBtn.onclick=function(){cronBox.hidden=!cronBox.hidden;cronBtn.classList.toggle('active',!cronBox.hidden);};
  setTimeout(()=>{
