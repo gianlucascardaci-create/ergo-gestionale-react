@@ -1129,7 +1129,7 @@ function inv(el){
    ${isAdmin?'<button class="inv-add" id="inv-btn-nuovo">＋ Nuovo prodotto</button>':''}
   </div>
   ${!catalogoAttivo
-   ?'<div class="inv-vuoto"><span class="emo">🔎</span>Inizia cercando un prodotto per nome, codice o categoria.</div>'
+   ?'<div class="inv-vuoto" id="inv-empty-start"><span class="emo">🔎</span>Inizia cercando un prodotto per nome, codice o categoria.</div><div class="inv-griglia" id="inv-griglia"></div>'
    :filtrati.length===0
    ?'<div class="inv-vuoto"><span class="emo">🔍</span>Nessun prodotto trovato'+(invRicerca?' per "'+invRicerca+'"':'')+'.</div>'
    :`<div class="inv-griglia" id="inv-griglia">${filtrati.map(p=>cardProd(p,isAdmin)).join('')}</div>`}
@@ -1143,6 +1143,8 @@ function inv(el){
    const matchTxt=ricercaIntelligente(invRicerca,[p.nome,p.codice,p.categoria,p.posizione,p.note]);
    return matchCat&&matchTxt;
   }):[];
+  const emptyStart=document.getElementById('inv-empty-start');
+  if(emptyStart)emptyStart.style.display=(invRicerca.trim()||invCategoria!=='Tutte')?'none':'';
   if(lede)lede.textContent=nf.length+' prodott'+(nf.length===1?'o':'i')+' trovat'+(nf.length===1?'o':'i')+(invRicerca?' per "'+invRicerca+'"':'');
   if(griglia){
    griglia.innerHTML=nf.length===0
@@ -1307,6 +1309,7 @@ async function salvaProdotto(modifica,p,nuovaFoto){
   prezzo:parseFloat(document.getElementById('pr-prezzo').value)||0,
   prezzoIniziale:modifica&&p.prezzoIniziale!==undefined&&p.prezzoIniziale!==null?Number(p.prezzoIniziale):(parseFloat(document.getElementById('pr-prezzo').value)||0),
   createdAt:p.createdAt||new Date().toISOString(),
+  updatedAt:new Date().toISOString(),
   note:document.getElementById('pr-note').value,
   foto,foto_path,
   scheda:{
@@ -1351,6 +1354,7 @@ function apriSchedaProd(p){
  });
  const tech=righe?`<div style="background:#f3f8ff;border:1px solid #d7e7fa;border-radius:12px;padding:14px;margin-top:12px"><div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.12em;color:#083278;font-weight:800;margin-bottom:10px">Scheda tecnica</div>${righe}</div>`:'';
  const dataCreazione=p.createdAt?new Date(p.createdAt).toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'}):'non disponibile';
+ const dataAggiornamento=p.updatedAt?new Date(p.updatedAt).toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'}):dataCreazione;
  const d=document.getElementById('d-panel'),bg=document.getElementById('d-bg');
  document.getElementById('d-eyebrow').textContent='Scheda prodotto';
  document.getElementById('d-titolo').textContent=p.nome;
@@ -1358,7 +1362,7 @@ function apriSchedaProd(p){
   <div style="width:100%;aspect-ratio:1;background:linear-gradient(145deg,#eef4fa,#f8fafc);border-radius:14px;display:grid;place-items:center;overflow:hidden;color:#9ab1c9;margin-bottom:14px">${fotoHtml}</div>
   <div style="font-size:.75rem;color:#98a2b3;letter-spacing:.06em;margin-bottom:12px">COD. ${p.codice}</div>
   <div class="meta-grid"><div><small>Quantità attuale</small><strong>${p.quantita||0}</strong></div><div><small>Categoria</small><strong>${p.categoria||'—'}</strong></div><div><small>Posizione</small><strong>${p.posizione||'—'}</strong></div>${user.ruolo==='Amministratore'?`<div><small>Prezzo attuale</small><strong>€ ${(p.prezzo||0).toFixed(2)}</strong></div>`:''}</div>
-  <div class="prod-cronologia"><button type="button" class="btn-mini" id="prod-cronologia-btn">Cronologia</button><div id="prod-cronologia-box" hidden><div class="prod-cronologia-titolo">Valori iniziali</div><div>Creato il <b>${dataCreazione}</b></div><div>Quantità iniziale <b>${p.quantitaIniziale!==undefined&&p.quantitaIniziale!==null?p.quantitaIniziale:'—'}</b></div>${user.ruolo==='Amministratore'?`<div>Prezzo iniziale <b>€ ${(Number(p.prezzoIniziale)||0).toFixed(2)}</b></div>`:''}</div></div>
+  <div class="prod-cronologia"><button type="button" class="btn-mini" id="prod-cronologia-btn">Cronologia</button><div id="prod-cronologia-box" hidden><div class="prod-cronologia-titolo">Valori nel tempo</div><div>Creato il <b>${dataCreazione}</b></div><div>Quantità iniziale <b>${p.quantitaIniziale!==undefined&&p.quantitaIniziale!==null?p.quantitaIniziale:'—'}</b></div><div>Quantità ultima modifica <b>${p.quantita!==undefined&&p.quantita!==null?p.quantita:'—'}</b></div><div>Ultimo aggiornamento <b>${dataAggiornamento}</b></div>${user.ruolo==='Amministratore'?`<div>Prezzo iniziale <b>€ ${(Number(p.prezzoIniziale)||0).toFixed(2)}</b></div>`:''}</div></div>
   ${tech}
   <div style="background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;text-align:center;margin-top:14px">
    <div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.12em;color:#083278;font-weight:800;margin-bottom:10px">QR Code</div>
@@ -2055,7 +2059,7 @@ function inv(el){
    ${isAdmin?'<button class="inv-add" id="inv-btn-nuovo">＋ Nuovo prodotto</button>':''}
   </div>
   ${!catalogoAttivo
-   ?'<div class="inv-vuoto"><span class="emo">🔎</span>Inizia cercando un prodotto per nome, codice o categoria.</div>'
+   ?'<div class="inv-vuoto" id="inv-empty-start"><span class="emo">🔎</span>Inizia cercando un prodotto per nome, codice o categoria.</div><div class="inv-griglia" id="inv-griglia"></div>'
    :filtrati.length===0
    ?'<div class="inv-vuoto"><span class="emo">🔍</span>Nessun prodotto trovato'+(invRicerca?' per "'+invRicerca+'"':'')+'.</div>'
    :`<div class="inv-griglia" id="inv-griglia">${filtrati.map(p=>cardProd(p,isAdmin,vedePrezzo)).join('')}</div>`}
@@ -2069,6 +2073,8 @@ function inv(el){
    const matchTxt=ricercaIntelligente(invRicerca,[p.nome,p.codice,p.categoria,p.posizione,p.note]);
    return matchCat&&matchTxt;
   }):[];
+  const emptyStart=document.getElementById('inv-empty-start');
+  if(emptyStart)emptyStart.style.display=(invRicerca.trim()||invCategoria!=='Tutte')?'none':'';
   if(lede)lede.textContent=nf.length+' prodott'+(nf.length===1?'o':'i')+' trovat'+(nf.length===1?'o':'i')+(invRicerca?' per "'+invRicerca+'"':'');
   if(griglia){
    griglia.innerHTML=nf.length===0
@@ -8008,7 +8014,7 @@ window.mostraPopupBenvenuto=function(){
   }
   function mapProduct(row){
     var foto=row.foto_path||row.foto_url||'';
-    return {id:row.id,qrToken:row.qr_token||nuovoQrToken(),codice:row.codice,nome:row.nome,categoria:row.categoria||'',quantita:Number(row.quantita||0),quantitaIniziale:Number(row.quantita_iniziale!==undefined&&row.quantita_iniziale!==null?row.quantita_iniziale:row.quantita||0),quantitaMinima:Number(row.quantita_minima||0),posizione:row.posizione||'',prezzo:Number(row.costo_noleggio||row.prezzo||0),prezzoIniziale:Number(row.prezzo_iniziale!==undefined&&row.prezzo_iniziale!==null?row.prezzo_iniziale:row.costo_noleggio||0),createdAt:row.created_at||'',note:row.note||'',foto:/^https?:|^data:/.test(foto)?foto:'',foto_path:row.foto_path||'',scheda:{materiale:row.scheda_materiale||'',colore:row.scheda_colore||'',dimensione:row.scheda_dimensione||'',note:row.scheda_note||''}};
+    return {id:row.id,qrToken:row.qr_token||nuovoQrToken(),codice:row.codice,nome:row.nome,categoria:row.categoria||'',quantita:Number(row.quantita||0),quantitaIniziale:Number(row.quantita_iniziale!==undefined&&row.quantita_iniziale!==null?row.quantita_iniziale:row.quantita||0),quantitaMinima:Number(row.quantita_minima||0),posizione:row.posizione||'',prezzo:Number(row.costo_noleggio||row.prezzo||0),prezzoIniziale:Number(row.prezzo_iniziale!==undefined&&row.prezzo_iniziale!==null?row.prezzo_iniziale:row.costo_noleggio||0),createdAt:row.created_at||'',updatedAt:row.updated_at||row.created_at||'',note:row.note||'',foto:/^https?:|^data:/.test(foto)?foto:'',foto_path:row.foto_path||'',scheda:{materiale:row.scheda_materiale||'',colore:row.scheda_colore||'',dimensione:row.scheda_dimensione||'',note:row.scheda_note||''}};
   }
   async function firmaFotoProdotto(prod){
     if(!sb||!prod||!prod.foto_path)return prod;
