@@ -654,10 +654,10 @@ h1.title{font-size:clamp(1.8rem,3vw,2.6rem);margin-top:8px;line-height:1.08}
 @media (max-width: 700px){
  html,body,#root,#app-root{width:100%;max-width:100%;overflow-x:hidden;overflow-y:auto}
  html{background:#f7f9fc}
- body{font-size:14px;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);overscroll-behavior-y:auto;touch-action:pan-y;-webkit-tap-highlight-color:transparent}
+ body{font-size:14px;padding:0;overscroll-behavior-y:auto;touch-action:pan-y;-webkit-tap-highlight-color:transparent}
  .app{display:block;min-height:100vh;min-height:100dvh;width:100%;overflow-x:hidden;overflow-y:visible}
  .main{width:100%;min-width:0;overflow-x:hidden;overflow-y:visible;touch-action:pan-y}
- .topbar{height:calc(58px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 12px 0;gap:8px}
+ .topbar{height:calc(58px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 12px 0;gap:8px;box-sizing:border-box}
  .topbar .crumb{min-width:0;gap:6px;font-size:.68rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
  .topbar .crumb strong{overflow:hidden;text-overflow:ellipsis}
  .topbar .user{gap:5px;font-size:.68rem;min-width:0}
@@ -745,6 +745,22 @@ h1.title{font-size:clamp(1.8rem,3vw,2.6rem);margin-top:8px;line-height:1.08}
  .assistente-actions{gap:5px!important}
  .assistente-action{padding:8px 9px!important;font-size:.66rem!important;line-height:1.2}
  .assistente-close{font-size:18px!important;right:5px!important;top:3px!important}
+}
+/* iOS Safari e Chrome iOS condividono il motore WebKit: il menu laterale
+   deve rimanere interamente dentro la viewport e non sotto la safe-area. */
+@supports (-webkit-touch-callout:none){
+ @media (max-width:700px){
+  .sidebar{position:fixed;left:0;top:0;width:min(260px,calc(100vw - 24px));height:100dvh;max-height:100dvh;box-sizing:border-box;padding:calc(18px + env(safe-area-inset-top)) 14px calc(18px + env(safe-area-inset-bottom));overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch;z-index:100}
+  .sidebar.open{transform:translateX(0);box-shadow:12px 0 32px rgba(8,50,120,.18)}
+  .brand,.nav,.side-bottom{width:100%;min-width:0;box-sizing:border-box}
+  .side-bottom{margin-top:auto;flex:0 0 auto;padding-bottom:2px}
+  .role-card{min-width:0}
+  .role-card div{min-width:0;overflow:hidden}
+  .role-card strong,.role-card span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .btn-out{display:block;width:100%;min-width:0;height:44px;white-space:nowrap;overflow:visible;padding:0 8px;font-size:.76rem}
+  .main{width:100%;max-width:100%;min-width:0}
+  .topbar{padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right))}
+ }
 }
 @media (max-width:380px){
  .page{padding-left:10px;padding-right:10px}
