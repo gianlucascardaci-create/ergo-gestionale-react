@@ -911,11 +911,12 @@ function generaNotifEvento(ev){
 }
 
 function generaNotifNoleggio(nl){
+ const oraIt=function(v){return v?new Date(v).toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Rome'}):'—'};
  const nuovo={id:'nf-'+Date.now()+'-nl',tipo:'noleggio',reparto:'magazzino',
   titolo:'Noleggio creato: '+nl.titolo,
   sottotitolo:nl.location+' · '+nl.stato,
   quando:new Date().toISOString(),da:nl.creatoDa,
-  dettagli:{noleggio:nl.titolo,dal:formattaDataIt(nl.inizio),al:formattaDataIt(nl.fine),location:nl.location,referente:nl.referente,telefono:nl.telefono,note:nl.note||'—'}};
+  dettagli:{noleggio:nl.titolo,dal:formattaDataIt(nl.inizio)+' · '+oraIt(nl.inizio),al:formattaDataIt(nl.fine)+' · '+oraIt(nl.fine),giornoNoleggio:formattaDataIt(nl.inizio),oraInizio:oraIt(nl.inizio),oraFine:oraIt(nl.fine),creatoDa:nl.creatoDa||'—',location:nl.location,referente:nl.referente,telefono:nl.telefono,note:nl.note||'—'}};
  NOTIFICHE.unshift(nuovo);
  let salvate=[];
  try{salvate=JSON.parse(localStorage.getItem('ergo_notifiche'))||[]}catch(e){}
@@ -933,8 +934,8 @@ function apriDrawerEnt(tipo,obj){
  const isMag1=user.ruolo==='Magazzino';
  document.getElementById('d-eyebrow').textContent=tipo==='evento'?'Evento Catering':'Noleggio';
  document.getElementById('d-titolo').textContent=obj.titolo;
- const dataI=new Date(obj.inizio).toLocaleDateString('it-IT',{day:'numeric',month:'long',year:'numeric'});
- const ora=new Date(obj.inizio).toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
+ const dataI=new Date(obj.inizio).toLocaleDateString('it-IT',{day:'numeric',month:'long',year:'numeric',timeZone:'Europe/Rome'});
+ const ora=new Date(obj.inizio).toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Rome'});
  let h='';
  if(tipo==='evento'){
   const ruoloCronologia=!isAdmin&&!isWedding&&['Sala','Cucina','Magazzino'].includes(user.ruolo);
@@ -967,8 +968,9 @@ function apriDrawerEnt(tipo,obj){
    });
   }
  }else{
-  const dataF=new Date(obj.fine).toLocaleDateString('it-IT',{day:'numeric',month:'long',year:'numeric'});
-  h+=`<h4>Dettagli noleggio</h4><div class="meta-grid"><div><small>Dal</small><strong>${dataI} · ${ora}</strong></div><div><small>Al</small><strong>${dataF}</strong></div><div><small>Location</small><strong>${obj.location||'—'}</strong></div><div><small>Stato</small><strong>${obj.stato}</strong></div><div><small>Referente</small><strong>${obj.referente||'—'}</strong></div><div><small>Telefono</small><strong>${obj.telefono||'—'}</strong></div></div>`;
+  const dataF=new Date(obj.fine).toLocaleDateString('it-IT',{day:'numeric',month:'long',year:'numeric',timeZone:'Europe/Rome'});
+  const oraFine=new Date(obj.fine).toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Rome'});
+  h+=`<h4>Dettagli noleggio</h4><div class="meta-grid"><div><small>Giorno noleggio</small><strong>${dataI}</strong></div><div><small>Orario</small><strong>Dalle ${ora} alle ${oraFine}</strong></div><div><small>Location</small><strong>${obj.location||'—'}</strong></div><div><small>Stato</small><strong>${obj.stato}</strong></div><div><small>Referente</small><strong>${obj.referente||'—'}</strong></div><div><small>Telefono</small><strong>${obj.telefono||'—'}</strong></div>${obj.creatoDa?`<div><small>Creato da</small><strong>${obj.creatoDa}</strong></div>`:''}</div>`;
   if(obj.note)h+=`<h4>📝 Note</h4><div class="note-box">${obj.note}</div>`;
   const vediBolla=isAdmin||isMag2;
   const vediDDT=isAdmin||isMag2||isMag1;
@@ -1111,11 +1113,11 @@ function inv(el){
  let salvati=[];
  try{salvati=JSON.parse(localStorage.getItem('ergo_prodotti'))||[]}catch(e){}
  const tutti=tuttiProds(salvati);
- const filtrati=tutti.filter(p=>{
+ const filtrati=catalogoAttivo?tutti.filter(p=>{
   const matchCat=invRicerca.trim()!==''||invCategoria==='Tutte'||(p.categoria||'').toUpperCase().includes(invCategoria.toUpperCase());
   const matchTxt=ricercaIntelligente(invRicerca,[p.nome,p.codice,p.categoria,p.posizione,p.note]);
   return matchCat&&matchTxt;
- });
+ }):[];
  const isAdmin=user.ruolo==='Amministratore';
  el.innerHTML=`<div class="page">
   <div style="margin-bottom:20px"><p class="eyebrow">Catalogo</p><h1 class="title">Inventario</h1><p class="lede">${filtrati.length} prodott${filtrati.length===1?'o':'i'} trovat${filtrati.length===1?'o':'i'}${invRicerca?' per "'+invRicerca+'"':''}</p></div>
@@ -1126,7 +1128,9 @@ function inv(el){
    </div>
    ${isAdmin?'<button class="inv-add" id="inv-btn-nuovo">＋ Nuovo prodotto</button>':''}
   </div>
-  ${filtrati.length===0
+  ${!catalogoAttivo
+   ?'<div class="inv-vuoto"><span class="emo">🔎</span>Inizia cercando un prodotto per nome, codice o categoria.</div>'
+   :filtrati.length===0
    ?'<div class="inv-vuoto"><span class="emo">🔍</span>Nessun prodotto trovato'+(invRicerca?' per "'+invRicerca+'"':'')+'.</div>'
    :`<div class="inv-griglia" id="inv-griglia">${filtrati.map(p=>cardProd(p,isAdmin)).join('')}</div>`}
  </div>`;
@@ -1134,11 +1138,11 @@ function inv(el){
  const griglia=document.getElementById('inv-griglia');
  const lede=el.querySelector('.lede');
  const riRender=()=>{
-  const nf=tutti.filter(p=>{
+  const nf=catalogoAttivo||invRicerca.trim()||invCategoria!=='Tutte'?tutti.filter(p=>{
    const matchCat=invRicerca.trim()!==''||invCategoria==='Tutte'||(p.categoria||'').toUpperCase().includes(invCategoria.toUpperCase());
    const matchTxt=ricercaIntelligente(invRicerca,[p.nome,p.codice,p.categoria,p.posizione,p.note]);
    return matchCat&&matchTxt;
-  });
+  }):[];
   if(lede)lede.textContent=nf.length+' prodott'+(nf.length===1?'o':'i')+' trovat'+(nf.length===1?'o':'i')+(invRicerca?' per "'+invRicerca+'"':'');
   if(griglia){
    griglia.innerHTML=nf.length===0
@@ -1216,7 +1220,7 @@ function comprimiFoto(file){
    ============================================================ */
 function apriModaleProdotto(prod){
  const modifica=!!prod;
- const p=prod||{codice:'',nome:'',categoria:'',quantita:0,posizione:'',prezzo:0,note:'',foto:'',scheda:{materiale:'',colore:'',dimensione:'',note:''}};
+ const p=prod||{codice:'',nome:'',categoria:'',quantita:0,quantitaIniziale:0,quantitaMinima:0,posizione:'',prezzo:0,prezzoIniziale:0,note:'',foto:'',scheda:{materiale:'',colore:'',dimensione:'',note:''}};
  const scheda=p.scheda||{materiale:'',colore:'',dimensione:'',note:''};
  const catsSel=(p.categoria||'').split(',').map(s=>s.trim()).filter(Boolean);
  const hasFoto=!!p.foto;
@@ -1236,6 +1240,7 @@ function apriModaleProdotto(prod){
    <div class="campo"><label>Posizione</label><input id="pr-pos" value="${(p.posizione||'').replace(/"/g,'&quot;')}" placeholder="Es. A1"></div>
    <div class="campo"><label>Prezzo (€)</label><input id="pr-prezzo" type="number" min="0" step="0.01" value="${(p.prezzo||0).toFixed(2)}"></div>
   </div>
+  ${user&&user.ruolo==='Amministratore'?`<div class="campo"><label>Quantità minima di riordino</label><input id="pr-qta-min" type="number" min="0" value="${Number(p.quantitaMinima||0)}" placeholder="Es. 50"><small style="display:block;color:#8b96a9;font-size:.68rem;margin-top:5px">La scheda diventa arancione quando si avvicina a questo valore e rossa quando lo raggiunge o scende sotto.</small></div>`:''}
   <div class="campo"><label>Note (opzionale)</label><textarea id="pr-note" placeholder="Note visibili nella scheda prodotto...">${(p.note||'').replace(/</g,'&lt;')}</textarea></div>
   <div class="divisore-modale">📸 Foto prodotto</div>
   <div class="campo"><label style="text-transform:none;font-weight:600;color:#94a3b8;letter-spacing:0">Compressa automaticamente a max 70 KB</label><input type="file" id="pr-foto" accept="image/*"><div id="pr-foto-preview">${hasFoto?`<div class="foto-preview-box"><img loading="lazy" src="${p.foto}"><div class="info"><strong>✅ Foto attuale</strong><span>Già ottimizzata</span></div></div>`:''}</div></div>
@@ -1296,8 +1301,12 @@ async function salvaProdotto(modifica,p,nuovaFoto){
   qrToken:assicuraQrToken(p),
   codice,nome,categoria:categorie.join(', '),
   quantita:parseInt(document.getElementById('pr-qta').value)||0,
+  quantitaIniziale:modifica&&p.quantitaIniziale!==undefined&&p.quantitaIniziale!==null?Number(p.quantitaIniziale):(parseInt(document.getElementById('pr-qta').value)||0),
+  quantitaMinima:(user&&user.ruolo==='Amministratore'&&document.getElementById('pr-qta-min'))?Math.max(0,parseInt(document.getElementById('pr-qta-min').value)||0):Number(p.quantitaMinima||0),
   posizione:document.getElementById('pr-pos').value.trim(),
   prezzo:parseFloat(document.getElementById('pr-prezzo').value)||0,
+  prezzoIniziale:modifica&&p.prezzoIniziale!==undefined&&p.prezzoIniziale!==null?Number(p.prezzoIniziale):(parseFloat(document.getElementById('pr-prezzo').value)||0),
+  createdAt:p.createdAt||new Date().toISOString(),
   note:document.getElementById('pr-note').value,
   foto,foto_path,
   scheda:{
@@ -1341,13 +1350,15 @@ function apriSchedaProd(p){
   if(v&&v.trim())righe+=`<div style="display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px dashed #c9dcf0;font-size:.8rem"><span style="color:#6b778c;font-weight:600">${k}</span><span style="color:#344054;font-weight:600;text-align:right">${v}</span></div>`;
  });
  const tech=righe?`<div style="background:#f3f8ff;border:1px solid #d7e7fa;border-radius:12px;padding:14px;margin-top:12px"><div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.12em;color:#083278;font-weight:800;margin-bottom:10px">Scheda tecnica</div>${righe}</div>`:'';
+ const dataCreazione=p.createdAt?new Date(p.createdAt).toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'}):'non disponibile';
  const d=document.getElementById('d-panel'),bg=document.getElementById('d-bg');
  document.getElementById('d-eyebrow').textContent='Scheda prodotto';
  document.getElementById('d-titolo').textContent=p.nome;
  document.getElementById('d-body').innerHTML=`
   <div style="width:100%;aspect-ratio:1;background:linear-gradient(145deg,#eef4fa,#f8fafc);border-radius:14px;display:grid;place-items:center;overflow:hidden;color:#9ab1c9;margin-bottom:14px">${fotoHtml}</div>
   <div style="font-size:.75rem;color:#98a2b3;letter-spacing:.06em;margin-bottom:12px">COD. ${p.codice}</div>
-  <div class="meta-grid"><div><small>Quantità</small><strong>📦 ${p.quantita||0}</strong></div><div><small>Categoria</small><strong>${p.categoria||'—'}</strong></div><div><small>Posizione</small><strong>📍 ${p.posizione||'—'}</strong></div>${user.ruolo==='Amministratore'?`<div><small>Prezzo</small><strong>€ ${(p.prezzo||0).toFixed(2)}</strong></div>`:''}</div>
+  <div class="meta-grid"><div><small>Quantità attuale</small><strong>${p.quantita||0}</strong></div><div><small>Categoria</small><strong>${p.categoria||'—'}</strong></div><div><small>Posizione</small><strong>${p.posizione||'—'}</strong></div>${user.ruolo==='Amministratore'?`<div><small>Prezzo attuale</small><strong>€ ${(p.prezzo||0).toFixed(2)}</strong></div>`:''}</div>
+  <div class="prod-cronologia"><button type="button" class="btn-mini" id="prod-cronologia-btn">Cronologia</button><div id="prod-cronologia-box" hidden><div class="prod-cronologia-titolo">Valori iniziali</div><div>Creato il <b>${dataCreazione}</b></div><div>Quantità iniziale <b>${p.quantitaIniziale!==undefined&&p.quantitaIniziale!==null?p.quantitaIniziale:'—'}</b></div>${user.ruolo==='Amministratore'?`<div>Prezzo iniziale <b>€ ${(Number(p.prezzoIniziale)||0).toFixed(2)}</b></div>`:''}</div></div>
   ${tech}
   <div style="background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;text-align:center;margin-top:14px">
    <div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.12em;color:#083278;font-weight:800;margin-bottom:10px">QR Code</div>
@@ -1358,6 +1369,8 @@ function apriSchedaProd(p){
  d.classList.add('open');bg.classList.add('open');
  document.getElementById('d-close').onclick=chiudiDrawer;
  bg.onclick=chiudiDrawer;
+ const cronBtn=document.getElementById('prod-cronologia-btn'),cronBox=document.getElementById('prod-cronologia-box');
+ if(cronBtn&&cronBox)cronBtn.onclick=function(){cronBox.hidden=!cronBox.hidden;cronBtn.classList.toggle('active',!cronBox.hidden);};
  setTimeout(()=>{
   const c=document.getElementById('qr-canvas');
   if(c){
@@ -1957,6 +1970,9 @@ function distanzaNomeProdotto(query,nome){
 }
 function suggerisciProdottoInventario(query,tutti){
  const q=String(query||'').trim();if(q.length<3)return;
+ /* Se il termine digitato è già contenuto in un prodotto, non mostrare mai
+    un suggerimento fuzzy per un altro prodotto: ad esempio "flute" vince su "blu". */
+ if((tutti||[]).some(function(p){return testoProdottoEsatto(q,p)}))return;
  const key=chiaveRicercaInventario()+'|'+normalizzaTesto(q);
  if(window._ultimoSuggerimentoInventario===key)return;
  const normalNome=function(v){return normalizzaTesto(String(v||'')).replace(/[^a-z0-9\s]/g,' ').replace(/\s+/g,' ').trim();};
@@ -2016,16 +2032,17 @@ document.addEventListener('input',function(e){
 
 function inv(el){
  const statoKey=chiaveRicercaInventario();
- const stato=invStatoPerUtente[statoKey]||{ricerca:'',categoria:'Tutte'};
+ const stato=invStatoPerUtente[statoKey]||{ricerca:'',categoria:'Tutte',attivo:false};
  invRicerca=stato.ricerca||'';invCategoria=stato.categoria||'Tutte';
+ const catalogoAttivo=stato.attivo===true||!!invRicerca.trim()||invCategoria!=='Tutte';
  let salvati=[];
  try{salvati=JSON.parse(localStorage.getItem('ergo_prodotti'))||[]}catch(e){}
  const tutti=tuttiProds(salvati);
- const filtrati=tutti.filter(p=>{
+ const filtrati=catalogoAttivo?tutti.filter(p=>{
   const matchCat=invRicerca.trim()!==''||invCategoria==='Tutte'||(p.categoria||'').toUpperCase().includes(invCategoria.toUpperCase());
   const matchTxt=ricercaIntelligente(invRicerca,[p.nome,p.codice,p.categoria,p.posizione,p.note]);
   return matchCat&&matchTxt;
- });
+ }):[];
  const isAdmin=user.ruolo==='Amministratore';
  const vedePrezzo=user.ruolo==='Amministratore'||user.ruolo==='Magazzino2';
  el.innerHTML=`<div class="page">
@@ -2037,7 +2054,9 @@ function inv(el){
    </div>
    ${isAdmin?'<button class="inv-add" id="inv-btn-nuovo">＋ Nuovo prodotto</button>':''}
   </div>
-  ${filtrati.length===0
+  ${!catalogoAttivo
+   ?'<div class="inv-vuoto"><span class="emo">🔎</span>Inizia cercando un prodotto per nome, codice o categoria.</div>'
+   :filtrati.length===0
    ?'<div class="inv-vuoto"><span class="emo">🔍</span>Nessun prodotto trovato'+(invRicerca?' per "'+invRicerca+'"':'')+'.</div>'
    :`<div class="inv-griglia" id="inv-griglia">${filtrati.map(p=>cardProd(p,isAdmin,vedePrezzo)).join('')}</div>`}
  </div>`;
@@ -2045,11 +2064,11 @@ function inv(el){
  const griglia=document.getElementById('inv-griglia');
  const lede=el.querySelector('.lede');
  const riRender=()=>{
-  const nf=tutti.filter(p=>{
+  const nf=(catalogoAttivo||invRicerca.trim()||invCategoria!=='Tutte')?tutti.filter(p=>{
    const matchCat=invRicerca.trim()!==''||invCategoria==='Tutte'||(p.categoria||'').toUpperCase().includes(invCategoria.toUpperCase());
    const matchTxt=ricercaIntelligente(invRicerca,[p.nome,p.codice,p.categoria,p.posizione,p.note]);
    return matchCat&&matchTxt;
-  });
+  }):[];
   if(lede)lede.textContent=nf.length+' prodott'+(nf.length===1?'o':'i')+' trovat'+(nf.length===1?'o':'i')+(invRicerca?' per "'+invRicerca+'"':'');
   if(griglia){
    griglia.innerHTML=nf.length===0
@@ -2060,7 +2079,7 @@ function inv(el){
  };
  if(inp)inp.addEventListener('input',e=>{
   invRicerca=e.target.value;
-  invStatoPerUtente[statoKey]={ricerca:invRicerca,categoria:invCategoria};
+  invStatoPerUtente[statoKey]={ricerca:invRicerca,categoria:invCategoria,attivo:true};
   riRender();
   if(invRicercaTimer)clearTimeout(invRicercaTimer);
   invRicercaTimer=setTimeout(function(){suggerisciProdottoInventario(invRicerca,tutti);},450);
@@ -2068,7 +2087,7 @@ function inv(el){
  const sc=document.getElementById('inv-select-cat');
  if(sc)sc.addEventListener('change',e=>{
   invCategoria=e.target.value;
-  invStatoPerUtente[statoKey]={ricerca:invRicerca,categoria:invCategoria};
+  invStatoPerUtente[statoKey]={ricerca:invRicerca,categoria:invCategoria,attivo:true};
   riRender();
  });
  const bn=document.getElementById('inv-btn-nuovo');
@@ -2162,8 +2181,9 @@ function apriDrawerEnt(tipo,obj){
    h+=`<h4>📎 Allegati</h4><p style="color:#94a3b8;font-size:.82rem;padding:8px 0">Nessun allegato per questo evento.</p>`;
   }
  }else{
-  const dataF=new Date(obj.fine).toLocaleDateString('it-IT',{day:'numeric',month:'long',year:'numeric'});
-  h+=`<h4>Dettagli noleggio</h4><div class="meta-grid"><div><small>Dal</small><strong>${dataI} · ${ora}</strong></div><div><small>Al</small><strong>${dataF}</strong></div><div><small>Location</small><strong>${obj.location||'—'}</strong></div><div><small>Stato</small><strong>${obj.stato}</strong></div><div><small>Referente</small><strong>${obj.referente||'—'}</strong></div><div><small>Telefono</small><strong>${obj.telefono||'—'}</strong></div></div>`;
+  const dataF=new Date(obj.fine).toLocaleDateString('it-IT',{day:'numeric',month:'long',year:'numeric',timeZone:'Europe/Rome'});
+  const oraFine=new Date(obj.fine).toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Rome'});
+  h+=`<h4>Dettagli noleggio</h4><div class="meta-grid"><div><small>Giorno noleggio</small><strong>${dataI}</strong></div><div><small>Orario</small><strong>Dalle ${ora} alle ${oraFine}</strong></div><div><small>Location</small><strong>${obj.location||'—'}</strong></div><div><small>Stato</small><strong>${obj.stato}</strong></div><div><small>Referente</small><strong>${obj.referente||'—'}</strong></div><div><small>Telefono</small><strong>${obj.telefono||'—'}</strong></div>${obj.creatoDa?`<div><small>Creato da</small><strong>${obj.creatoDa}</strong></div>`:''}</div>`;
   if(obj.note)h+=`<h4>📝 Note</h4><div class="note-box">${obj.note}</div>`;
   const vediBolla=isAdmin||isMag2;
   const vediDDT=isAdmin||isMag2||isMag1;
@@ -2477,7 +2497,7 @@ function renderDetNotif(n){
   h+=`<h4>Evento</h4><div class="note-box tutti"><strong style="font-family:Georgia,serif;font-size:1rem">${d.evento}</strong>${d.location?`<br><span style="color:#667085;font-size:.8rem">📍 ${d.location}</span>`:''}</div>`;
  }
  if(d.noleggio){
-  h+=`<h4>Noleggio</h4><div class="note-box"><strong style="font-family:Georgia,serif;font-size:1rem">${d.noleggio}</strong></div>`;
+  h+=`<h4>Noleggio</h4><div class="note-box"><strong style="font-family:Georgia,serif;font-size:1rem">${d.noleggio}</strong>${d.giornoNoleggio?`<br><span style="color:#667085;font-size:.8rem">📅 ${d.giornoNoleggio}</span>`:''}${d.oraInizio?`<br><span style="color:#667085;font-size:.8rem">🕘 Dalle ${d.oraInizio} alle ${d.oraFine||'—'}</span>`:''}${d.creatoDa?`<br><span style="color:#667085;font-size:.8rem">Creato da: ${d.creatoDa}</span>`:''}</div>`;
  }
  if(d.testoNota){
   const cls=n.reparto==='cucina'?'cucina':n.reparto==='sala'?'sala':n.reparto==='magazzino'?'magazzino':'tutti';
@@ -3002,13 +3022,16 @@ async function mostraMeteoIn(idElemento,citta,dataEvento){
 function cardProd(p,isAdmin,vedePrezzo){
  const hasFoto=!!p.foto;
  const catColor=coloreCategoria(p.categoria);
+ const qtaAttuale=Number(p.quantita||0), qtaMinima=Number(p.quantitaMinima||0);
+ const stockClass=qtaMinima>0?(qtaAttuale<=qtaMinima?' inv-stock-red':(qtaAttuale<=qtaMinima*1.25?' inv-stock-orange':'')):'';
+ const stockLabel=qtaMinima>0?(qtaAttuale<=qtaMinima?'Sotto scorta':(qtaAttuale<=qtaMinima*1.25?'Quasi sotto scorta':'')):'';
  const foto=hasFoto?`<img loading="lazy" referrerpolicy="no-referrer" src="${p.foto}" onerror="this.style.display='none';this.parentNode.classList.add('no-foto')">`:'';
- return `<div class="inv-card">
+ return `<div class="inv-card${stockClass}">
   <div class="inv-foto">${foto}<span class="inv-badge-cat" style="background:${catColor};color:#fff">${p.categoria||'—'}</span></div>
   <div class="inv-body">
    <div class="inv-nome">${p.nome||''}</div>
    <div class="inv-codice">Cod. ${p.codice||'—'}</div>
-   <div class="inv-qta"><span class="inv-label">Quantità</span><strong>${p.quantita||0}</strong><span class="inv-qta-unita">disponibili</span></div>
+   <div class="inv-qta"><span class="inv-label">Quantità</span><strong>${qtaAttuale}</strong><span class="inv-qta-unita">${stockLabel||'disponibili'}</span></div>
    <div class="inv-dati"><div class="inv-info"><span class="inv-label">Posizione</span><b>${p.posizione||'—'}</b></div>${vedePrezzo?`<div class="inv-prezzo"><span class="inv-label">Prezzo</span><strong>€ ${(p.prezzo||0).toFixed(2)}</strong></div>`:''}</div>
    ${p.note?`<div style="font-size:.7rem;color:#94a3b8;line-height:1.4;margin-top:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">📝 ${p.note}</div>`:''}
    <div class="inv-azioni">
@@ -4949,7 +4972,7 @@ function renderDetNotif(n){
   h+=`<h4>📎 Allegato</h4><div style="background:#f0f6ff;border:1px solid #d7e7fa;border-radius:10px;padding:12px;display:flex;align-items:center;gap:10px"><span style="font-size:1.4rem">📄</span><div><strong style="font-size:.85rem;color:#083278">${d.allegato}</strong><div style="font-size:.7rem;color:#6b778c;margin-top:3px">Apri l'evento per visualizzarlo</div></div></div>`;
  }
  if(d.noleggio){
-  h+=`<h4>Noleggio</h4><div class="note-box"><strong style="font-family:Georgia,serif;font-size:1rem">${d.noleggio}</strong></div>`;
+  h+=`<h4>Noleggio</h4><div class="note-box"><strong style="font-family:Georgia,serif;font-size:1rem">${d.noleggio}</strong>${d.giornoNoleggio?`<br><span style="color:#667085;font-size:.8rem">📅 ${d.giornoNoleggio}</span>`:''}${d.oraInizio?`<br><span style="color:#667085;font-size:.8rem">🕘 Dalle ${d.oraInizio} alle ${d.oraFine||'—'}</span>`:''}${d.creatoDa?`<br><span style="color:#667085;font-size:.8rem">Creato da: ${d.creatoDa}</span>`:''}</div>`;
  }
  if(d.utente){
   h+=`<h4>Utente</h4><div class="note-box tutti"><strong>${d.utente}</strong><br><span style="color:#667085;font-size:.8rem">Ruolo: ${d.ruolo}</span></div>`;
@@ -7829,7 +7852,7 @@ window.mostraPopupBenvenuto=function(){
 
   function productPayload(p){
     var sh=p.scheda||{};
-    return {qr_token:assicuraQrToken(p),codice:p.codice,nome:p.nome,categoria:p.categoria||'',quantita:Number(p.quantita||0),posizione:p.posizione||'',costo_noleggio:Number(p.prezzo||p.costo_noleggio||0),note:p.note||'',foto_path:p.foto_path||((p.foto&&/^https?:/.test(p.foto))?'':p.foto)||'',scheda_materiale:sh.materiale||'',scheda_colore:sh.colore||'',scheda_dimensione:sh.dimensione||'',scheda_note:sh.note||''};
+  return {qr_token:assicuraQrToken(p),codice:p.codice,nome:p.nome,categoria:p.categoria||'',quantita:Number(p.quantita||0),quantita_iniziale:Number(p.quantitaIniziale!==undefined?p.quantitaIniziale:p.quantita||0),quantita_minima:Number(p.quantitaMinima||0),posizione:p.posizione||'',costo_noleggio:Number(p.prezzo||p.costo_noleggio||0),prezzo_iniziale:Number(p.prezzoIniziale!==undefined?p.prezzoIniziale:p.prezzo||0),note:p.note||'',foto_path:p.foto_path||((p.foto&&/^https?:/.test(p.foto))?'':p.foto)||'',scheda_materiale:sh.materiale||'',scheda_colore:sh.colore||'',scheda_dimensione:sh.dimensione||'',scheda_note:sh.note||''};
   }
   function eventPayload(e){
     return {client_id:e.clientId||e.id||null,nome_evento:e.titolo,data:dataEventoCanonica(e),data_display:dataEventoCanonica(e)+'T'+oraEventoCanonica(e),location:e.location||'',citta:e.citta||'',ospiti:Number(e.ospiti||0),bambini:Number(e.bambini||0),staff:Number(e.staff||0),note_tutti:e.noteTutti||'',allegati_tutti:e.allegatiTutti||[],note_sala:e.noteSala||'',allegati_sala:e.allegatiSala||[],note_cucina:e.noteCucina||'',allegati_cucina:e.allegatiCucina||[],note_magazzino:e.noteMagazzino||'',allegati_magazzino:e.allegatiMagazzino||[],allegati_privati:e.allegatiPrivata||[],lista_attrezzature:e.listaAttrezzature||[],note_storico_tutti:e.noteStoricoTutti||[],note_storico_sala:e.noteStoricoSala||[],note_storico_cucina:e.noteStoricoCucina||[],note_storico_magazzino:e.noteStoricoMagazzino||[],note_storico_admin:e.noteStoricoAdmin||[]};
@@ -7985,7 +8008,7 @@ window.mostraPopupBenvenuto=function(){
   }
   function mapProduct(row){
     var foto=row.foto_path||row.foto_url||'';
-    return {id:row.id,qrToken:row.qr_token||nuovoQrToken(),codice:row.codice,nome:row.nome,categoria:row.categoria||'',quantita:Number(row.quantita||0),posizione:row.posizione||'',prezzo:Number(row.costo_noleggio||row.prezzo||0),note:row.note||'',foto:/^https?:|^data:/.test(foto)?foto:'',foto_path:row.foto_path||'',scheda:{materiale:row.scheda_materiale||'',colore:row.scheda_colore||'',dimensione:row.scheda_dimensione||'',note:row.scheda_note||''}};
+    return {id:row.id,qrToken:row.qr_token||nuovoQrToken(),codice:row.codice,nome:row.nome,categoria:row.categoria||'',quantita:Number(row.quantita||0),quantitaIniziale:Number(row.quantita_iniziale!==undefined&&row.quantita_iniziale!==null?row.quantita_iniziale:row.quantita||0),quantitaMinima:Number(row.quantita_minima||0),posizione:row.posizione||'',prezzo:Number(row.costo_noleggio||row.prezzo||0),prezzoIniziale:Number(row.prezzo_iniziale!==undefined&&row.prezzo_iniziale!==null?row.prezzo_iniziale:row.costo_noleggio||0),createdAt:row.created_at||'',note:row.note||'',foto:/^https?:|^data:/.test(foto)?foto:'',foto_path:row.foto_path||'',scheda:{materiale:row.scheda_materiale||'',colore:row.scheda_colore||'',dimensione:row.scheda_dimensione||'',note:row.scheda_note||''}};
   }
   async function firmaFotoProdotto(prod){
     if(!sb||!prod||!prod.foto_path)return prod;
@@ -8418,6 +8441,8 @@ window.mostraPopupBenvenuto=function(){
     return da.includes('magazzino2')||da.includes('simona')||da.includes('elena');
    }
    if(utente.ruolo==='Magazzino2')return n.tipo==='noleggio';
+   /* I noleggi creati dall’Admin devono arrivare anche a Magazzino 1. */
+   if(utente.ruolo==='Magazzino')return n.tipo==='noleggio'||(n.reparto==='magazzino'&&n.tipo!=='noleggio');
    if(n.reparto==='admin'||n.tipo==='noleggio')return false;
    var ev=d.evento?EVENTI.find(function(x){return String(x.titolo||'').toLowerCase()===String(d.evento||'').toLowerCase()}):null;
    /* Elimina le copie legacy senza identificatore: la cronologia è la fonte. */
