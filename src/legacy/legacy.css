@@ -655,15 +655,15 @@ h1.title{font-size:clamp(1.8rem,3vw,2.6rem);margin-top:8px;line-height:1.08}
  html,body,#root,#app-root{width:100%;max-width:100%;overflow-x:hidden}
  html{background:#f7f9fc}
  body{font-size:14px;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);overscroll-behavior-y:none;-webkit-tap-highlight-color:transparent}
- .app{display:block;min-height:100vh;width:100%;overflow-x:hidden}
- .main{width:100%;min-width:0;overflow-x:hidden}
+ .app{display:block;min-height:100vh;min-height:100dvh;width:100%;overflow-x:hidden;overflow-y:visible}
+ .main{width:100%;min-width:0;overflow-x:hidden;overflow-y:visible}
  .topbar{height:calc(58px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 12px 0;gap:8px}
  .topbar .crumb{min-width:0;gap:6px;font-size:.68rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
  .topbar .crumb strong{overflow:hidden;text-overflow:ellipsis}
  .topbar .user{gap:5px;font-size:.68rem;min-width:0}
  .topbar .avatar{width:30px;height:30px;flex:0 0 30px}
  .mobile-btn{width:34px;height:34px;flex:0 0 34px}
- .page{width:100%;max-width:none;padding:18px 12px 28px;margin:0}
+ .page{width:100%;max-width:none;padding:18px 12px 28px;margin:0;touch-action:pan-y}
  h1.title{font-size:1.55rem;line-height:1.12}
  .lede{font-size:.78rem;line-height:1.45;margin-top:8px}
  .cd-grid{grid-template-columns:1fr;gap:10px;margin-bottom:14px}
@@ -715,10 +715,10 @@ h1.title{font-size:clamp(1.8rem,3vw,2.6rem);margin-top:8px;line-height:1.08}
  .cal-filtro{width:100%;gap:5px}
  .cal-filtro button{flex:1 1 auto;padding:7px 8px;font-size:.64rem}
  .cal-griglia{min-width:620px}
- .drawer{width:100vw;max-width:100vw}
+ .drawer{width:100vw;max-width:100vw;height:100dvh;max-height:100dvh}
  .drawer-head{padding:15px 14px 12px}
  .drawer-head h2{font-size:1.1rem;max-width:calc(100vw - 80px)}
- .drawer-body{padding:15px 14px}
+ .drawer-body{padding:15px 14px;min-height:0;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y}
  .drawer-foot{padding:12px 14px}
  .meta-grid{grid-template-columns:1fr 1fr;gap:7px}
  .meta-grid div{padding:8px 9px;min-width:0}
@@ -737,8 +737,8 @@ h1.title{font-size:clamp(1.8rem,3vw,2.6rem);margin-top:8px;line-height:1.08}
  .footer{padding:12px 10px 18px;gap:6px}
  /* Assistente: immagine leggibile ma non invasiva e testo sempre dentro lo schermo. */
  .assistente-vnext{right:7px!important;left:7px!important;bottom:7px!important;width:auto!important;max-width:none!important;align-items:flex-end!important}
- .assistente-person{width:92px!important;min-width:92px!important;transform:translateY(4px)!important}
- .assistente-person svg,.assistente-person .assistant-character-image{width:92px!important;height:138px!important;max-width:92px!important}
+ .assistente-person{width:116px!important;min-width:116px!important;transform:translateY(4px)!important}
+ .assistente-person svg,.assistente-person .assistant-character-image{width:116px!important;height:174px!important;max-width:116px!important}
  .assistente-card{min-width:0!important;width:auto!important;flex:1 1 auto!important;max-width:none!important;padding:11px 12px 10px!important;border-radius:14px!important}
  .assistente-role{font-size:.56rem!important;margin-bottom:4px!important}
  .assistente-text{font-size:.76rem!important;line-height:1.3!important;margin-bottom:8px!important;overflow-wrap:anywhere!important;max-height:76px;overflow:auto}
@@ -750,7 +750,7 @@ h1.title{font-size:clamp(1.8rem,3vw,2.6rem);margin-top:8px;line-height:1.08}
  .page{padding-left:10px;padding-right:10px}
  .inv-griglia{gap:6px!important}
  .inv-foto{height:88px!important}
- .assistente-person{width:78px!important;min-width:78px!important}
- .assistente-person svg,.assistente-person .assistant-character-image{width:78px!important;height:118px!important;max-width:78px!important}
+ .assistente-person{width:102px!important;min-width:102px!important}
+ .assistente-person svg,.assistente-person .assistant-character-image{width:102px!important;height:153px!important;max-width:102px!important}
  .assistente-text{font-size:.72rem!important}
 }

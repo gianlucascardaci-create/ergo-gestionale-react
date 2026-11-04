@@ -59,6 +59,10 @@ function tempoFa(iso){
    ============================================================ */
 let user=null,view='dashboard',timer=null,filtroFeed='tutte';
 let ergoInstallPrompt=null;
+function salvaSessionePersistente(utente){
+ try{localStorage.setItem('ergo_sessione_persistente',JSON.stringify({user:utente,token:sessionStorage.getItem('ergo_session_token')||'',savedAt:Date.now()}));}catch(e){}
+}
+function cancellaSessionePersistente(){try{localStorage.removeItem('ergo_sessione_persistente');}catch(e){}}
 window.addEventListener('beforeinstallprompt',function(e){
  e.preventDefault();
  ergoInstallPrompt=e;
@@ -294,7 +298,7 @@ async function doLogin(){
     new Promise(function(_,reject){setTimeout(function(){reject(new Error('LOGIN_TIMEOUT'));},15000);})
    ]);
    if(f){
-    user=f;UTENTI[f.username]={ruolo:f.ruolo,nome:f.nome,email:f.email,iniziali:(f.nome||f.username).split(' ').map(x=>x[0]).slice(0,2).join('').toUpperCase()};
+    user=f;salvaSessionePersistente(f);UTENTI[f.username]={ruolo:f.ruolo,nome:f.nome,email:f.email,iniziali:(f.nome||f.username).split(' ').map(x=>x[0]).slice(0,2).join('').toUpperCase()};
     view='dashboard';filtroFeed='tutte';calMese=new Date().getMonth();calAnno=new Date().getFullYear();invRicerca='';invCategoria='Tutte';listaRicerca='';listaCategoria='Tutte';listaAttrezzature=[];Object.keys(invStatoPerUtente).forEach(function(k){delete invStatoPerUtente[k]});window._ultimoSuggerimentoInventario='';
     /* Prima sincronizza Supabase: non mostrare la vecchia copia locale del browser. */
     R.innerHTML='<div class="login-page"><div class="login-box" style="text-align:center"><div class="eyebrow">Sincronizzazione dati</div><h1>Caricamento aggiornamenti…</h1><p class="sub">Sto recuperando eventi, noleggi e notifiche da Supabase.</p></div></div>';
@@ -307,7 +311,7 @@ async function doLogin(){
    }
   }
   const f=UTENTI[u];
-  if(f&&f.password&&f.password===p){user={username:u,...f};view='dashboard';filtroFeed='tutte';calMese=new Date().getMonth();calAnno=new Date().getFullYear();invRicerca='';invCategoria='Tutte';listaRicerca='';listaCategoria='Tutte';listaAttrezzature=[];Object.keys(invStatoPerUtente).forEach(function(k){delete invStatoPerUtente[k]});window._ultimoSuggerimentoInventario='';app();}
+  if(f&&f.password&&f.password===p){user={username:u,...f};salvaSessionePersistente(user);view='dashboard';filtroFeed='tutte';calMese=new Date().getMonth();calAnno=new Date().getFullYear();invRicerca='';invCategoria='Tutte';listaRicerca='';listaCategoria='Tutte';listaAttrezzature=[];Object.keys(invStatoPerUtente).forEach(function(k){delete invStatoPerUtente[k]});window._ultimoSuggerimentoInventario='';app();}
   else document.getElementById('e').innerHTML='<div class="err">Credenziali non corrette.</div>';
  }catch(err){
   var loginMsg=String((err&&err.message)||err||'');
@@ -371,7 +375,7 @@ function app(){
  document.getElementById('mm').onclick=()=>document.getElementById('sb').classList.toggle('open');
  const installButton=document.getElementById('install-app');
  if(installButton){installButton.onclick=installaGestionale;installButton.hidden=!!(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches);}
- document.getElementById('out').onclick=()=>{user=null;login()};
+ document.getElementById('out').onclick=()=>{cancellaSessionePersistente();user=null;login()};
  const pc=document.getElementById('pc');
  if(view==='dashboard'){dash(pc);pc.classList.remove('dash-anim');void pc.offsetWidth;pc.classList.add('dash-anim');wait(function(){if(pc)pc.classList.remove('dash-anim')},7200);}
  else if(view==='inventario')inv(pc);
@@ -8548,4 +8552,23 @@ window.mostraPopupBenvenuto=function(){
     ".event-communication-card .allegati-gruppo-titolo{font-size:.7rem!important}"+
     "@media(min-width:1600px){.inv-griglia{grid-template-columns:repeat(6,minmax(0,1fr))!important}.inv-foto{height:175px!important}.assistente-person{width:300px!important;min-width:300px!important}.assistente-person .assistant-character-image{width:300px!important;height:450px!important}.assistente-card{min-width:400px!important;max-width:520px!important;padding:22px 26px!important}.assistente-text{font-size:1.1rem!important}}";
   document.head.appendChild(st);
+})();
+/* Sessione PWA: il refresh non deve riportare inutilmente al login. */
+(function(){
+ setTimeout(function(){
+  if(typeof _qrToken!=='undefined'&&_qrToken)return;
+  if(typeof user!=='undefined'&&user)return;
+  var saved=null;try{saved=JSON.parse(localStorage.getItem('ergo_sessione_persistente')||'null');}catch(e){}
+  if(!saved||!saved.user||!saved.user.username)return;
+  user=saved.user;
+  if(saved.token){try{
+   sessionStorage.setItem('ergo_session_token',saved.token);
+   if(window.ergoSupabase&&window.ergoSupabase.rest&&window.ergoSupabase.rest.headers)window.ergoSupabase.rest.headers['x-ergo-session']=saved.token;
+   if(window.ergoSupabase&&window.ergoSupabase.storage&&window.ergoSupabase.storage.headers)window.ergoSupabase.storage.headers['x-ergo-session']=saved.token;
+  }catch(e){}}
+  view='dashboard';filtroFeed='tutte';calMese=new Date().getMonth();calAnno=new Date().getFullYear();invRicerca='';invCategoria='Tutte';listaRicerca='';listaCategoria='Tutte';listaAttrezzature=[];
+  var avviata=false;
+  var avvia=function(){if(avviata)return;avviata=true;if(typeof app==='function')app();};
+  if(window.ergoSupabaseLoad)Promise.resolve(window.ergoSupabaseLoad()).then(avvia).catch(avvia);else avvia();
+ },80);
 })();
