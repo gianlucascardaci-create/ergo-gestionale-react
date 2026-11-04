@@ -1115,7 +1115,7 @@ function inv(el){
  const tutti=tuttiProds(salvati);
  const filtrati=catalogoAttivo?tutti.filter(p=>{
   const matchCat=invRicerca.trim()!==''||invCategoria==='Tutte'||(p.categoria||'').toUpperCase().includes(invCategoria.toUpperCase());
-  const matchTxt=ricercaIntelligente(invRicerca,[p.nome,p.codice,p.categoria,p.posizione,p.note]);
+  const matchTxt=invRicerca.trim()?testoProdottoEsatto(invRicerca,p):true;
   return matchCat&&matchTxt;
  }):[];
  const isAdmin=user.ruolo==='Amministratore';
@@ -1140,7 +1140,7 @@ function inv(el){
  const riRender=()=>{
   const nf=catalogoAttivo||invRicerca.trim()||invCategoria!=='Tutte'?tutti.filter(p=>{
    const matchCat=invRicerca.trim()!==''||invCategoria==='Tutte'||(p.categoria||'').toUpperCase().includes(invCategoria.toUpperCase());
-   const matchTxt=ricercaIntelligente(invRicerca,[p.nome,p.codice,p.categoria,p.posizione,p.note]);
+   const matchTxt=invRicerca.trim()?testoProdottoEsatto(invRicerca,p):true;
    return matchCat&&matchTxt;
   }):[];
   const emptyStart=document.getElementById('inv-empty-start');
@@ -1263,6 +1263,14 @@ function apriModaleProdotto(prod){
    var normalized=String(this.value||'').replace(/\D/g,'').replace(/^0+(?=\d)/,'');
    this.value=normalized===''?'0':normalized;
   });
+ }
+ const prezzoInput=document.getElementById('pr-prezzo');
+ if(prezzoInput){
+  prezzoInput.addEventListener('focus',function(){this.select()});
+  prezzoInput.addEventListener('keydown',function(e){
+   if(/^\d$/.test(e.key)&&/^0(?:[.,]0*)?$/.test(this.value)){e.preventDefault();this.value=e.key;this.dispatchEvent(new Event('input',{bubbles:true}))}
+  });
+  prezzoInput.addEventListener('input',function(){this.value=String(this.value||'').replace(/^0+(?=\d)/,'')});
  }
  document.querySelectorAll('.pr-cat-check').forEach(cb=>{
   cb.addEventListener('change',()=>{cb.closest('label').classList.toggle('on',cb.checked)});
@@ -2044,7 +2052,7 @@ function inv(el){
  const tutti=tuttiProds(salvati);
  const filtrati=catalogoAttivo?tutti.filter(p=>{
   const matchCat=invRicerca.trim()!==''||invCategoria==='Tutte'||(p.categoria||'').toUpperCase().includes(invCategoria.toUpperCase());
-  const matchTxt=ricercaIntelligente(invRicerca,[p.nome,p.codice,p.categoria,p.posizione,p.note]);
+  const matchTxt=invRicerca.trim()?testoProdottoEsatto(invRicerca,p):true;
   return matchCat&&matchTxt;
  }):[];
  const isAdmin=user.ruolo==='Amministratore';
@@ -2070,7 +2078,7 @@ function inv(el){
  const riRender=()=>{
   const nf=(catalogoAttivo||invRicerca.trim()||invCategoria!=='Tutte')?tutti.filter(p=>{
    const matchCat=invRicerca.trim()!==''||invCategoria==='Tutte'||(p.categoria||'').toUpperCase().includes(invCategoria.toUpperCase());
-   const matchTxt=ricercaIntelligente(invRicerca,[p.nome,p.codice,p.categoria,p.posizione,p.note]);
+   const matchTxt=invRicerca.trim()?testoProdottoEsatto(invRicerca,p):true;
    return matchCat&&matchTxt;
   }):[];
   const emptyStart=document.getElementById('inv-empty-start');
