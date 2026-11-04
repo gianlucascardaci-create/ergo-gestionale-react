@@ -2010,6 +2010,8 @@ function suggerisciProdottoInventario(query,tutti){
  };
  candidati.sort(function(a,b){return distanzaMigliore(a)-distanzaMigliore(b);});
  const scelto=candidati[0];if(!scelto||!window.assistentePersonale)return;
+ const grigliaAttiva=document.getElementById('inv-griglia');
+ if(grigliaAttiva)grigliaAttiva.innerHTML='<div class="inv-vuoto" style="grid-column:1/-1"><span class="emo">🔍</span>Conferma il suggerimento dell’assistente per visualizzare i prodotti.</div>';
  /* Cerca il termine più vicino in tutte le parole del nome, non soltanto nella prima. */
  let termineNorm='';let termineDistanza=999;let termineDisplay='';
  candidati.forEach(function(p){
