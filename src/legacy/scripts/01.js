@@ -1624,7 +1624,7 @@ function inv(el){
   const nf=tutti.filter(p=>{
    const matchCat=invRicerca.trim()!==''||invCategoria==='Tutte'||(p.categoria||'').toUpperCase().includes(invCategoria.toUpperCase());
    const matchTxt=invRicerca.trim()?testoProdottoEsatto(invRicerca,p):true;
-   return matchCat&&matchTxt;
+   return matchCat&&matchTxt&&corrispondeFiltroScorta(p);
   });
   if(lede)lede.textContent=nf.length+' prodott'+(nf.length===1?'o':'i')+' trovat'+(nf.length===1?'o':'i')+(invRicerca?' per "'+invRicerca+'"':'');
   const emptyStart=document.getElementById('inv-empty-start');
@@ -6756,8 +6756,10 @@ window.mostraPopupBenvenuto=function(){
         if(local&&local.createdAt)mapped.createdAt=local.createdAt;
         return mapped;
       });
+      /* Quando Supabase risponde correttamente, il database è la fonte unica:
+         non reinserire prodotti rimasti soltanto nel localStorage dopo una
+         cancellazione remota. */
       var pRows=remoteProducts.slice();
-      localProducts.forEach(function(lp){if(lp&&lp.codice&&!pRows.some(function(r){return r.codice===lp.codice;}))pRows.push(lp);});
       var nRows=(rentals.data||[]).map(mapRental), eRows=mergeCanonicalEvents((events.data||[]).map(mapEvent));
       for(const product of pRows) await firmaFotoProdotto(product);
       if(localCollectionRevision!==loadRevision){
@@ -6783,9 +6785,6 @@ window.mostraPopupBenvenuto=function(){
          questo punto il ruolo può vedere solo la copia locale precedente. */
       if(typeof user!=='undefined'&&user&&typeof sincronizzaNotificheDaStorico==='function'){
         try{sincronizzaNotificheDaStorico(user);}catch(notificationErr){console.warn('Ricostruzione notifiche rinviata',notificationErr);}
-      }
-      if(localProducts.some(function(lp){return lp&&lp.codice&&!remoteProducts.some(function(r){return r.codice===lp.codice;});})){
-        try{await window.ergoSupabaseSyncProducts(pRows);}catch(syncErr){console.warn('Recupero prodotti locali rinviato',syncErr);}
       }
       /* La dashboard viene renderizzata dal flusso di login dopo la sincronizzazione. */
     }catch(e){ console.warn('Dati Streamlit/Supabase non disponibili: uso il fallback locale',e); }
