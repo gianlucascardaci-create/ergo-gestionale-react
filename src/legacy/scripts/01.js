@@ -313,8 +313,14 @@ async function doLogin(){
     R.innerHTML='<div class="login-page"><div class="login-box" style="text-align:center"><div class="eyebrow">Sincronizzazione dati</div><h1>Caricamento aggiornamenti…</h1><p class="sub">Sto recuperando eventi, noleggi e notifiche da Supabase.</p></div></div>';
     if(window.ergoSupabaseLoad){
      var utenteLogin=f;
-     var fallbackTimer=setTimeout(function(){if(user===utenteLogin&&typeof app==='function')app();},10000);
-     Promise.resolve().then(function(){return window.ergoSupabaseLoad();}).then(function(){clearTimeout(fallbackTimer);if(user===utenteLogin&&typeof app==='function')app();}).catch(function(e){clearTimeout(fallbackTimer);console.warn('Caricamento Supabase post-login rinviato',e);if(user===utenteLogin)app();});
+     Promise.resolve().then(function(){
+      return window.ergoSupabaseSyncPending?window.ergoSupabaseSyncPending():null;
+     }).then(function(){return window.ergoSupabaseLoad();}).then(function(){if(user===utenteLogin&&typeof app==='function')app();}).catch(function(e){
+      console.error('Sincronizzazione preliminare non completata',e);
+      if(user!==utenteLogin)return;
+      R.innerHTML='<div class="login"><div class="login-box"><div class="err">Non ho potuto sincronizzare tutte le modifiche locali con Supabase. Nessun dato è stato aperto o sovrascritto.</div><p class="sub">Controlla la connessione e riprova.</p><button class="btn-login" id="retry-sync">Riprova sincronizzazione</button></div></div>';
+      var retry=document.getElementById('retry-sync');if(retry)retry.onclick=doLogin;
+     });
     }else app();
     return;
    }
@@ -6657,13 +6663,18 @@ window.mostraPopupBenvenuto=function(){
       if(nr.error) throw nr.error;
     }
   }
+  function pendingKey(key){return 'ergo_sync_pending_'+key;}
+  function markPending(key){try{localStorage.setItem(pendingKey(key),String(Date.now()));}catch(e){}}
+  function clearPending(key){try{localStorage.removeItem(pendingKey(key));}catch(e){}}
   function scheduleSync(key){
     if(!sb || !collections[key]) return;
+    markPending(key);
     clearTimeout(syncTimer);
     syncTimer=wait(async function(){
       try{
         var rows=JSON.parse(localStorage.getItem(key)||'[]');
         await upsertCollection(collections[key],rows);
+        clearPending(key);
       }catch(e){ console.warn('Sincronizzazione Supabase rinviata',e); }
     },700);
   }
@@ -6679,8 +6690,23 @@ window.mostraPopupBenvenuto=function(){
     try{await upsertCollection(kind,Array.isArray(rows)?rows:[]);}
     finally{syncing=wasSyncing;}
   }
-  window.ergoSupabaseSyncEvents=function(rows){var clean=mergeCanonicalEvents(rows);originalSetItem.call(localStorage,'ergo_eventi',JSON.stringify(clean));return syncRemoteCollection('evento',clean);};
-  window.ergoSupabaseSyncRentals=function(rows){return syncRemoteCollection('noleggio',rows);};
+  window.ergoSupabaseSyncEvents=async function(rows){var clean=mergeCanonicalEvents(rows);originalSetItem.call(localStorage,'ergo_eventi',JSON.stringify(clean));var result=await syncRemoteCollection('evento',clean);clearPending('ergo_eventi');return result;};
+  window.ergoSupabaseSyncRentals=async function(rows){var result=await syncRemoteCollection('noleggio',rows);clearPending('ergo_noleggi');return result;};
+
+  window.ergoSupabaseSyncPending=async function(){
+    if(!sb)throw new Error('SUPABASE_NON_CONFIGURATO');
+    var wasSyncing=syncing;syncing=false;
+    try{
+      var keys=Object.keys(collections);
+      for(var i=0;i<keys.length;i++){
+        var key=keys[i];
+        if(!localStorage.getItem(pendingKey(key)))continue;
+        var rows=[];try{rows=JSON.parse(localStorage.getItem(key)||'[]');}catch(e){rows=[];}
+        await upsertCollection(collections[key],rows);
+        clearPending(key);
+      }
+    }finally{syncing=wasSyncing;}
+  };
 
   /* Evita richieste ripetute: una singola operazione batch per collezione. */
   var originalSetItem = Storage.prototype.setItem;
@@ -7290,10 +7316,10 @@ window.mostraPopupBenvenuto=function(){
    if(window.ergoSupabase&&window.ergoSupabase.storage&&window.ergoSupabase.storage.headers)window.ergoSupabase.storage.headers['x-ergo-session']=saved.token;
   }catch(e){}}
   view='dashboard';filtroFeed='tutte';calMese=new Date().getMonth();calAnno=new Date().getFullYear();invRicerca='';invCategoria='Tutte';invStato='Tutte';listaRicerca='';listaCategoria='Tutte';listaAttrezzature=[];
-  /* Mostra subito l'app: Supabase aggiorna i dati in secondo piano e non può
-     lasciare l'utente fermo sulla schermata di caricamento. */
-  if(typeof app==='function')app();
-  if(window.ergoSupabaseLoad)Promise.resolve().then(function(){return window.ergoSupabaseLoad();}).catch(function(e){console.warn('Sincronizzazione dopo ripristino rinviata',e);});
+  /* Anche il ripristino PWA rispetta l’ordine: pending locale, lettura Supabase,
+     poi apertura dell’app. */
+  R.innerHTML='<div class="login-page"><div class="login-box" style="text-align:center"><div class="eyebrow">Sincronizzazione dati</div><h1>Caricamento aggiornamenti…</h1><p class="sub">Verifico le modifiche locali prima di aprire il gestionale.</p></div></div>';
+  Promise.resolve().then(function(){return window.ergoSupabaseSyncPending?window.ergoSupabaseSyncPending():null;}).then(function(){return window.ergoSupabaseLoad?window.ergoSupabaseLoad():null;}).then(function(){if(typeof app==='function')app();}).catch(function(e){console.warn('Sincronizzazione dopo ripristino rinviata',e);if(typeof app==='function')app();});
  },80);
 })();
 
