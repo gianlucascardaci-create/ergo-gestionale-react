@@ -86,11 +86,16 @@ function installaGestionale(){
 }
 async function cambiaModalitaAssistente(){
  if(!user||user.ruolo!=='Amministratore')return;
+ const token=sessionStorage.getItem('ergo_session_token')||'';
+ if(!token){alert('❌ Sessione non valida. Esci e accedi nuovamente prima di cambiare la modalità assistente.');return;}
  const nuova=ergoAssistantMode==='popup'?'classic':'popup';
  try{
   if(window.ergoSupabaseSetAssistantMode)await window.ergoSupabaseSetAssistantMode(nuova);
   ergoAssistantMode=nuova;app();
- }catch(e){alert('❌ Modalità assistente non aggiornata su Supabase.\n\n'+String(e&&e.message||e));}
+ }catch(e){
+  const msg=String(e&&e.message||e||'');
+  alert('❌ Modalità assistente non aggiornata su Supabase.\n\n'+(msg.includes('SESSION_EXPIRED')?'La sessione è scaduta: esci e accedi nuovamente.':msg));
+ }
 }
 let calFiltro='tutti';
 let calMese=new Date().getMonth(),calAnno=new Date().getFullYear();
