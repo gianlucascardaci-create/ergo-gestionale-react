@@ -115,6 +115,7 @@ const NAV=[
  {id:'calendario',label:'Calendario',icon:'▦',r:['Amministratore','Wedding','Cucina','Sala','Magazzino','Magazzino2']},
  {id:'inventario',label:'Inventario',icon:'◆',r:['Amministratore','Magazzino','Magazzino2']},
  {id:'liste',label:'Lista Attrezzature',icon:'✦',r:['Amministratore']},
+ {id:'preventivi',label:'Preventivi (bozza)',icon:'▤',r:['Amministratore','Magazzino2']},
  {id:'ruoli',label:'Ruoli',icon:'👥',r:['Amministratore']}
 ];
 
@@ -398,6 +399,7 @@ function app(){
  const pc=document.getElementById('pc');
  if(view==='dashboard'){dash(pc);pc.classList.remove('dash-anim');void pc.offsetWidth;pc.classList.add('dash-anim');wait(function(){if(pc)pc.classList.remove('dash-anim')},7200);}
  else if(view==='inventario')inv(pc);
+ else if(view==='preventivi')preventiviDemo(pc);
  else if(view==='calendario')cal(pc);
  else if(view==='ruoli')ruoli(pc);
  else if(view==='liste')lista(pc);
@@ -7375,3 +7377,63 @@ window.mostraPopupBenvenuto=function(){
   '@media(max-width:380px){.assistente-vnext .assistente-person{width:86px!important;min-width:86px!important}.assistente-vnext .assistente-person .assistant-character-image{height:129px!important}.assistente-vnext .assistente-card{padding:12px!important}.assistente-vnext .assistente-text{font-size:.78rem!important}}';
  document.head.appendChild(st);
 })();
+
+
+/* ============================================================
+   BOZZA ISOLATA — PREVENTIVI / DISPONIBILITÀ / DDT DEMO
+   Non usa Supabase, calendario reale o inventario reale.
+   ============================================================ */
+const PREVENTIVI_DEMO_PRODOTTI=[
+ {codice:'SED-001',nome:'Sedia Chiavarina',categoria:'SEDIE',prezzo:4.5,totale:10},
+ {codice:'TAV-001',nome:'Tavolo imperiale',categoria:'TAVOLI',prezzo:38,totale:6},
+ {codice:'TOV-001',nome:'Tovagliato lino bianco',categoria:'TOVAGLIATO',prezzo:7,totale:100},
+ {codice:'LUC-001',nome:'Candeliere argento',categoria:'LUCI E CANDELABRI',prezzo:12,totale:12}
+];
+const PREVENTIVI_DEMO_CONFERMATI=[
+ {dal:'2026-12-10',al:'2026-12-12',righe:[{codice:'SED-001',qta:10},{codice:'TAV-001',qta:2}]}
+];
+let preventivoDemoRighe=[];
+let preventivoDemoUltimo=null;
+function preventiviDemo(el){
+ const clienti=(()=>{try{return JSON.parse(localStorage.getItem('ergo_demo_clienti')||'{}')}catch(e){return{}}})();
+ const oggi=new Date().toISOString().slice(0,10);
+ el.innerHTML=`<div class="page quote-demo-page">
+  <div class="quote-demo-hero"><div><p class="eyebrow">Area riservata · prototipo</p><h1 class="title">Preventivi</h1><p class="lede">Crea un preventivo, verifica la disponibilità senza scalare il magazzino e simula la conferma del noleggio.</p></div><span class="quote-demo-badge">BOZZA DEMO · DATI LOCALI</span></div>
+  <div class="quote-demo-notice">⚠️ Questa è una bozza isolata: non salva su Supabase, non modifica il calendario reale e non aggiorna le quantità dell’inventario.</div>
+  <div class="quote-demo-grid">
+   <section class="quote-demo-card quote-demo-main"><div class="quote-demo-section-head blue"><span>01</span><div><strong>Dati cliente e preventivo</strong><small>Il cliente può essere richiamato la prossima volta</small></div></div>
+    <div class="quote-demo-fields"><label>Cliente / azienda<input id="qd-cliente" list="qd-clienti" placeholder="Es. Villa Paradiso"><datalist id="qd-clienti">${Object.keys(clienti).map(x=>`<option value="${escapeAttr(x)}">`).join('')}</datalist></label><label>Telefono<input id="qd-tel" placeholder="333 1234567"></label><label>Email<input id="qd-email" type="email" placeholder="cliente@email.it"></label><label>Luogo evento<input id="qd-luogo" placeholder="Nome location"></label><label>Data inizio<input id="qd-dal" type="date" value="${oggi}"></label><label>Data fine<input id="qd-al" type="date" value="${oggi}"></label></div>
+    <div class="quote-demo-fields quote-demo-fields-transport"><label>Partenza trasporto<input id="qd-partenza" value="Ergo & Scardaci" placeholder="Sede di partenza"></label><label>Destinazione trasporto<input id="qd-destinazione" placeholder="Indirizzo destinazione"></label><label>Km stimati<input id="qd-km" type="number" min="0" value="0"></label></div>
+   </section>
+   <section class="quote-demo-card"><div class="quote-demo-section-head violet"><span>02</span><div><strong>Materiale da quotare</strong><small>Il sistema segnala i conflitti senza modificare il magazzino</small></div></div><div id="qd-righe"></div><button class="quote-demo-add" id="qd-add">＋ Aggiungi prodotto</button></section>
+   <section class="quote-demo-card quote-demo-summary"><div class="quote-demo-section-head amber"><span>03</span><div><strong>Riepilogo preventivo</strong><small>Lo sconto è ricordato per cliente, con esclusioni automatiche</small></div></div><div class="quote-demo-summary-grid"><label>Sconto cliente predefinito (%)<input id="qd-sconto" type="number" min="0" max="100" value="0"></label><label>Trasporto (€)<input id="qd-trasporto" type="number" min="0" step="0.01" value="0"></label><label>Facchinaggio e montaggio (€)<input id="qd-facchinaggio" type="number" min="0" step="0.01" value="0"></label></div><div id="qd-totale" class="quote-demo-total"></div><div id="qd-esito"></div><div class="quote-demo-actions"><button class="btn-ghost" id="qd-salva">Salva bozza locale</button><button class="btn-primary" id="qd-conferma">✓ Simula conferma</button></div></section>
+  </div><section id="qd-ddt" class="quote-demo-card quote-demo-ddt" hidden></section>
+ </div>`;
+ const cliente=document.getElementById('qd-cliente');
+ cliente.addEventListener('change',()=>{const c=clienti[cliente.value];if(c){document.getElementById('qd-tel').value=c.tel||'';document.getElementById('qd-email').value=c.email||'';document.getElementById('qd-sconto').value=c.sconto||0;aggiornaPreventivoDemo();}});
+ document.getElementById('qd-add').onclick=()=>{preventivoDemoRighe.push({codice:'SED-001',qta:1,sconto:0});renderRigheDemo();};
+ ['qd-dal','qd-al','qd-sconto','qd-trasporto','qd-facchinaggio','qd-km'].forEach(id=>document.getElementById(id).addEventListener('input',aggiornaPreventivoDemo));
+ document.getElementById('qd-salva').onclick=()=>salvaPreventivoDemo(false);
+ document.getElementById('qd-conferma').onclick=()=>salvaPreventivoDemo(true);
+ if(!preventivoDemoRighe.length)preventivoDemoRighe=[{codice:'SED-001',qta:1,sconto:0}];
+ renderRigheDemo();
+}
+function renderRigheDemo(){
+ const box=document.getElementById('qd-righe');if(!box)return;
+ box.innerHTML=preventivoDemoRighe.map((r,i)=>{const p=PREVENTIVI_DEMO_PRODOTTI.find(x=>x.codice===r.codice)||PREVENTIVI_DEMO_PRODOTTI[0];const escluso=p.categoria==='TOVAGLIATO';return `<div class="quote-demo-line"><select data-qprod="${i}">${PREVENTIVI_DEMO_PRODOTTI.map(x=>`<option value="${x.codice}" ${x.codice===r.codice?'selected':''}>${x.nome} · € ${x.prezzo.toFixed(2)}</option>`).join('')}</select><input data-qqta="${i}" type="number" min="1" value="${r.qta}"><label class="quote-demo-discount">Sconto %<input data-qsconto="${i}" type="number" min="0" max="100" value="${escluso?0:r.sconto}" ${escluso?'disabled':''}></label><button class="quote-demo-remove" data-qremove="${i}" aria-label="Rimuovi">×</button><small class="quote-demo-stock">Disponibili nel periodo: <b data-qstock="${i}">—</b>${escluso?' · Tovagliato non scontabile':''}</small></div>`}).join('');
+ box.querySelectorAll('[data-qprod]').forEach(x=>x.onchange=()=>{preventivoDemoRighe[+x.dataset.qprod].codice=x.value;renderRigheDemo();});
+ box.querySelectorAll('[data-qqta]').forEach(x=>x.oninput=()=>{preventivoDemoRighe[+x.dataset.qqta].qta=+x.value||1;aggiornaPreventivoDemo();});
+ box.querySelectorAll('[data-qsconto]').forEach(x=>x.oninput=()=>{preventivoDemoRighe[+x.dataset.qsconto].sconto=+x.value||0;aggiornaPreventivoDemo();});
+ box.querySelectorAll('[data-qremove]').forEach(x=>x.onclick=()=>{preventivoDemoRighe.splice(+x.dataset.qremove,1);renderRigheDemo();});
+ aggiornaPreventivoDemo();
+}
+function disponibilitaDemo(codice,dal,al){const p=PREVENTIVI_DEMO_PRODOTTI.find(x=>x.codice===codice);if(!p)return 0;let impegnata=0;PREVENTIVI_DEMO_CONFERMATI.forEach(n=>{if(n.al>=dal&&n.dal<=al){const r=n.righe.find(x=>x.codice===codice);if(r)impegnata+=r.qta;}});return Math.max(0,p.totale-impegnata);}
+function aggiornaPreventivoDemo(){
+ const dal=document.getElementById('qd-dal')?.value||'',al=document.getElementById('qd-al')?.value||dal;let imponibile=0,conflitti=[];
+ preventivoDemoRighe.forEach((r,i)=>{const p=PREVENTIVI_DEMO_PRODOTTI.find(x=>x.codice===r.codice);if(!p)return;const disp=disponibilitaDemo(r.codice,dal,al);const stock=document.querySelector(`[data-qstock="${i}"]`);if(stock)stock.textContent=disp;const escluso=p.categoria==='TOVAGLIATO';const s=escluso?0:(+r.sconto||0);imponibile+=(p.prezzo*(+r.qta||1))*(1-s/100);if((+r.qta||0)>disp)conflitti.push(`${p.nome}: richieste ${r.qta}, disponibili ${disp}`);});
+ const km=+document.getElementById('qd-km')?.value||0;const trasporto=+document.getElementById('qd-trasporto')?.value||km*1.2;const fac=+document.getElementById('qd-facchinaggio')?.value||0;const totale=imponibile+trasporto+fac;const tr=document.getElementById('qd-trasporto');if(tr&&km&&tr.value==='0')tr.value=trasporto.toFixed(2);
+ const total=document.getElementById('qd-totale');if(total)total.innerHTML=`<span>Totale stimato</span><strong>€ ${totale.toFixed(2)}</strong><small>Trasporto e facchinaggio non ricevono sconti · il magazzino non viene scalato</small>`;
+ const es=document.getElementById('qd-esito');if(es)es.innerHTML=conflitti.length?`<div class="quote-demo-error">⚠️ <strong>Preventivo non disponibile per queste date</strong><br>${conflitti.join('<br>')}</div>`:'<div class="quote-demo-ok">✓ Disponibilità verificata per le date selezionate</div>';
+ return {imponibile,trasporto,fac,totale,conflitti,dal,al};
+}
+function salvaPreventivoDemo(conferma){const c=document.getElementById('qd-cliente').value.trim();if(!c){alert('Inserisci il cliente.');return}const dati=aggiornaPreventivoDemo();if(conferma&&dati.conflitti.length){alert('La bozza non può essere confermata: materiale non disponibile nel periodo.');return}let clienti={};try{clienti=JSON.parse(localStorage.getItem('ergo_demo_clienti')||'{}')}catch(e){};clienti[c]={tel:document.getElementById('qd-tel').value,email:document.getElementById('qd-email').value,sconto:+document.getElementById('qd-sconto').value||0};localStorage.setItem('ergo_demo_clienti',JSON.stringify(clienti));const numero='PREV-DEMO-'+String(Date.now()).slice(-6);if(conferma){PREVENTIVI_DEMO_CONFERMATI.push({dal:dati.dal,al:dati.al,righe:preventivoDemoRighe.map(r=>({codice:r.codice,qta:+r.qta||1}))});preventivoDemoUltimo={numero,cliente:c,dati};const d=document.getElementById('qd-ddt');d.hidden=false;d.innerHTML=`<div class="quote-demo-section-head green"><span>04</span><div><strong>DDT demo generato</strong><small>Anteprima collegata al preventivo confermato</small></div></div><div class="quote-demo-ddt-body"><b>DDT-DEMO-${numero.slice(-6)}</b><p><strong>Destinatario:</strong> ${escapeHtml(c)} · ${escapeHtml(document.getElementById('qd-tel').value||'—')}</p><p><strong>Periodo:</strong> ${dati.dal} → ${dati.al}</p><p><strong>Materiale:</strong> ${preventivoDemoRighe.map(r=>{const p=PREVENTIVI_DEMO_PRODOTTI.find(x=>x.codice===r.codice);return `${r.qta} × ${p.nome}`}).join(' · ')}</p><span class="quote-demo-ok">✓ In una futura integrazione questo passaggio creerà il noleggio reale e il DDT reale.</span></div>`;document.getElementById('qd-esito').innerHTML='<div class="quote-demo-ok">✓ Preventivo confermato nella simulazione · materiale impegnato solo nella bozza</div>'}else{document.getElementById('qd-esito').innerHTML=`<div class="quote-demo-ok">✓ Bozza ${numero} salvata localmente per ${escapeHtml(c)}</div>`}}
