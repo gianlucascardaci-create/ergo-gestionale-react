@@ -900,11 +900,11 @@ function apriModaleProdotto(prod){
    </div>
   </div>
   <div class="campo-3">
-   <div class="campo"><label>Quantità</label><input id="pr-qta" type="number" min="0" value="${p.quantita||0}"></div>
+   <div class="campo"><label>Quantità</label><input id="pr-qta" type="number" min="0" value="${p.quantita||''}" placeholder="Es. 100"></div>
    <div class="campo"><label>Posizione</label><input id="pr-pos" value="${(p.posizione||'').replace(/"/g,'&quot;')}" placeholder="Es. A1"></div>
-   <div class="campo"><label>Prezzo (€)</label><input id="pr-prezzo" type="text" inputmode="decimal" autocomplete="off" value="${(Number(p.prezzo)||0).toFixed(2).replace('.',',')}" placeholder="Es. 12,50"></div>
+   <div class="campo"><label>Prezzo (€)</label><input id="pr-prezzo" type="text" inputmode="decimal" autocomplete="off" value="${p.prezzo?Number(p.prezzo).toFixed(2).replace('.',','):''}" placeholder="Es. 12,50"></div>
   </div>
-  ${user&&user.ruolo==='Amministratore'?`<div class="campo"><label>Fornitore</label><input id="pr-fornitore" value="${(p.fornitore||'').replace(/"/g,'&quot;')}" placeholder="Es. Fornitore Srl"></div><div class="campo"><label>Costo d’acquisto (€)</label><input id="pr-costo-acquisto" type="text" inputmode="decimal" autocomplete="off" value="${(Number(p.costoAcquisto)||0).toFixed(2).replace('.',',')}" placeholder="Es. 8,50"></div><div class="campo"><label>Quantità minima di riordino</label><input id="pr-qta-min" type="number" min="0" value="${Number(p.quantitaMinima||0)}" placeholder="Es. 50"><small style="display:block;color:#8b96a9;font-size:.68rem;margin-top:5px">La scheda diventa arancione quando si avvicina a questo valore e rossa quando lo raggiunge o scende sotto.</small></div>`:''}
+  ${user&&user.ruolo==='Amministratore'?`<div class="campo"><label>Fornitore</label><input id="pr-fornitore" value="${(p.fornitore||'').replace(/"/g,'&quot;')}" placeholder="Es. Fornitore Srl"></div><div class="campo"><label>Costo d’acquisto (€)</label><input id="pr-costo-acquisto" type="text" inputmode="decimal" autocomplete="off" value="${p.costoAcquisto?Number(p.costoAcquisto).toFixed(2).replace('.',','):''}" placeholder="Es. 8,50"></div><div class="campo"><label>Quantità minima di riordino</label><input id="pr-qta-min" type="number" min="0" value="${Number(p.quantitaMinima||0)}" placeholder="Es. 50"><small style="display:block;color:#8b96a9;font-size:.68rem;margin-top:5px">La scheda diventa arancione quando si avvicina a questo valore e rossa quando lo raggiunge o scende sotto.</small></div>`:''}
   <div class="campo"><label>Note (opzionale)</label><textarea id="pr-note" placeholder="Note visibili nella scheda prodotto...">${(p.note||'').replace(/</g,'&lt;')}</textarea></div>
   <div class="divisore-modale">📸 Foto prodotto</div>
   <div class="campo"><label style="text-transform:none;font-weight:600;color:#94a3b8;letter-spacing:0">Compressa automaticamente a max 70 KB</label><input type="file" id="pr-foto" accept="image/*"><div id="pr-foto-preview">${hasFoto?`<div class="foto-preview-box"><img loading="lazy" src="${p.foto}"><div class="info"><strong>✅ Foto attuale</strong><span>Già ottimizzata</span></div></div>`:''}</div></div>
@@ -923,7 +923,7 @@ function apriModaleProdotto(prod){
   qtaInput.addEventListener('keydown',function(e){if(/^\d$/.test(e.key)&&this.value==='0'){e.preventDefault();this.value=e.key;this.dispatchEvent(new Event('input',{bubbles:true}))}});
   qtaInput.addEventListener('input',function(){
    var normalized=String(this.value||'').replace(/\D/g,'').replace(/^0+(?=\d)/,'');
-   this.value=normalized===''?'0':normalized;
+   this.value=normalized;
   });
  }
  const normalizzaValorePrezzo=function(value){
@@ -1987,6 +1987,12 @@ function apriModaleNoleggio(){
  d.classList.add('open');bg.classList.add('open');
  document.getElementById('d-close').onclick=chiudiDrawer;
  bg.onclick=chiudiDrawer;
+ const dataInizioInput=document.getElementById('nl-di'),dataFineInput=document.getElementById('nl-df');
+ if(dataInizioInput&&dataFineInput){
+  const sincronizzaDataFine=function(){if(dataInizioInput.value&&(!dataFineInput.value||dataFineInput.value<dataInizioInput.value))dataFineInput.value=dataInizioInput.value;};
+  dataInizioInput.addEventListener('change',sincronizzaDataFine);
+  dataFineInput.addEventListener('change',sincronizzaDataFine);
+ }
  document.getElementById('nl-salva').onclick=async()=>{
   const btn=document.getElementById('nl-salva');
   btn.disabled=true;btn.textContent='⏳ Salvataggio...';
@@ -1995,10 +2001,13 @@ function apriModaleNoleggio(){
   const ref=document.getElementById('nl-ref').value.trim();
   const tel=document.getElementById('nl-tel').value.trim();
   if(!titolo||!loc||!ref||!tel){alert('Compila tutti i campi obbligatori.');btn.disabled=false;btn.textContent='💾 Crea Noleggio';return}
+  const dataInizioNoleggio=document.getElementById('nl-di').value;
+  let dataFineNoleggio=document.getElementById('nl-df').value;
+  if(dataInizioNoleggio&&(!dataFineNoleggio||dataFineNoleggio<dataInizioNoleggio))dataFineNoleggio=dataInizioNoleggio;
   const nl={
    id:'n-'+Date.now(),tipo:'noleggio',titolo,
-   inizio:document.getElementById('nl-di').value+'T'+(document.getElementById('nl-oi').value||'09:00')+':00',
-   fine:document.getElementById('nl-df').value+'T'+(document.getElementById('nl-of').value||'18:00')+':00',
+   inizio:dataInizioNoleggio+'T'+(document.getElementById('nl-oi').value||'09:00')+':00',
+   fine:dataFineNoleggio+'T'+(document.getElementById('nl-of').value||'18:00')+':00',
    location:loc,
    citta:document.getElementById('nl-citta').value.trim(),
    referente:ref,telefono:tel,
