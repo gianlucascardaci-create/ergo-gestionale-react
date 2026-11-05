@@ -62,16 +62,18 @@ window.addEventListener('appinstalled',function(){
  ergoInstallPrompt=null;
  document.querySelectorAll('#install-app').forEach(function(b){b.hidden=true;});
 });
-function installaGestionale(){
+async function installaGestionale(){
  if(ergoInstallPrompt){
   var promptEvent=ergoInstallPrompt;
   ergoInstallPrompt=null;
-  promptEvent.prompt();
-  promptEvent.userChoice.then(function(){
-   document.querySelectorAll('#install-app').forEach(function(b){b.hidden=true;});
-  }).catch(function(){
+  try{
+   await promptEvent.prompt();
+   var scelta=await promptEvent.userChoice;
+   if(scelta&&scelta.outcome==='accepted')document.querySelectorAll('#install-app').forEach(function(b){b.hidden=true;});
+   else document.querySelectorAll('#install-app').forEach(function(b){b.hidden=false;});
+  }catch(e){
    document.querySelectorAll('#install-app').forEach(function(b){b.hidden=false;});
-  });
+  }
   return;
  }
  var standalone=(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)||window.navigator.standalone===true;
@@ -363,7 +365,7 @@ function app(){
     <button class="mobile-btn" id="mm">☰</button>
     <div class="crumb"><span>Gestionale</span><span>/</span><strong>${titolo}</strong></div>
     <div style="display:flex;gap:12px;align-items:center">
-     ${user.ruolo==='Amministratore'?`<button class="assistant-mode-toggle" id="assistant-mode-toggle" type="button" title="Modalità globale per tutti i ruoli">${ergoAssistantMode==='popup'?'Popup':'Assistente'}</button>`:''}
+     ${user.ruolo==='Amministratore'?`<button class="assistant-mode-toggle" id="assistant-mode-toggle" type="button" title="Cambia visualizzazione dell’assistente" aria-label="Cambia visualizzazione dell’assistente">${ergoAssistantMode==='popup'?'Popup':'Assistente'}</button>`:''}
      <button class="install-app-btn" id="install-app" type="button" title="Installa il gestionale come app" aria-label="Installa il gestionale come app">⇩ <span>Installa app</span></button>
      <div class="user"><span class="avatar">${user.iniziali}</span><span>${user.nome}</span></div>
     </div>
@@ -763,29 +765,41 @@ function raccogliAllegatiEnt(tipo,ent,vediB,vediD,vediV){
  ];
 }
 
-function apriAnteprimaAllega(allegato){
+async function apriAnteprimaAllega(allegato){
  const d=document.getElementById('d-panel'),bg=document.getElementById('d-bg');
  document.getElementById('d-eyebrow').textContent='Anteprima';
- document.getElementById('d-titolo').textContent=allegato.nome||'Allegato';
- const mime=allegato.mime||'';
- let contenuto='';
- if(mime.startsWith('image/')){
-  contenuto=`<div style="background:#f3f5f8;border-radius:14px;padding:14px;text-align:center"><img src="${allegato.data||allegato.url}" style="max-width:100%;max-height:65vh;border-radius:10px"></div>`;
- }else if(mime.includes('pdf')){
-  contenuto=`<div style="background:#f3f5f8;border-radius:14px;padding:14px"><iframe src="${allegato.data||allegato.url}" style="width:100%;height:60vh;border:0;border-radius:10px;background:#fff"></iframe></div>`;
- }else{
-  contenuto=`<div class="note-box" style="text-align:center;padding:30px"><div style="font-size:2.5rem;margin-bottom:10px">📎</div><p>Anteprima non disponibile per questo tipo di file.</p></div>`;
- }
- document.getElementById('d-body').innerHTML=contenuto+`<div style="margin-top:14px;padding:12px;background:#f3f8ff;border:1px solid #d7e7fa;border-radius:10px;font-size:.78rem;color:#4b5563">📌 <b>${allegato.sezione}</b></div>`;
- document.getElementById('d-foot').innerHTML=`<button class="btn-ghost" onclick="chiudiDrawer()">Chiudi</button><button class="btn-primary" id="d-scarica">⬇️ Scarica</button>`;
+ document.getElementById('d-titolo').textContent=allegato&&allegato.nome||'Allegato';
+ document.getElementById('d-body').innerHTML='<div class="preview-loading"><span>⏳</span><strong>Preparo l’anteprima…</strong><small>Collegamento sicuro in aggiornamento</small></div>';
+ document.getElementById('d-foot').innerHTML='<button class="btn-ghost" id="d-preview-close">Chiudi</button>';
  d.classList.add('open');bg.classList.add('open');
  document.getElementById('d-close').onclick=chiudiDrawer;
+ document.getElementById('d-preview-close').onclick=chiudiDrawer;
  bg.onclick=chiudiDrawer;
- document.getElementById('d-scarica').onclick=()=>scaricaAllega(allegato);
- const frame=document.querySelector('#d-body iframe');
- if(frame&&!frame.src)frame.src=allegato.url||allegato.data||'';
+ if(!allegato)return;
+ try{
+  if(window.ergoRefreshAttachmentUrl)await window.ergoRefreshAttachmentUrl(allegato);
+  const href=allegato.data||allegato.url||'';
+  const mime=allegato.mime||'';
+  if(!href)throw new Error('ALLEGATO_SENZA_LINK');
+  let contenuto='';
+  if(mime.startsWith('image/')){
+   contenuto=`<div class="preview-media preview-image"><img src="${escapeAttr(href)}" alt="${escapeAttr(allegato.nome||'Anteprima allegato')}" loading="eager"></div>`;
+  }else if(mime.includes('pdf')){
+   contenuto=`<div class="preview-media preview-pdf"><iframe title="Anteprima ${escapeAttr(allegato.nome||'PDF')}" src="${escapeAttr(href)}"></iframe></div>`;
+  }else{
+   contenuto='<div class="note-box" style="text-align:center;padding:30px"><div style="font-size:2.5rem;margin-bottom:10px">📎</div><p>Anteprima non disponibile per questo tipo di file.</p></div>';
+  }
+  document.getElementById('d-body').innerHTML=contenuto+`<div class="preview-meta">📌 <b>${escapeHtml(allegato.sezione||'Allegato')}</b><span>${escapeHtml(allegato.nome||'')}</span></div>`;
+  document.getElementById('d-foot').innerHTML='<button class="btn-ghost" id="d-preview-close">Chiudi</button><button class="btn-primary" id="d-scarica">⬇️ Scarica</button>';
+  document.getElementById('d-preview-close').onclick=chiudiDrawer;
+  document.getElementById('d-scarica').onclick=()=>scaricaAllega(allegato);
+ }catch(e){
+  document.getElementById('d-body').innerHTML='<div class="preview-error"><div>⚠️</div><strong>Anteprima non disponibile</strong><p>Il collegamento precedente era scaduto e non è stato possibile rigenerarlo. Puoi chiudere e riprovare dopo aver effettuato nuovamente l’accesso.</p></div>';
+  document.getElementById('d-foot').innerHTML='<button class="btn-primary" id="d-preview-close">Chiudi</button>';
+  document.getElementById('d-preview-close').onclick=chiudiDrawer;
+  console.warn('Anteprima allegato non disponibile',e);
+ }
 }
-
 function scaricaAllega(allegato){
  if(!allegato||!(allegato.data||allegato.url))return;
  const a=document.createElement('a');
@@ -921,7 +935,6 @@ function apriModaleProdotto(prod){
    <div class="campo"><label>Posizione</label><input id="pr-pos" value="${(p.posizione||'').replace(/"/g,'&quot;')}" placeholder="Es. A1"></div>
    <div class="campo"><label>Prezzo (€)</label><input id="pr-prezzo" type="text" inputmode="decimal" autocomplete="off" value="${p.prezzo?Number(p.prezzo).toFixed(2).replace('.',','):''}" placeholder="Es. 12,50"></div>
   </div>
-  ${user&&user.ruolo==='Amministratore'?`<div class="campo"><label>Fornitore</label><input id="pr-fornitore" value="${(p.fornitore||'').replace(/"/g,'&quot;')}" placeholder="Es. Fornitore Srl"></div><div class="campo"><label>Costo d’acquisto (€)</label><input id="pr-costo-acquisto" type="text" inputmode="decimal" autocomplete="off" value="${p.costoAcquisto?Number(p.costoAcquisto).toFixed(2).replace('.',','):''}" placeholder="Es. 8,50"></div><div class="campo"><label>Quantità minima di riordino</label><input id="pr-qta-min" type="number" min="0" value="${Number(p.quantitaMinima||0)}" placeholder="Es. 50"><small style="display:block;color:#8b96a9;font-size:.68rem;margin-top:5px">La scheda diventa arancione quando si avvicina a questo valore e rossa quando lo raggiunge o scende sotto.</small></div>`:''}
   <div class="campo"><label>Note (opzionale)</label><textarea id="pr-note" placeholder="Note visibili nella scheda prodotto...">${(p.note||'').replace(/</g,'&lt;')}</textarea></div>
   <div class="divisore-modale">📸 Foto prodotto</div>
   <div class="campo"><label style="text-transform:none;font-weight:600;color:#94a3b8;letter-spacing:0">Compressa automaticamente a max 70 KB</label><input type="file" id="pr-foto" accept="image/*"><div id="pr-foto-preview">${hasFoto?`<div class="foto-preview-box"><img loading="lazy" src="${p.foto}"><div class="info"><strong>✅ Foto attuale</strong><span>Già ottimizzata</span></div></div>`:''}</div></div>
@@ -929,6 +942,7 @@ function apriModaleProdotto(prod){
   <div class="campo-2"><div class="campo"><label>Materiale</label><input id="pr-mat" value="${(scheda.materiale||'').replace(/"/g,'&quot;')}"></div><div class="campo"><label>Colore</label><input id="pr-col" value="${(scheda.colore||'').replace(/"/g,'&quot;')}"></div></div>
   <div class="campo"><label>Dimensione</label><input id="pr-dim" value="${(scheda.dimensione||'').replace(/"/g,'&quot;')}"></div>
   <div class="campo"><label>Note tecniche</label><textarea id="pr-nt">${(scheda.note||'').replace(/</g,'&lt;')}</textarea></div>
+  ${user&&user.ruolo==='Amministratore'?`<div class="admin-purchase-section"><div class="admin-purchase-title">🔒 Dati acquisto</div><div class="campo"><label>Fornitore</label><input id="pr-fornitore" value="${(p.fornitore||'').replace(/"/g,'&quot;')}" placeholder="Es. Fornitore Srl"></div><div class="campo"><label>Costo d’acquisto (€)</label><input id="pr-costo-acquisto" type="text" inputmode="decimal" autocomplete="off" value="${p.costoAcquisto?Number(p.costoAcquisto).toFixed(2).replace('.',','):''}" placeholder="Es. 8,50"></div><div class="campo"><label>Quantità minima di riordino</label><input id="pr-qta-min" type="number" min="0" value="${Number(p.quantitaMinima||0)}" placeholder="Es. 50"><small style="display:block;color:#8b96a9;font-size:.68rem;margin-top:5px">La scheda diventa arancione quando si avvicina a questo valore e rossa quando lo raggiunge o scende sotto.</small></div></div>`:''}
  `;
  document.getElementById('d-foot').innerHTML=`<button class="btn-ghost" onclick="chiudiDrawer()">Annulla</button><button class="btn-primary" id="pr-salva">💾 ${modifica?'Salva':'Aggiungi'}</button>`;
  d.classList.add('open');bg.classList.add('open');
@@ -1167,8 +1181,9 @@ function lista(el,conReset){
 function rigaProdottoLista(p){
  const maxQta=p.quantita||0;
  const colore=coloreCategoria(p.categoria);
+ const thumb=p.foto?`<img class="lista-prodotto-thumb" src="${escapeAttr(p.foto)}" alt="" loading="lazy" onerror="this.classList.add('is-broken');this.removeAttribute('src')">`:'<span class="lista-prodotto-thumb placeholder" aria-hidden="true">📦</span>';
  return `<div class="lista-prodotto" style="border-left:4px solid ${colore}">
-  <div class="info">
+  ${thumb}<div class="info">
    <strong>${p.nome||''}</strong>
    <small><span style="background:${colore};color:#fff;padding:2px 7px;border-radius:6px;font-weight:800;font-size:.6rem;letter-spacing:.04em">${p.categoria||''}</span> · Disp: <b>${maxQta}</b></small>
   </div>
@@ -1222,8 +1237,9 @@ function renderCarrello(){
   const colore=coloreCategoria(cat);
   html+=`<div class="cat-header" style="background:${colore}">${cat}<span class="badge">${items.length}</span></div>`;
   items.forEach(item=>{
+   const thumb=item.foto?`<img class="lista-prodotto-thumb carrello-thumb" src="${escapeAttr(item.foto)}" alt="" loading="lazy" onerror="this.classList.add('is-broken');this.removeAttribute('src')">`:'<span class="lista-prodotto-thumb carrello-thumb placeholder" aria-hidden="true">📦</span>';
    html+=`<div class="carrello-item" style="border-left:4px solid ${colore}">
-    <div class="info">
+    ${thumb}<div class="info">
      <strong>${item.nome||''}</strong>
      <small>Cod. ${item.codice} · Max ${item.quantita}</small>
     </div>
@@ -6737,7 +6753,7 @@ window.mostraPopupBenvenuto=function(){
     return parseJsonList(list).map(function(a){
       var name=a.nome_file||a.nome||'allegato';
       var url=a.url||a.data||' ';url=url.trim();
-      /* Per gli allegati Storage conserviamo il solo URL firmato; data resta solo per il fallback locale. */
+      /* Il path è stabile; l’URL firmato può scadere e viene rigenerato on-demand. */
       return {nome:name,nome_file:name,mime:a.mime||'application/octet-stream',size:a.size||0,url:url,data:a.data&&String(a.data).startsWith('data:')?a.data:'',path:a.path||'',bucket:a.bucket||'allegati_noleggi',caricato_il:a.caricato_il||'',letto:a.letto===true};
     });
   }
@@ -7268,4 +7284,26 @@ window.mostraPopupBenvenuto=function(){
   if(typeof app==='function')app();
   if(window.ergoSupabaseLoad)Promise.resolve().then(function(){return window.ergoSupabaseLoad();}).catch(function(e){console.warn('Sincronizzazione dopo ripristino rinviata',e);});
  },80);
+})();
+
+/* === UI 2026-11: popup assistente responsive finale === */
+(function(){
+ var st=document.createElement('style');
+ st.textContent=''+
+  '.assistente-vnext{right:20px!important;bottom:20px!important;width:min(680px,calc(100vw - 40px))!important;max-width:none!important;align-items:flex-end!important;gap:0!important}'+
+  '.assistente-vnext .assistente-person{width:185px!important;min-width:185px!important;transform:translateY(8px)!important;filter:drop-shadow(0 14px 24px rgba(8,50,120,.24))!important}'+
+  '.assistente-vnext .assistente-person .assistant-character-image{width:185px!important;height:278px!important;object-fit:contain!important}'+
+  '.assistente-vnext .assistente-card{flex:1 1 auto!important;width:auto!important;min-width:0!important;max-width:430px!important;padding:19px 21px 18px!important;border:2px solid currentColor!important;border-radius:20px!important;background:rgba(255,255,255,.98)!important;box-shadow:0 18px 42px rgba(21,34,56,.18),0 2px 8px rgba(8,50,120,.08)!important;backdrop-filter:blur(10px)!important}'+
+  '.assistente-vnext .assistente-card:before{left:-12px!important;top:44px!important;border-width:10px 12px 10px 0!important}'+
+  '.assistente-vnext .assistente-role{padding-right:24px!important;font-size:.68rem!important;letter-spacing:.13em!important}'+
+  '.assistente-vnext .assistente-text{font-size:.94rem!important;line-height:1.5!important;margin-bottom:13px!important;color:#152238!important}'+
+  '.assistente-vnext .assistente-actions{gap:8px!important}'+
+  '.assistente-vnext .assistente-action{min-height:40px!important;padding:10px 13px!important;border-radius:11px!important;box-shadow:0 4px 10px rgba(8,50,120,.12)!important;transition:transform .16s ease,filter .16s ease!important}'+
+  '.assistente-vnext .assistente-action:hover,.assistente-vnext .assistente-action:focus-visible{transform:translateY(-1px)!important;filter:brightness(1.06)!important;outline:none!important}'+
+  '.assistente-vnext .assistente-close{width:30px!important;height:30px!important;top:8px!important;right:8px!important;border-radius:8px!important;font-size:19px!important;line-height:1!important}'+
+  '.assistente-vnext .assistente-close:hover,.assistente-vnext .assistente-close:focus-visible{background:#eef4fb!important;color:#083278!important;outline:none!important}'+
+  '@media(max-width:900px){.assistente-vnext{right:12px!important;bottom:12px!important;width:calc(100vw - 24px)!important}.assistente-vnext .assistente-person{width:clamp(106px,24vw,160px)!important;min-width:clamp(106px,24vw,160px)!important}.assistente-vnext .assistente-person .assistant-character-image{width:100%!important;height:auto!important;max-height:240px!important}.assistente-vnext .assistente-card{max-width:none!important;padding:16px 17px 15px!important}}'+
+  '@media(max-width:560px){.assistente-vnext{right:8px!important;bottom:8px!important;width:calc(100vw - 16px)!important;max-height:calc(100dvh - 16px)!important}.assistente-vnext .assistente-person{width:108px!important;min-width:108px!important}.assistente-vnext .assistente-person .assistant-character-image{height:162px!important}.assistente-vnext .assistente-card{padding:14px 14px 13px!important;border-radius:17px!important}.assistente-vnext .assistente-card:before{top:32px!important}.assistente-vnext .assistente-role{font-size:.6rem!important}.assistente-vnext .assistente-text{font-size:.82rem!important;line-height:1.4!important;margin-bottom:10px!important}.assistente-vnext .assistente-action{min-height:36px!important;padding:8px 10px!important;font-size:.74rem!important}.assistente-vnext .assistente-close{top:5px!important;right:5px!important}}'+
+  '@media(max-width:380px){.assistente-vnext .assistente-person{width:86px!important;min-width:86px!important}.assistente-vnext .assistente-person .assistant-character-image{height:129px!important}.assistente-vnext .assistente-card{padding:12px!important}.assistente-vnext .assistente-text{font-size:.78rem!important}}';
+ document.head.appendChild(st);
 })();
