@@ -1153,7 +1153,6 @@ function lista(el,conReset){
    </div>
    <div class="lista-pannello">
     <div class="lista-titolo">🛒 Prodotti inseriti <span class="count" id="lista-count">${listaAttrezzature.length} articoli</span></div>
-    <div class="lista-help">A sinistra aggiungi dal catalogo · qui a destra cerchi e gestisci quelli già inseriti.</div>
     <div class="lista-search lista-search-destra"><input id="lista-input-inseriti" placeholder="Cerca per nome o codice…" value="${listaRicercaInseriti.replace(/"/g,'&quot;')}"><select id="lista-select-cat-inseriti"><option value="Tutte">Tutte le categorie</option>${CATEGORIE_INV.map(c=>`<option value="${c}" ${listaCategoriaInseriti===c?'selected':''}>${c}</option>`).join('')}</select></div>
     <div class="lista-carrello" id="lista-carrello">${renderCarrello()}</div>
     <div class="carrello-azioni">
