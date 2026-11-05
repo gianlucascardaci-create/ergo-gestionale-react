@@ -102,6 +102,7 @@ async function cambiaModalitaAssistente(){
 let calFiltro='tutti';
 let calMese=new Date().getMonth(),calAnno=new Date().getFullYear();
 let listaAttrezzature=[];
+let listaRicercaInseriti='';
 let invRicerca='',invCategoria='Tutte',invStato='Tutte',invRicercaTimer=null;
 const invStatoPerUtente={};
 const R=document.getElementById('root');
@@ -371,6 +372,7 @@ function app(){
     <button class="mobile-btn" id="mm">☰</button>
     <div class="crumb"><span>Gestionale</span><span>/</span><strong>${titolo}</strong></div>
     <div style="display:flex;gap:12px;align-items:center">
+     ${user.ruolo==='Amministratore'?`<button class="assistant-mode-toggle" id="assistant-mode-toggle" type="button" aria-label="Cambia visualizzazione assistente">${ergoAssistantMode==='popup'?'Popup':'Assistente'}</button>`:''}
      <button class="install-app-btn" id="install-app" type="button" title="Installa il gestionale come app" aria-label="Installa il gestionale come app">⇩ <span>Installa app</span></button>
      <div class="user"><span class="avatar">${user.iniziali}</span><span>${user.nome}</span></div>
     </div>
@@ -1150,7 +1152,9 @@ function lista(el,conReset){
     </div>
    </div>
    <div class="lista-pannello">
-    <div class="lista-titolo">🛒 Lista attrezzature <span class="count" id="lista-count">${listaAttrezzature.length} articoli</span></div>
+    <div class="lista-titolo">🛒 Prodotti inseriti <span class="count" id="lista-count">${listaAttrezzature.length} articoli</span></div>
+    <div class="lista-help">A sinistra aggiungi dal catalogo · qui a destra cerchi e gestisci quelli già inseriti.</div>
+    <div class="lista-search lista-search-destra"><input id="lista-input-inseriti" placeholder="Cerca tra gli inseriti per nome, codice o categoria…" value="${listaRicercaInseriti.replace(/"/g,'&quot;')}"></div>
     <div class="lista-carrello" id="lista-carrello">${renderCarrello()}</div>
     <div class="carrello-azioni">
      <button class="btn-invia" id="lista-invia" ${listaAttrezzature.length===0?'disabled':''}>📤 Invia a evento</button>
@@ -1179,6 +1183,12 @@ function lista(el,conReset){
   listaRicerca='';
   listaAttiva=true;
   lista(el,false);
+ });
+ const inpInseriti=document.getElementById('lista-input-inseriti');
+ if(inpInseriti)inpInseriti.addEventListener('input',e=>{
+  listaRicercaInseriti=e.target.value;
+  const cont=document.getElementById('lista-carrello');
+  if(cont)cont.innerHTML=renderCarrello();
  });
  agganciaAggiungi(tutti);
  document.getElementById('lista-svuota').onclick=()=>{svuotaListaAttrezzature();};
@@ -1232,7 +1242,7 @@ function renderCarrello(){
   return '<div class="carrello-vuoto"><span class="emo">📋</span>La lista è vuota.<br>Aggiungi prodotti dal catalogo a sinistra.</div>';
  }
  const gruppi={};
- listaAttrezzature.forEach(item=>{
+ listaAttrezzature.filter(item=>ricercaIntelligente(listaRicercaInseriti,[item.nome,item.codice,item.categoria])).forEach(item=>{
   const cat=item.categoria||'ALTRO';
   if(!gruppi[cat])gruppi[cat]=[];
   gruppi[cat].push(item);
@@ -1254,6 +1264,7 @@ function renderCarrello(){
    </div>`;
   });
  });
+ if(!html&&listaAttrezzature.length)return '<div class="carrello-vuoto">Nessun prodotto inserito corrisponde alla ricerca.</div>';
  return html;
 }
 document.addEventListener('input',e=>{
@@ -2503,7 +2514,7 @@ async function svuotaListaAttrezzature(){
   if(!window.ergoSupabaseSyncEvents)throw new Error('SUPABASE_NON_DISPONIBILE');
   await window.ergoSupabaseSyncEvents(salvati);
   Object.assign(ev,aggiornato);localStorage.setItem('ergo_eventi',JSON.stringify(salvati));localStorage.removeItem('ergo_lista_'+ev.id);
-  _eventoListaCorrente=null;listaAttrezzature=[];
+  _eventoListaCorrente=null;listaAttrezzature=[];listaRicercaInseriti='';
   window.assistentePersonale({testo:'<b>Lista eliminata</b><br>La lista attrezzature e il PDF sono stati rimossi da Supabase.',emoji:'🗑️',colore:'#b91c1c',autoClose:true});
   view='calendario';app();
  }catch(e){alert('❌ Supabase non ha confermato la cancellazione. La lista è stata conservata.');console.warn('Cancellazione lista attrezzature fallita',e);}
@@ -6869,7 +6880,7 @@ window.mostraPopupBenvenuto=function(){
       var loadRevision=localCollectionRevision;
       var token=sessionStorage.getItem('ergo_session_token')||'';
       if(!token) throw new Error('SESSIONE_ASSENTE');
-      ergoAssistantMode='popup';
+      try{if(window.ergoSupabaseGetAssistantMode)ergoAssistantMode=await window.ergoSupabaseGetAssistantMode();}catch(modeErr){console.warn('Modalità assistente globale non disponibile: uso popup',modeErr);ergoAssistantMode='popup';}
       var read=await sb.rpc('ergo_read_data',{p_token:token});
       if(read.error) throw read.error;
       var payload=read.data||{};
