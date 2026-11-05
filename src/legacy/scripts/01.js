@@ -86,7 +86,7 @@ function installaGestionale(){
 let calFiltro='tutti';
 let calMese=new Date().getMonth(),calAnno=new Date().getFullYear();
 let listaAttrezzature=[];
-let invRicerca='',invCategoria='Tutte',invRicercaTimer=null;
+let invRicerca='',invCategoria='Tutte',invStato='Tutte',invRicercaTimer=null;
 const invStatoPerUtente={};
 const R=document.getElementById('root');
 
@@ -292,7 +292,7 @@ async function doLogin(){
    ]);
    if(f){
     user=f;salvaSessionePersistente(f);UTENTI[f.username]={ruolo:f.ruolo,nome:f.nome,email:f.email,iniziali:(f.nome||f.username).split(' ').map(x=>x[0]).slice(0,2).join('').toUpperCase()};
-    view='dashboard';filtroFeed='tutte';calMese=new Date().getMonth();calAnno=new Date().getFullYear();invRicerca='';invCategoria='Tutte';listaRicerca='';listaCategoria='Tutte';listaAttrezzature=[];Object.keys(invStatoPerUtente).forEach(function(k){delete invStatoPerUtente[k]});window._ultimoSuggerimentoInventario='';
+    view='dashboard';filtroFeed='tutte';calMese=new Date().getMonth();calAnno=new Date().getFullYear();invRicerca='';invCategoria='Tutte';invStato='Tutte';listaRicerca='';listaCategoria='Tutte';listaAttrezzature=[];Object.keys(invStatoPerUtente).forEach(function(k){delete invStatoPerUtente[k]});window._ultimoSuggerimentoInventario='';
     /* Prima sincronizza Supabase: non mostrare la vecchia copia locale del browser. */
     R.innerHTML='<div class="login-page"><div class="login-box" style="text-align:center"><div class="eyebrow">Sincronizzazione dati</div><h1>Caricamento aggiornamenti…</h1><p class="sub">Sto recuperando eventi, noleggi e notifiche da Supabase.</p></div></div>';
     if(window.ergoSupabaseLoad){
@@ -304,7 +304,7 @@ async function doLogin(){
    }
   }
   const f=UTENTI[u];
-  if(f&&f.password&&f.password===p){user={username:u,...f};salvaSessionePersistente(user);view='dashboard';filtroFeed='tutte';calMese=new Date().getMonth();calAnno=new Date().getFullYear();invRicerca='';invCategoria='Tutte';listaRicerca='';listaCategoria='Tutte';listaAttrezzature=[];Object.keys(invStatoPerUtente).forEach(function(k){delete invStatoPerUtente[k]});window._ultimoSuggerimentoInventario='';app();}
+  if(f&&f.password&&f.password===p){user={username:u,...f};salvaSessionePersistente(user);view='dashboard';filtroFeed='tutte';calMese=new Date().getMonth();calAnno=new Date().getFullYear();invRicerca='';invCategoria='Tutte';invStato='Tutte';listaRicerca='';listaCategoria='Tutte';listaAttrezzature=[];Object.keys(invStatoPerUtente).forEach(function(k){delete invStatoPerUtente[k]});window._ultimoSuggerimentoInventario='';app();}
   else document.getElementById('e').innerHTML='<div class="err">Credenziali non corrette.</div>';
  }catch(err){
   var loginMsg=String((err&&err.message)||err||'');
@@ -884,7 +884,7 @@ function comprimiFoto(file){
    ============================================================ */
 function apriModaleProdotto(prod){
  const modifica=!!prod;
- const p=prod||{codice:'',nome:'',categoria:'',quantita:0,quantitaIniziale:0,quantitaMinima:0,posizione:'',prezzo:0,prezzoIniziale:0,note:'',foto:'',scheda:{materiale:'',colore:'',dimensione:'',note:''}};
+ const p=prod||{codice:'',nome:'',categoria:'',quantita:0,quantitaIniziale:0,quantitaMinima:0,posizione:'',prezzo:0,prezzoIniziale:0,fornitore:'',costoAcquisto:0,note:'',foto:'',scheda:{materiale:'',colore:'',dimensione:'',note:''}};
  const scheda=p.scheda||{materiale:'',colore:'',dimensione:'',note:''};
  const catsSel=(p.categoria||'').split(',').map(s=>s.trim()).filter(Boolean);
  const hasFoto=!!p.foto;
@@ -902,9 +902,9 @@ function apriModaleProdotto(prod){
   <div class="campo-3">
    <div class="campo"><label>Quantità</label><input id="pr-qta" type="number" min="0" value="${p.quantita||0}"></div>
    <div class="campo"><label>Posizione</label><input id="pr-pos" value="${(p.posizione||'').replace(/"/g,'&quot;')}" placeholder="Es. A1"></div>
-   <div class="campo"><label>Prezzo (€)</label><input id="pr-prezzo" type="number" min="0" step="0.01" value="${(p.prezzo||0).toFixed(2)}"></div>
+   <div class="campo"><label>Prezzo (€)</label><input id="pr-prezzo" type="text" inputmode="decimal" autocomplete="off" value="${(Number(p.prezzo)||0).toFixed(2).replace('.',',')}" placeholder="Es. 12,50"></div>
   </div>
-  ${user&&user.ruolo==='Amministratore'?`<div class="campo"><label>Quantità minima di riordino</label><input id="pr-qta-min" type="number" min="0" value="${Number(p.quantitaMinima||0)}" placeholder="Es. 50"><small style="display:block;color:#8b96a9;font-size:.68rem;margin-top:5px">La scheda diventa arancione quando si avvicina a questo valore e rossa quando lo raggiunge o scende sotto.</small></div>`:''}
+  ${user&&user.ruolo==='Amministratore'?`<div class="campo"><label>Fornitore</label><input id="pr-fornitore" value="${(p.fornitore||'').replace(/"/g,'&quot;')}" placeholder="Es. Fornitore Srl"></div><div class="campo"><label>Costo d’acquisto (€)</label><input id="pr-costo-acquisto" type="text" inputmode="decimal" autocomplete="off" value="${(Number(p.costoAcquisto)||0).toFixed(2).replace('.',',')}" placeholder="Es. 8,50"></div><div class="campo"><label>Quantità minima di riordino</label><input id="pr-qta-min" type="number" min="0" value="${Number(p.quantitaMinima||0)}" placeholder="Es. 50"><small style="display:block;color:#8b96a9;font-size:.68rem;margin-top:5px">La scheda diventa arancione quando si avvicina a questo valore e rossa quando lo raggiunge o scende sotto.</small></div>`:''}
   <div class="campo"><label>Note (opzionale)</label><textarea id="pr-note" placeholder="Note visibili nella scheda prodotto...">${(p.note||'').replace(/</g,'&lt;')}</textarea></div>
   <div class="divisore-modale">📸 Foto prodotto</div>
   <div class="campo"><label style="text-transform:none;font-weight:600;color:#94a3b8;letter-spacing:0">Compressa automaticamente a max 70 KB</label><input type="file" id="pr-foto" accept="image/*"><div id="pr-foto-preview">${hasFoto?`<div class="foto-preview-box"><img loading="lazy" src="${p.foto}"><div class="info"><strong>✅ Foto attuale</strong><span>Già ottimizzata</span></div></div>`:''}</div></div>
@@ -926,14 +926,19 @@ function apriModaleProdotto(prod){
    this.value=normalized===''?'0':normalized;
   });
  }
- const prezzoInput=document.getElementById('pr-prezzo');
- if(prezzoInput){
-  prezzoInput.addEventListener('focus',function(){this.select()});
-  prezzoInput.addEventListener('keydown',function(e){
-   if(/^\d$/.test(e.key)&&/^0(?:[.,]0*)?$/.test(this.value)){e.preventDefault();this.value=e.key;this.dispatchEvent(new Event('input',{bubbles:true}))}
+ const normalizzaValorePrezzo=function(value){
+  var v=String(value||'').replace(/\s/g,'').replace(/,/g,'.').replace(/[^0-9.]/g,'');
+  var primo=v.indexOf('.');if(primo>=0)v=v.slice(0,primo+1)+v.slice(primo+1).replace(/\./g,'');
+  return v;
+ };
+ const preparaInputPrezzo=function(id){
+  const input=document.getElementById(id);if(!input)return;
+  input.addEventListener('input',function(){
+   var v=normalizzaValorePrezzo(this.value);if(v.indexOf('.')===0)v='0'+v;if(/^0+\d/.test(v))v=v.replace(/^0+(?=\d)/,'');this.value=v.replace('.',',');
   });
-  prezzoInput.addEventListener('input',function(){this.value=String(this.value||'').replace(/^0+(?=\d)/,'')});
- }
+  input.addEventListener('blur',function(){var n=parseFloat(normalizzaValorePrezzo(this.value));this.value=(isFinite(n)?n:0).toFixed(2).replace('.',',');});
+ };
+ preparaInputPrezzo('pr-prezzo');preparaInputPrezzo('pr-costo-acquisto');
  document.querySelectorAll('.pr-cat-check').forEach(cb=>{
   cb.addEventListener('change',()=>{cb.closest('label').classList.toggle('on',cb.checked)});
  });
@@ -976,8 +981,10 @@ async function salvaProdotto(modifica,p,nuovaFoto){
   quantitaIniziale:modifica&&p.quantitaIniziale!==undefined&&p.quantitaIniziale!==null?Number(p.quantitaIniziale):(parseInt(document.getElementById('pr-qta').value)||0),
   quantitaMinima:(user&&user.ruolo==='Amministratore'&&document.getElementById('pr-qta-min'))?Math.max(0,parseInt(document.getElementById('pr-qta-min').value)||0):Number(p.quantitaMinima||0),
   posizione:document.getElementById('pr-pos').value.trim(),
-  prezzo:parseFloat(document.getElementById('pr-prezzo').value)||0,
-  prezzoIniziale:modifica&&p.prezzoIniziale!==undefined&&p.prezzoIniziale!==null?Number(p.prezzoIniziale):(parseFloat(document.getElementById('pr-prezzo').value)||0),
+  prezzo:(parseFloat(String(document.getElementById('pr-prezzo').value||'').replace(',','.'))||0),
+  prezzoIniziale:modifica&&p.prezzoIniziale!==undefined&&p.prezzoIniziale!==null?Number(p.prezzoIniziale):(parseFloat(String(document.getElementById('pr-prezzo').value||'').replace(',','.'))||0),
+  fornitore:(user&&user.ruolo==='Amministratore'&&document.getElementById('pr-fornitore'))?document.getElementById('pr-fornitore').value.trim():String(p.fornitore||''),
+  costoAcquisto:(user&&user.ruolo==='Amministratore'&&document.getElementById('pr-costo-acquisto'))?(parseFloat(String(document.getElementById('pr-costo-acquisto').value||'').replace(',','.'))||0):Number(p.costoAcquisto||0),
   createdAt:p.createdAt||new Date().toISOString(),
   updatedAt:new Date().toISOString(),
   note:document.getElementById('pr-note').value,
@@ -1565,30 +1572,32 @@ function suggerisciProdottoInventario(query,tutti){
   /* Sul telefono la tastiera copre l'assistente: applica direttamente la
      correzione fuzzy e mostra tutti i prodotti che corrispondono al termine. */
   invRicerca=nome;
-  invStatoPerUtente[chiaveRicercaInventario()]={ricerca:invRicerca,categoria:invCategoria,attivo:true};
+  invStatoPerUtente[chiaveRicercaInventario()]={ricerca:invRicerca,categoria:invCategoria,scorta:invStato,attivo:true};
   const inputMobile=document.getElementById('inv-input-q');if(inputMobile)inputMobile.value=invRicerca;
   const pcMobile=document.getElementById('pc');if(pcMobile&&view==='inventario')inv(pcMobile);
   return;
  }
  window.assistentePersonale({testo:'Stai per caso cercando <b>'+nome+'</b>?',emoji:'🔎',colore:'#083278',autoClose:true,durata:10000,bottoni:[
   {label:'Sì, mostra '+nome,colore:'#083278',azione:function(){
-   invRicerca=nome;invStatoPerUtente[chiaveRicercaInventario()]={ricerca:invRicerca,categoria:invCategoria};
+   invRicerca=nome;invStatoPerUtente[chiaveRicercaInventario()]={ricerca:invRicerca,categoria:invCategoria,scorta:invStato};
    const inp=document.getElementById('inv-input-q');if(inp)inp.value=invRicerca;
    const pc=document.getElementById('pc');if(pc&&view==='inventario')inv(pc);
   }},{label:'No, continuo la ricerca',colore:'#94a3b8'}]});
 }
+function statoScortaProdotto(p){const q=Number(p.quantita||0),m=Number(p.quantitaMinima||0);return m>0?(q<=m?'sotto':(q<=m*1.25?'quasi':'normale')):'normale';}
+function corrispondeFiltroScorta(p){return invStato==='Tutte'||(invStato==='sotto'&&statoScortaProdotto(p)==='sotto')||(invStato==='quasi'&&statoScortaProdotto(p)==='quasi');}
 function inv(el){
  const statoKey=chiaveRicercaInventario();
  const stato=invStatoPerUtente[statoKey]||{ricerca:'',categoria:'Tutte',attivo:false};
- invRicerca=stato.ricerca||'';invCategoria=stato.categoria||'Tutte';
- const catalogoAttivo=stato.attivo===true||!!invRicerca.trim()||invCategoria!=='Tutte';
+ invRicerca=stato.ricerca||'';invCategoria=stato.categoria||'Tutte';invStato=stato.scorta||'Tutte';
+ const catalogoAttivo=stato.attivo===true||!!invRicerca.trim()||invCategoria!=='Tutte'||invStato!=='Tutte';
  let salvati=[];
  try{salvati=JSON.parse(localStorage.getItem('ergo_prodotti'))||[]}catch(e){}
  const tutti=tuttiProds(salvati);
  const filtrati=tutti.filter(p=>{
   const matchCat=invRicerca.trim()!==''||invCategoria==='Tutte'||(p.categoria||'').toUpperCase().includes(invCategoria.toUpperCase());
   const matchTxt=invRicerca.trim()?testoProdottoEsatto(invRicerca,p):true;
-  return matchCat&&matchTxt;
+  return matchCat&&matchTxt&&corrispondeFiltroScorta(p);
  });
  const isAdmin=user.ruolo==='Amministratore';
  const vedePrezzo=user.ruolo==='Amministratore'||user.ruolo==='Magazzino2';
@@ -1598,6 +1607,7 @@ function inv(el){
    <div class="inv-filtri">
    <div class="inv-search"><input id="inv-input-q" placeholder="Cerca nome, codice, categoria…" value="${invRicerca.replace(/"/g,'&quot;')}" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"><button type="button" id="inv-clear-q" class="inv-clear-q" aria-label="Cancella" ${invRicerca?'':'hidden'}>×</button></div>
     <select class="inv-select" id="inv-select-cat"><option value="Tutte">Tutte le categorie</option>${CATEGORIE_INV.map(c=>`<option value="${c}" ${invCategoria===c?'selected':''}>${c}</option>`).join('')}</select>
+    <select class="inv-select inv-select-stock" id="inv-select-stock"><option value="Tutte" ${invStato==='Tutte'?'selected':''}>Tutte le scorte</option><option value="quasi" ${invStato==='quasi'?'selected':''}>Quasi sotto scorta</option><option value="sotto" ${invStato==='sotto'?'selected':''}>Sotto scorta</option></select>
    </div>
    ${isAdmin?'<button class="inv-add" id="inv-btn-nuovo">＋ Nuovo prodotto</button>':''}
   </div>
@@ -1618,9 +1628,9 @@ function inv(el){
   });
   if(lede)lede.textContent=nf.length+' prodott'+(nf.length===1?'o':'i')+' trovat'+(nf.length===1?'o':'i')+(invRicerca?' per "'+invRicerca+'"':'');
   const emptyStart=document.getElementById('inv-empty-start');
-  if(emptyStart)emptyStart.style.display=(invRicerca.trim()||invCategoria!=='Tutte')?'none':'';
+  if(emptyStart)emptyStart.style.display=(invRicerca.trim()||invCategoria!=='Tutte'||invStato!=='Tutte')?'none':'';
   if(griglia){
-   griglia.style.display=(invRicerca.trim()||invCategoria!=='Tutte')?'':'none';
+   griglia.style.display=(invRicerca.trim()||invCategoria!=='Tutte'||invStato!=='Tutte')?'':'none';
    griglia.innerHTML=nf.length===0
     ?'<div class="inv-vuoto" style="grid-column:1/-1"><span class="emo">🔍</span>Nessun prodotto trovato.</div>'
     :nf.map(p=>cardProd(p,isAdmin,vedePrezzo)).join('');
@@ -1643,7 +1653,7 @@ function inv(el){
   invRicerca=nuovaRicerca;
   const clearButton=document.getElementById('inv-clear-q');if(clearButton)clearButton.hidden=!invRicerca;
   correggiCategoriaRicerca();
-  invStatoPerUtente[statoKey]={ricerca:invRicerca,categoria:invCategoria,attivo:true};
+  invStatoPerUtente[statoKey]={ricerca:invRicerca,categoria:invCategoria,scorta:invStato,attivo:true};
   riRender();
   if(invRicercaTimer)clearTimeout(invRicercaTimer);
   invRicercaTimer=setTimeout(function(){suggerisciProdottoInventario(invRicerca,tutti);},450);
@@ -1652,14 +1662,16 @@ function inv(el){
  if(sc)sc.addEventListener('change',e=>{
   invCategoria=e.target.value;
   correggiCategoriaRicerca();
-  invStatoPerUtente[statoKey]={ricerca:invRicerca,categoria:invCategoria,attivo:true};
+  invStatoPerUtente[statoKey]={ricerca:invRicerca,categoria:invCategoria,scorta:invStato,attivo:true};
   riRender();
  });
+ const stockSelect=document.getElementById('inv-select-stock');
+ if(stockSelect)stockSelect.addEventListener('change',e=>{invStato=e.target.value;invStatoPerUtente[statoKey]={ricerca:invRicerca,categoria:invCategoria,scorta:invStato,attivo:invRicerca.trim()!==''||invCategoria!=='Tutte'||invStato!=='Tutte'};riRender();});
  const clearSearch=document.getElementById('inv-clear-q');
  if(clearSearch)clearSearch.onclick=()=>{
   invRicerca='';
   window._ultimoSuggerimentoInventario='';
-  invStatoPerUtente[statoKey]={ricerca:'',categoria:invCategoria,attivo:invCategoria!=='Tutte'};
+  invStatoPerUtente[statoKey]={ricerca:'',categoria:invCategoria,scorta:invStato,attivo:invCategoria!=='Tutte'||invStato!=='Tutte'};
   if(inp)inp.value='';
   clearSearch.hidden=true;
   riRender();
@@ -2153,6 +2165,7 @@ function apriSchedaProd(p){
   if(v&&v.trim())righe+=`<div style="display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px dashed #c9dcf0;font-size:.85rem"><span style="color:#6b778c;font-weight:600">${k}</span><span style="color:#344054;font-weight:700;text-align:right">${v}</span></div>`;
  });
  if(scheda.note&&scheda.note.trim())righe+=`<div style="padding:10px 0 0"><span style="color:#6b778c;font-weight:600;font-size:.7rem;text-transform:uppercase;letter-spacing:.08em">Note tecniche</span><div style="color:#526783;font-size:.85rem;line-height:1.5;margin-top:6px">${scheda.note}</div></div>`;
+ const acquisto=user&&user.ruolo==='Amministratore'?`<div class="admin-acquisto"><div class="admin-acquisto-title">🔒 Dati acquisto · solo Amministratore</div><div><span>Fornitore</span><strong>${escapeHtml(p.fornitore||'—')}</strong></div><div><span>Costo d’acquisto</span><strong>€ ${(Number(p.costoAcquisto)||0).toFixed(2).replace('.',',')}</strong></div></div>`:'';
  const tech=righe?`<div style="background:#f3f8ff;border:1px solid #d7e7fa;border-radius:12px;padding:14px;margin-top:14px"><div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.12em;color:#083278;font-weight:800;margin-bottom:10px">📋 Scheda tecnica</div>${righe}</div>`:'<div style="background:#f8fafc;border:1px dashed #cbd5e1;border-radius:12px;padding:14px;margin-top:14px;text-align:center;color:#94a3b8;font-size:.8rem">Nessuna scheda tecnica</div>';
  const d=document.getElementById('d-panel'),bg=document.getElementById('d-bg');
  document.getElementById('d-eyebrow').textContent='Scheda tecnica';
@@ -2162,6 +2175,7 @@ function apriSchedaProd(p){
   <div style="font-size:.75rem;color:#98a2b3;letter-spacing:.06em;margin-bottom:14px;text-transform:uppercase;font-weight:700">COD. ${p.codice}</div>
   <div class="meta-grid"><div><small>Quantità attuale</small><strong>${cronQuantitaAttuale}</strong></div><div><small>Posizione</small><strong>${p.posizione||'—'}</strong></div></div>
   ${tech}
+  ${acquisto}
   <div class="prod-cronologia"><button type="button" class="btn-mini" id="prod-cronologia-btn">Cronologia</button><div id="prod-cronologia-box" hidden><div class="prod-cronologia-titolo">Valori nel tempo</div><div>Creato il <b>${cronDataCreazione}</b></div><div>Quantità iniziale <b>${cronQuantitaIniziale}</b></div><div>Quantità ultima modifica <b>${cronQuantitaAttuale}</b></div><div>Ultimo aggiornamento <b>${cronDataAggiornamento}</b></div>${user.ruolo==='Amministratore'?`<div>Prezzo iniziale <b>€ ${(Number(p.prezzoIniziale)||Number(p.prezzo)||0).toFixed(2)}</b></div>`:''}</div></div>
   <div style="background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;text-align:center;margin-top:14px">
    <div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.12em;color:#083278;font-weight:800;margin-bottom:10px">🎫 QR Code prodotto</div>
@@ -6516,7 +6530,7 @@ window.mostraPopupBenvenuto=function(){
 
   function productPayload(p){
     var sh=p.scheda||{};
-  return {qr_token:assicuraQrToken(p),codice:p.codice,nome:p.nome,categoria:p.categoria||'',quantita:Number(p.quantita||0),quantita_iniziale:Number(p.quantitaIniziale!==undefined?p.quantitaIniziale:p.quantita||0),quantita_minima:Number(p.quantitaMinima||0),posizione:p.posizione||'',costo_noleggio:Number(p.prezzo||p.costo_noleggio||0),prezzo_iniziale:Number(p.prezzoIniziale!==undefined?p.prezzoIniziale:p.prezzo||0),note:p.note||'',foto_path:p.foto_path||((p.foto&&/^https?:/.test(p.foto))?'':p.foto)||'',scheda_materiale:sh.materiale||'',scheda_colore:sh.colore||'',scheda_dimensione:sh.dimensione||'',scheda_note:sh.note||''};
+  return {qr_token:assicuraQrToken(p),codice:p.codice,nome:p.nome,categoria:p.categoria||'',quantita:Number(p.quantita||0),quantita_iniziale:Number(p.quantitaIniziale!==undefined?p.quantitaIniziale:p.quantita||0),quantita_minima:Number(p.quantitaMinima||0),posizione:p.posizione||'',costo_noleggio:Number(p.prezzo||p.costo_noleggio||0),fornitore:p.fornitore||'',costo_acquisto:Number(p.costoAcquisto||p.costo_acquisto||0),prezzo_iniziale:Number(p.prezzoIniziale!==undefined?p.prezzoIniziale:p.prezzo||0),note:p.note||'',foto_path:p.foto_path||((p.foto&&/^https?:/.test(p.foto))?'':p.foto)||'',scheda_materiale:sh.materiale||'',scheda_colore:sh.colore||'',scheda_dimensione:sh.dimensione||'',scheda_note:sh.note||''};
   }
   function eventPayload(e){
     return {client_id:e.clientId||e.id||null,nome_evento:e.titolo,data:dataEventoCanonica(e),data_display:dataEventoCanonica(e)+'T'+oraEventoCanonica(e),location:e.location||'',citta:e.citta||'',ospiti:Number(e.ospiti||0),bambini:Number(e.bambini||0),staff:Number(e.staff||0),note_tutti:e.noteTutti||'',allegati_tutti:e.allegatiTutti||[],note_sala:e.noteSala||'',allegati_sala:e.allegatiSala||[],note_cucina:e.noteCucina||'',allegati_cucina:e.allegatiCucina||[],note_magazzino:e.noteMagazzino||'',allegati_magazzino:e.allegatiMagazzino||[],allegati_privati:e.allegatiPrivata||[],lista_attrezzature:e.listaAttrezzature||[],note_storico_tutti:e.noteStoricoTutti||[],note_storico_sala:e.noteStoricoSala||[],note_storico_cucina:e.noteStoricoCucina||[],note_storico_magazzino:e.noteStoricoMagazzino||[],note_storico_admin:e.noteStoricoAdmin||[]};
@@ -6672,7 +6686,7 @@ window.mostraPopupBenvenuto=function(){
   }
   function mapProduct(row){
     var foto=row.foto_path||row.foto_url||'';
-    return {id:row.id,qrToken:row.qr_token||nuovoQrToken(),codice:row.codice,nome:row.nome,categoria:row.categoria||'',quantita:Number(row.quantita||0),quantitaIniziale:Number(row.quantita_iniziale!==undefined&&row.quantita_iniziale!==null?row.quantita_iniziale:row.quantita||0),quantitaMinima:Number(row.quantita_minima||0),posizione:row.posizione||'',prezzo:Number(row.costo_noleggio||row.prezzo||0),prezzoIniziale:Number(row.prezzo_iniziale!==undefined&&row.prezzo_iniziale!==null?row.prezzo_iniziale:row.costo_noleggio||0),createdAt:row.created_at||'',updatedAt:row.updated_at||row.created_at||'',note:row.note||'',foto:/^https?:|^data:/.test(foto)?foto:'',foto_path:row.foto_path||'',scheda:{materiale:row.scheda_materiale||'',colore:row.scheda_colore||'',dimensione:row.scheda_dimensione||'',note:row.scheda_note||''}};
+    return {id:row.id,qrToken:row.qr_token||nuovoQrToken(),codice:row.codice,nome:row.nome,categoria:row.categoria||'',quantita:Number(row.quantita||0),quantitaIniziale:Number(row.quantita_iniziale!==undefined&&row.quantita_iniziale!==null?row.quantita_iniziale:row.quantita||0),quantitaMinima:Number(row.quantita_minima||0),posizione:row.posizione||'',prezzo:Number(row.costo_noleggio||row.prezzo||0),prezzoIniziale:Number(row.prezzo_iniziale!==undefined&&row.prezzo_iniziale!==null?row.prezzo_iniziale:row.costo_noleggio||0),fornitore:row.fornitore||'',costoAcquisto:Number(row.costo_acquisto||0),createdAt:row.created_at||'',updatedAt:row.updated_at||row.created_at||'',note:row.note||'',foto:/^https?:|^data:/.test(foto)?foto:'',foto_path:row.foto_path||'',scheda:{materiale:row.scheda_materiale||'',colore:row.scheda_colore||'',dimensione:row.scheda_dimensione||'',note:row.scheda_note||''}};
   }
   async function firmaFotoProdotto(prod){
     if(!sb||!prod||!prod.foto_path)return prod;
@@ -7189,7 +7203,7 @@ window.mostraPopupBenvenuto=function(){
    if(window.ergoSupabase&&window.ergoSupabase.rest&&window.ergoSupabase.rest.headers)window.ergoSupabase.rest.headers['x-ergo-session']=saved.token;
    if(window.ergoSupabase&&window.ergoSupabase.storage&&window.ergoSupabase.storage.headers)window.ergoSupabase.storage.headers['x-ergo-session']=saved.token;
   }catch(e){}}
-  view='dashboard';filtroFeed='tutte';calMese=new Date().getMonth();calAnno=new Date().getFullYear();invRicerca='';invCategoria='Tutte';listaRicerca='';listaCategoria='Tutte';listaAttrezzature=[];
+  view='dashboard';filtroFeed='tutte';calMese=new Date().getMonth();calAnno=new Date().getFullYear();invRicerca='';invCategoria='Tutte';invStato='Tutte';listaRicerca='';listaCategoria='Tutte';listaAttrezzature=[];
   /* Mostra subito l'app: Supabase aggiorna i dati in secondo piano e non può
      lasciare l'utente fermo sulla schermata di caricamento. */
   if(typeof app==='function')app();

@@ -13,6 +13,8 @@ create table if not exists public.prodotti_noleggio (
   quantita_minima integer not null default 0 check (quantita_minima >= 0),
   posizione text,
   costo_noleggio numeric(12,2) not null default 0,
+  fornitore text,
+  costo_acquisto numeric(12,2) not null default 0,
   prezzo_iniziale numeric(12,2) not null default 0,
   note text,
   foto_path text,
