@@ -47,6 +47,7 @@ function tempoFa(iso){
    STATO GLOBALE
    ============================================================ */
 let user=null,view='dashboard',timer=null,filtroFeed='tutte';
+let ergoAssistantMode='popup';
 let ergoInstallPrompt=null;
 function salvaSessionePersistente(utente){
  try{localStorage.setItem('ergo_sessione_persistente',JSON.stringify({user:utente,token:sessionStorage.getItem('ergo_session_token')||'',savedAt:Date.now()}));}catch(e){}
@@ -82,6 +83,14 @@ function installaGestionale(){
   : 'Il browser non ha ancora attivato il pulsante automatico. Apri il menu del browser e scegli <b>Installa app</b> oppure <b>Aggiungi alla schermata Home</b>.';
  if(window.assistentePersonale)window.assistentePersonale({testo:testo,emoji:standalone?'✅':ios?'↗':'⌄',colore:standalone?'#3e765e':'#083278',autoClose:true,durata:12000});
  else alert(testo.replace(/<[^>]+>/g,''));
+}
+async function cambiaModalitaAssistente(){
+ if(!user||user.ruolo!=='Amministratore')return;
+ const nuova=ergoAssistantMode==='popup'?'classic':'popup';
+ try{
+  if(window.ergoSupabaseSetAssistantMode)await window.ergoSupabaseSetAssistantMode(nuova);
+  ergoAssistantMode=nuova;app();
+ }catch(e){alert('❌ Modalità assistente non aggiornata su Supabase.\n\n'+String(e&&e.message||e));}
 }
 let calFiltro='tutti';
 let calMese=new Date().getMonth(),calAnno=new Date().getFullYear();
@@ -349,6 +358,7 @@ function app(){
     <button class="mobile-btn" id="mm">☰</button>
     <div class="crumb"><span>Gestionale</span><span>/</span><strong>${titolo}</strong></div>
     <div style="display:flex;gap:12px;align-items:center">
+     ${user.ruolo==='Amministratore'?`<button class="assistant-mode-toggle" id="assistant-mode-toggle" type="button" title="Modalità globale per tutti i ruoli">${ergoAssistantMode==='popup'?'Popup':'Assistente'}</button>`:''}
      <button class="install-app-btn" id="install-app" type="button" title="Installa il gestionale come app" aria-label="Installa il gestionale come app">⇩ <span>Installa app</span></button>
      <div class="user"><span class="avatar">${user.iniziali}</span><span>${user.nome}</span></div>
     </div>
@@ -368,6 +378,8 @@ function app(){
  document.getElementById('mm').onclick=()=>document.getElementById('sb').classList.toggle('open');
  const installButton=document.getElementById('install-app');
  if(installButton){installButton.onclick=installaGestionale;installButton.hidden=!!(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches);}
+ const assistantModeButton=document.getElementById('assistant-mode-toggle');
+ if(assistantModeButton)assistantModeButton.onclick=cambiaModalitaAssistente;
  document.getElementById('out').onclick=()=>{cancellaSessionePersistente();user=null;login()};
  const pc=document.getElementById('pc');
  if(view==='dashboard'){dash(pc);pc.classList.remove('dash-anim');void pc.offsetWidth;pc.classList.add('dash-anim');wait(function(){if(pc)pc.classList.remove('dash-anim')},7200);}
@@ -6355,7 +6367,6 @@ window.mostraPopupBenvenuto=function(){
    html+='<button type="button" class="assist-btn-'+i+'" style="width:100%;padding:9px;background:'+(b.colore||colore)+';color:#fff;border:0;border-radius:9px;font-weight:700;font-size:.78rem;cursor:pointer">'+b.label+'</button>';
   });
   html+='</div>';
-  html+='<button type="button" id="assist-mode-popup" style="width:100%;margin-top:7px;padding:6px;background:transparent;color:#64748b;border:1px solid #e5e9f0;border-radius:8px;font-weight:700;font-size:.68rem;cursor:pointer">Usa il popup</button>';
   html+='<button type="button" id="assist-x" style="position:absolute;top:6px;right:6px;background:transparent;border:0;color:#94a3b8;font-size:1rem;cursor:pointer;padding:2px 6px">✕</button>';
   cartello.innerHTML=html;
 
@@ -6380,7 +6391,6 @@ window.mostraPopupBenvenuto=function(){
    };
   });
   document.getElementById('assist-x').onclick=function(){chiudi()};
-  document.getElementById('assist-mode-popup').onclick=function(){localStorage.setItem('ergo_assistant_mode','popup');chiudi()};
   if(config.autoClose!==false){
    _t(function(){if(wrap.parentNode)chiudi()},25000);
   }
@@ -6391,28 +6401,27 @@ window.mostraPopupBenvenuto=function(){
  function assistentePopup(config){
   if(typeof user==='undefined'||!user)return;
   if(document.getElementById('assist-popup-attivo'))return;
-  var colore=config.colore||'#083278',nomeRuolo=(window.ergoAssistantIdentity&&window.ergoAssistantIdentity[user.ruolo]&&window.ergoAssistantIdentity[user.ruolo].label)||user.ruolo;
+  var colore=config.colore||'#083278',nomePersona=user.nome||user.username||'';
   var overlay=document.createElement('div');overlay.id='assist-popup-attivo';overlay.style.cssText='position:fixed;inset:0;z-index:999999;background:rgba(21,34,56,.34);display:grid;place-items:center;padding:20px;opacity:0;transition:opacity .2s';
   var box=document.createElement('div');box.style.cssText='width:min(440px,100%);background:#fff;border:2px solid '+colore+';border-radius:18px;padding:22px;box-shadow:0 24px 70px rgba(21,34,56,.25);position:relative;transform:translateY(8px);transition:transform .2s';
   var html='<button type="button" id="assist-popup-x" style="position:absolute;top:8px;right:10px;background:transparent;border:0;color:#94a3b8;font-size:1.1rem;cursor:pointer;padding:2px 6px">✕</button>';
-  html+='<div style="font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:'+colore+';margin-bottom:8px">'+nomeRuolo+' · Assistente</div>';
+  html+='<div style="font-size:.78rem;font-weight:800;letter-spacing:.04em;color:'+colore+';margin-bottom:8px">'+nomePersona+'</div>';
   if(config.emoji)html+='<div style="font-size:2rem;margin-bottom:8px">'+config.emoji+'</div>';
   html+='<div style="font-size:.95rem;color:#152238;line-height:1.5;font-weight:600;margin-bottom:16px">'+config.testo+'</div>';
   var bottoni=config.bottoni||[{label:'Ok, capito!',colore:colore,azione:null}];
   html+='<div style="display:flex;gap:8px;flex-direction:column">';
   bottoni.forEach(function(b,i){html+='<button type="button" class="assist-popup-btn-'+i+'" style="width:100%;padding:10px;background:'+(b.colore||colore)+';color:#fff;border:0;border-radius:9px;font-weight:700;font-size:.8rem;cursor:pointer">'+b.label+'</button>';});
-  html+='</div><button type="button" id="assist-popup-classic" style="width:100%;margin-top:10px;padding:7px;background:transparent;color:#64748b;border:1px solid #e5e9f0;border-radius:8px;font-weight:700;font-size:.7rem;cursor:pointer">Torna all’assistente classico</button>';
+  html+='</div>';
   box.innerHTML=html;overlay.appendChild(box);document.body.appendChild(overlay);
   _t(function(){overlay.style.opacity='1';box.style.transform='translateY(0)'},20);
   function chiudi(callback){overlay.style.opacity='0';box.style.transform='translateY(8px)';_t(function(){if(overlay.parentNode)overlay.parentNode.removeChild(overlay);if(callback)callback()},220)}
   bottoni.forEach(function(b,i){var btn=box.querySelector('.assist-popup-btn-'+i);if(btn)btn.onclick=function(){chiudi(function(){if(b.azione)b.azione()})}});
   box.querySelector('#assist-popup-x').onclick=function(){chiudi()};
-  box.querySelector('#assist-popup-classic').onclick=function(){localStorage.setItem('ergo_assistant_mode','classic');chiudi()};
   if(config.autoClose!==false)_t(function(){if(overlay.parentNode)chiudi()},25000);
  }
  window.assistentePersonalePopup=assistentePopup;
  window.assistentePersonale=function(config){
-  var mode=localStorage.getItem('ergo_assistant_mode')||'popup';
+  var mode=ergoAssistantMode||'popup';
   return mode==='classic'?window.assistentePersonaleClassico(config):assistentePopup(config);
  };
 
@@ -6553,6 +6562,8 @@ window.mostraPopupBenvenuto=function(){
   }
   if(sb){try{setErgoSessionHeader(sessionStorage.getItem('ergo_session_token')||'')}catch(e){}}
   window.ergoSupabaseLogin=async function(username,password){if(!sb)throw new Error('Supabase non configurato');var r=await sb.rpc('ergo_login_username',{p_username:username,p_password:password});if(r.error)throw r.error;var row=(r.data||[])[0];if(!row)return null;setErgoSessionHeader(row.token);return {username:row.username,ruolo:row.ruolo,nome:row.nome,email:row.email||'',iniziali:(row.nome||row.username).split(' ').map(function(x){return x[0]}).slice(0,2).join('').toUpperCase()};};
+  window.ergoSupabaseGetAssistantMode=async function(){if(!sb)return 'popup';var r=await sb.rpc('ergo_get_assistant_mode',{p_token:sessionStorage.getItem('ergo_session_token')||''});if(r.error)throw r.error;return r.data==='classic'?'classic':'popup';};
+  window.ergoSupabaseSetAssistantMode=async function(mode){if(!sb)throw new Error('Supabase non configurato');var r=await sb.rpc('ergo_set_assistant_mode',{p_token:sessionStorage.getItem('ergo_session_token')||'',p_mode:mode==='classic'?'classic':'popup'});if(r.error)throw r.error;return r.data;};
   window.ergoSupabaseBootstrap=async function(username,password,nome){if(!sb)throw new Error('Supabase non configurato');var r=await sb.rpc('ergo_bootstrap_admin',{p_username:username,p_password:password,p_nome:nome||'Amministratore'});if(r.error)throw r.error;return r.data;};
   window.ergoSupabaseBootstrapAvailable=async function(){if(!sb)return false;var r=await sb.rpc('ergo_bootstrap_available');if(r.error)throw r.error;return r.data===true;};
   window.ergoSupabaseListUsers=async function(){if(!sb) return [];var r=await sb.rpc('ergo_admin_list_users',{p_token:sessionStorage.getItem('ergo_session_token')||''});if(r.error)throw r.error;return r.data||[];};
@@ -6783,6 +6794,7 @@ window.mostraPopupBenvenuto=function(){
       var loadRevision=localCollectionRevision;
       var token=sessionStorage.getItem('ergo_session_token')||'';
       if(!token) throw new Error('SESSIONE_ASSENTE');
+      try{if(window.ergoSupabaseGetAssistantMode)ergoAssistantMode=await window.ergoSupabaseGetAssistantMode();}catch(modeErr){console.warn('Modalità assistente globale non disponibile: uso popup',modeErr);ergoAssistantMode='popup';}
       var read=await sb.rpc('ergo_read_data',{p_token:token});
       if(read.error) throw read.error;
       var payload=read.data||{};
@@ -6842,7 +6854,7 @@ window.mostraPopupBenvenuto=function(){
   /* Gli SVG di ruolo già presenti restano disponibili tramite fallback. */
   window.assistentePersonale = function(config){
     if(typeof user==='undefined'||!user) return;
-    var mode=localStorage.getItem('ergo_assistant_mode')||'popup';
+    var mode=ergoAssistantMode||'popup';
     if(mode==='popup'&&window.assistentePersonalePopup)return window.assistentePersonalePopup(config);
     var old=document.getElementById('assistente-attivo'); if(old) old.remove();
     var moodIcon=String(config.emoji||'').replace(/[<>]/g,'');
@@ -6862,13 +6874,12 @@ window.mostraPopupBenvenuto=function(){
     var wrap=document.createElement('div'); wrap.id='assistente-attivo'; wrap.className='assistente-vnext';
     var card=document.createElement('div'); card.className='assistente-card'; card.style.borderColor=color;
     var buttons=config.bottoni||[{label:'Va bene',colore:color}];
-    card.innerHTML='<button class="assistente-close" aria-label="Chiudi">×</button><div class="assistente-role" style="color:'+color+'">'+roleName+'</div><div class="assistente-text">'+(config.testo||'Sono qui per aiutarti.')+'</div><div class="assistente-actions">'+buttons.map(function(b,i){return '<button class="assistente-action" data-i="'+i+'" style="background:'+(b.colore||color)+'">'+b.label+'</button>';}).join('')+'</div><button type="button" class="assistente-modalita">Usa il popup</button>';
+    card.innerHTML='<button class="assistente-close" aria-label="Chiudi">×</button><div class="assistente-role" style="color:'+color+'">'+roleName+'</div><div class="assistente-text">'+(config.testo||'Sono qui per aiutarti.')+'</div><div class="assistente-actions">'+buttons.map(function(b,i){return '<button class="assistente-action" data-i="'+i+'" style="background:'+(b.colore||color)+'">'+b.label+'</button>';}).join('')+'</div>';
     var person=document.createElement('div'); person.className='assistente-person assistente-mood-'+mood; person.innerHTML=svg;
     wrap.appendChild(person); wrap.appendChild(card); document.body.appendChild(wrap);
     requestAnimationFrame(function(){wrap.classList.add('visibile');});
     function close(cb){wrap.classList.remove('visibile');wait(function(){if(wrap.parentNode)wrap.remove();if(cb)cb();},350);}
     card.querySelector('.assistente-close').onclick=function(){close();};
-    card.querySelector('.assistente-modalita').onclick=function(){localStorage.setItem('ergo_assistant_mode','popup');close();};
     card.querySelectorAll('.assistente-action').forEach(function(btn){btn.onclick=function(){var b=buttons[Number(btn.dataset.i)];close(function(){if(b.azione)b.azione();});};});
     if(config.autoClose!==false) wait(function(){if(wrap.parentNode)close();},Math.min(Number(config.durata)||10000,10000));
   };
