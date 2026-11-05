@@ -6681,7 +6681,7 @@ window.mostraPopupBenvenuto=function(){
   window.ergoSupabaseSyncProducts=async function(rows){
     if(!sb) throw new Error('Supabase non configurato');
     var wasSyncing=syncing; syncing=false;
-    try{await upsertCollection('prodotto',Array.isArray(rows)?rows:[]);}
+    try{await upsertCollection('prodotto',Array.isArray(rows)?rows:[]);clearPending('ergo_prodotti');}
     finally{syncing=wasSyncing;}
   };
   async function syncRemoteCollection(kind,rows){
