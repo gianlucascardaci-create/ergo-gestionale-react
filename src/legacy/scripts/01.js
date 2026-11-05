@@ -46,7 +46,7 @@ function tempoFa(iso){
 /* ============================================================
    STATO GLOBALE
    ============================================================ */
-let user=null,view='dashboard',timer=null,filtroFeed='tutte';
+let user=null,view='dashboard',timer=null,filtroFeed='nuove';
 let ergoAssistantMode='popup';
 let ergoInstallPrompt=null;
 function salvaSessionePersistente(utente){
@@ -102,7 +102,7 @@ async function cambiaModalitaAssistente(){
 let calFiltro='tutti';
 let calMese=new Date().getMonth(),calAnno=new Date().getFullYear();
 let listaAttrezzature=[];
-let listaRicercaInseriti='';
+let listaRicercaInseriti='',listaCategoriaInseriti='Tutte';
 let invRicerca='',invCategoria='Tutte',invStato='Tutte',invRicercaTimer=null;
 const invStatoPerUtente={};
 const R=document.getElementById('root');
@@ -309,7 +309,7 @@ async function doLogin(){
    ]);
    if(f){
     user=f;salvaSessionePersistente(f);UTENTI[f.username]={ruolo:f.ruolo,nome:f.nome,email:f.email,iniziali:(f.nome||f.username).split(' ').map(x=>x[0]).slice(0,2).join('').toUpperCase()};
-    view='dashboard';filtroFeed='tutte';calMese=new Date().getMonth();calAnno=new Date().getFullYear();invRicerca='';invCategoria='Tutte';invStato='Tutte';listaRicerca='';listaCategoria='Tutte';listaAttrezzature=[];Object.keys(invStatoPerUtente).forEach(function(k){delete invStatoPerUtente[k]});window._ultimoSuggerimentoInventario='';
+    view='dashboard';filtroFeed='nuove';calMese=new Date().getMonth();calAnno=new Date().getFullYear();invRicerca='';invCategoria='Tutte';invStato='Tutte';listaRicerca='';listaCategoria='Tutte';listaAttrezzature=[];Object.keys(invStatoPerUtente).forEach(function(k){delete invStatoPerUtente[k]});window._ultimoSuggerimentoInventario='';
     /* Prima sincronizza Supabase: non mostrare la vecchia copia locale del browser. */
     R.innerHTML='<div class="login-page"><div class="login-box" style="text-align:center"><div class="eyebrow">Sincronizzazione dati</div><h1>Caricamento aggiornamenti…</h1><p class="sub">Sto recuperando eventi, noleggi e notifiche da Supabase.</p></div></div>';
     if(window.ergoSupabaseLoad){
@@ -327,7 +327,7 @@ async function doLogin(){
    }
   }
   const f=UTENTI[u];
-  if(f&&f.password&&f.password===p){user={username:u,...f};salvaSessionePersistente(user);view='dashboard';filtroFeed='tutte';calMese=new Date().getMonth();calAnno=new Date().getFullYear();invRicerca='';invCategoria='Tutte';invStato='Tutte';listaRicerca='';listaCategoria='Tutte';listaAttrezzature=[];Object.keys(invStatoPerUtente).forEach(function(k){delete invStatoPerUtente[k]});window._ultimoSuggerimentoInventario='';app();}
+  if(f&&f.password&&f.password===p){user={username:u,...f};salvaSessionePersistente(user);view='dashboard';filtroFeed='nuove';calMese=new Date().getMonth();calAnno=new Date().getFullYear();invRicerca='';invCategoria='Tutte';invStato='Tutte';listaRicerca='';listaCategoria='Tutte';listaAttrezzature=[];Object.keys(invStatoPerUtente).forEach(function(k){delete invStatoPerUtente[k]});window._ultimoSuggerimentoInventario='';app();}
   else document.getElementById('e').innerHTML='<div class="err">Credenziali non corrette.</div>';
  }catch(err){
   var loginMsg=String((err&&err.message)||err||'');
@@ -1154,7 +1154,7 @@ function lista(el,conReset){
    <div class="lista-pannello">
     <div class="lista-titolo">🛒 Prodotti inseriti <span class="count" id="lista-count">${listaAttrezzature.length} articoli</span></div>
     <div class="lista-help">A sinistra aggiungi dal catalogo · qui a destra cerchi e gestisci quelli già inseriti.</div>
-    <div class="lista-search lista-search-destra"><input id="lista-input-inseriti" placeholder="Cerca tra gli inseriti per nome, codice o categoria…" value="${listaRicercaInseriti.replace(/"/g,'&quot;')}"></div>
+    <div class="lista-search lista-search-destra"><input id="lista-input-inseriti" placeholder="Cerca per nome o codice…" value="${listaRicercaInseriti.replace(/"/g,'&quot;')}"><select id="lista-select-cat-inseriti"><option value="Tutte">Tutte le categorie</option>${CATEGORIE_INV.map(c=>`<option value="${c}" ${listaCategoriaInseriti===c?'selected':''}>${c}</option>`).join('')}</select></div>
     <div class="lista-carrello" id="lista-carrello">${renderCarrello()}</div>
     <div class="carrello-azioni">
      <button class="btn-invia" id="lista-invia" ${listaAttrezzature.length===0?'disabled':''}>📤 Invia a evento</button>
@@ -1190,6 +1190,8 @@ function lista(el,conReset){
   const cont=document.getElementById('lista-carrello');
   if(cont)cont.innerHTML=renderCarrello();
  });
+ const selInseriti=document.getElementById('lista-select-cat-inseriti');
+ if(selInseriti)selInseriti.addEventListener('change',e=>{listaCategoriaInseriti=e.target.value;const cont=document.getElementById('lista-carrello');if(cont)cont.innerHTML=renderCarrello();});
  agganciaAggiungi(tutti);
  document.getElementById('lista-svuota').onclick=()=>{svuotaListaAttrezzature();};
  document.getElementById('lista-invia').onclick=()=>apriModaleInvioLista();
@@ -1242,7 +1244,7 @@ function renderCarrello(){
   return '<div class="carrello-vuoto"><span class="emo">📋</span>La lista è vuota.<br>Aggiungi prodotti dal catalogo a sinistra.</div>';
  }
  const gruppi={};
- listaAttrezzature.filter(item=>ricercaIntelligente(listaRicercaInseriti,[item.nome,item.codice,item.categoria])).forEach(item=>{
+ listaAttrezzature.filter(item=>(listaCategoriaInseriti==='Tutte'||String(item.categoria||'').toUpperCase().includes(listaCategoriaInseriti.toUpperCase()))&&ricercaIntelligente(listaRicercaInseriti,[item.nome,item.codice,item.categoria])).forEach(item=>{
   const cat=item.categoria||'ALTRO';
   if(!gruppi[cat])gruppi[cat]=[];
   gruppi[cat].push(item);
@@ -2514,7 +2516,7 @@ async function svuotaListaAttrezzature(){
   if(!window.ergoSupabaseSyncEvents)throw new Error('SUPABASE_NON_DISPONIBILE');
   await window.ergoSupabaseSyncEvents(salvati);
   Object.assign(ev,aggiornato);localStorage.setItem('ergo_eventi',JSON.stringify(salvati));localStorage.removeItem('ergo_lista_'+ev.id);
-  _eventoListaCorrente=null;listaAttrezzature=[];listaRicercaInseriti='';
+  _eventoListaCorrente=null;listaAttrezzature=[];listaRicercaInseriti='';listaCategoriaInseriti='Tutte';
   window.assistentePersonale({testo:'<b>Lista eliminata</b><br>La lista attrezzature e il PDF sono stati rimossi da Supabase.',emoji:'🗑️',colore:'#b91c1c',autoClose:true});
   view='calendario';app();
  }catch(e){alert('❌ Supabase non ha confermato la cancellazione. La lista è stata conservata.');console.warn('Cancellazione lista attrezzature fallita',e);}
@@ -6208,7 +6210,7 @@ window.mostraPopupBenvenuto=function(){
     var vaiAlleNotifiche=nuove.length>0;
     chiudi();
     if(vaiAlleNotifiche){
-     view='dashboard';filtroFeed='tutte';app();
+     view='dashboard';filtroFeed='nuove';app();
      _t(function(){var feed=document.querySelector('.feed');if(feed)feed.scrollIntoView({behavior:'smooth',block:'start'});},450);
     }
    };
@@ -6980,7 +6982,7 @@ window.mostraPopupBenvenuto=function(){
     var notifiche=[];
     try{notifiche=notifichePerUtente(user).filter(function(n){return !isLetta(user.username,n.id)})}catch(e){}
     var azioneAggiornamenti=function(){
-      view='dashboard';filtroFeed='tutte';app();
+      view='dashboard';filtroFeed='nuove';app();
       wait(function(){var feed=document.querySelector('.feed');if(feed)feed.scrollIntoView({behavior:'smooth',block:'start'});},450);
     };
     /* Saluto variabile: il primo accesso del giorno presenta l'assistente;
@@ -7345,7 +7347,7 @@ window.mostraPopupBenvenuto=function(){
    if(window.ergoSupabase&&window.ergoSupabase.rest&&window.ergoSupabase.rest.headers)window.ergoSupabase.rest.headers['x-ergo-session']=saved.token;
    if(window.ergoSupabase&&window.ergoSupabase.storage&&window.ergoSupabase.storage.headers)window.ergoSupabase.storage.headers['x-ergo-session']=saved.token;
   }catch(e){}}
-  view='dashboard';filtroFeed='tutte';calMese=new Date().getMonth();calAnno=new Date().getFullYear();invRicerca='';invCategoria='Tutte';invStato='Tutte';listaRicerca='';listaCategoria='Tutte';listaAttrezzature=[];
+  view='dashboard';filtroFeed='nuove';calMese=new Date().getMonth();calAnno=new Date().getFullYear();invRicerca='';invCategoria='Tutte';invStato='Tutte';listaRicerca='';listaCategoria='Tutte';listaAttrezzature=[];
   /* Anche il ripristino PWA rispetta l’ordine: pending locale, lettura Supabase,
      poi apertura dell’app. */
   R.innerHTML='<div class="login-page"><div class="login-box" style="text-align:center"><div class="eyebrow">Sincronizzazione dati</div><h1>Caricamento aggiornamenti…</h1><p class="sub">Verifico le modifiche locali prima di aprire il gestionale.</p></div></div>';
