@@ -371,7 +371,6 @@ function app(){
     <button class="mobile-btn" id="mm">☰</button>
     <div class="crumb"><span>Gestionale</span><span>/</span><strong>${titolo}</strong></div>
     <div style="display:flex;gap:12px;align-items:center">
-     ${user.ruolo==='Amministratore'?`<button class="assistant-mode-toggle" id="assistant-mode-toggle" type="button" title="Cambia visualizzazione dell’assistente" aria-label="Cambia visualizzazione dell’assistente">${ergoAssistantMode==='popup'?'Popup':'Assistente'}</button>`:''}
      <button class="install-app-btn" id="install-app" type="button" title="Installa il gestionale come app" aria-label="Installa il gestionale come app">⇩ <span>Installa app</span></button>
      <div class="user"><span class="avatar">${user.iniziali}</span><span>${user.nome}</span></div>
     </div>
@@ -845,7 +844,7 @@ function confermaElimEnt(tipo,obj){
     localStorage.setItem('ergo_noleggi',JSON.stringify(salv));
    }
    chiudiDrawer();
-   alert('✅ Eliminato da Supabase e dalla memoria locale.');
+   window.assistentePersonale({testo:'<b>'+ (tipo==='evento'?'Evento':'Noleggio') +' eliminato da Supabase</b><br>La memoria locale è stata aggiornata.',emoji:'🗑️',colore:'#b91c1c',autoClose:true});
    const pc=document.getElementById('pc');
    if(pc){if(view==='calendario')cal(pc);else if(view==='dashboard')dash(pc)}
   }catch(e){if(btn)btn.disabled=false;alert('❌ Eliminazione non completata su Supabase. Il dato locale è stato conservato.\n\n'+String(e&&e.message||e));console.warn(e)}
@@ -931,6 +930,7 @@ function apriModaleProdotto(prod){
  document.getElementById('d-eyebrow').textContent=modifica?'Modifica prodotto':'Nuovo prodotto';
  document.getElementById('d-titolo').textContent=modifica?p.nome:'Aggiungi al catalogo';
  document.getElementById('d-body').innerHTML=`
+  <div class="form-section form-section-blue"><div class="form-section-title">📦 Dati prodotto</div>
   <div class="campo"><label>Nome prodotto <span style="color:#dc2626">*</span></label><input id="pr-nome" value="${(p.nome||'').replace(/"/g,'&quot;')}" placeholder="Es. Piatto Gourmet Jasmin"></div>
   <div class="campo"><label>Codice <span style="color:#dc2626">*</span></label><input id="pr-codice" value="${(p.codice||'').replace(/"/g,'&quot;')}" placeholder="Es. PGF-028" ${modifica?'readonly':''}></div>
   <div class="campo"><label>Categorie (seleziona almeno una) <span style="color:#dc2626">*</span></label>
@@ -938,19 +938,20 @@ function apriModaleProdotto(prod){
     ${CATEGORIE_INV.map(c=>`<label class="cat-item ${catsSel.includes(c)?'on':''}"><input type="checkbox" class="pr-cat-check" value="${c}" ${catsSel.includes(c)?'checked':''}><span>${c}</span></label>`).join('')}
    </div>
   </div>
-  <div class="campo-3">
+  <div class="campo-2">
    <div class="campo"><label>Quantità</label><input id="pr-qta" type="number" min="0" value="${p.quantita||''}" placeholder="Es. 100"></div>
-   <div class="campo"><label>Posizione</label><input id="pr-pos" value="${(p.posizione||'').replace(/"/g,'&quot;')}" placeholder="Es. A1"></div>
-   <div class="campo"><label>Prezzo (€)</label><input id="pr-prezzo" type="text" inputmode="decimal" autocomplete="off" value="${p.prezzo?Number(p.prezzo).toFixed(2).replace('.',','):''}" placeholder="Es. 12,50"></div>
+   ${user&&user.ruolo==='Amministratore'?`<div class="campo"><label>Quantità minima</label><input id="pr-qta-min" type="number" min="0" value="${Number(p.quantitaMinima||0)}" placeholder="Es. 50"></div>`:''}
   </div>
+  <div class="campo-2"><div class="campo"><label>Posizione</label><input id="pr-pos" value="${(p.posizione||'').replace(/"/g,'&quot;')}" placeholder="Es. A1"></div><div class="campo"><label>Prezzo (€)</label><input id="pr-prezzo" type="text" inputmode="decimal" autocomplete="off" value="${p.prezzo?Number(p.prezzo).toFixed(2).replace('.',','):''}" placeholder="Es. 12,50"></div></div>
   <div class="campo"><label>Note (opzionale)</label><textarea id="pr-note" placeholder="Note visibili nella scheda prodotto...">${(p.note||'').replace(/</g,'&lt;')}</textarea></div>
-  <div class="divisore-modale">📸 Foto prodotto</div>
+  </div><div class="form-section form-section-green"><div class="form-section-title">📸 Foto prodotto</div>
   <div class="campo"><label style="text-transform:none;font-weight:600;color:#94a3b8;letter-spacing:0">Compressa automaticamente a max 70 KB</label><input type="file" id="pr-foto" accept="image/*"><div id="pr-foto-preview">${hasFoto?`<div class="foto-preview-box"><img loading="lazy" src="${p.foto}"><div class="info"><strong>✅ Foto attuale</strong><span>Già ottimizzata</span></div></div>`:''}</div></div>
-  <div class="divisore-modale">📋 Scheda tecnica</div>
+  </div><div class="form-section form-section-violet"><div class="form-section-title">📋 Scheda tecnica</div>
   <div class="campo-2"><div class="campo"><label>Materiale</label><input id="pr-mat" value="${(scheda.materiale||'').replace(/"/g,'&quot;')}"></div><div class="campo"><label>Colore</label><input id="pr-col" value="${(scheda.colore||'').replace(/"/g,'&quot;')}"></div></div>
   <div class="campo"><label>Dimensione</label><input id="pr-dim" value="${(scheda.dimensione||'').replace(/"/g,'&quot;')}"></div>
   <div class="campo"><label>Note tecniche</label><textarea id="pr-nt">${(scheda.note||'').replace(/</g,'&lt;')}</textarea></div>
-  ${user&&user.ruolo==='Amministratore'?`<div class="admin-purchase-section"><div class="admin-purchase-title">🔒 Dati acquisto</div><div class="campo"><label>Fornitore</label><input id="pr-fornitore" value="${(p.fornitore||'').replace(/"/g,'&quot;')}" placeholder="Es. Fornitore Srl"></div><div class="campo"><label>Costo d’acquisto (€)</label><input id="pr-costo-acquisto" type="text" inputmode="decimal" autocomplete="off" value="${p.costoAcquisto?Number(p.costoAcquisto).toFixed(2).replace('.',','):''}" placeholder="Es. 8,50"></div><div class="campo"><label>Quantità minima di riordino</label><input id="pr-qta-min" type="number" min="0" value="${Number(p.quantitaMinima||0)}" placeholder="Es. 50"><small style="display:block;color:#8b96a9;font-size:.68rem;margin-top:5px">La scheda diventa arancione quando si avvicina a questo valore e rossa quando lo raggiunge o scende sotto.</small></div></div>`:''}
+  ${user&&user.ruolo==='Amministratore'?`<div class="admin-purchase-section"><div class="admin-purchase-title">🔒 Dati acquisto</div><div class="campo"><label>Fornitore</label><input id="pr-fornitore" value="${(p.fornitore||'').replace(/"/g,'&quot;')}" placeholder="Es. Fornitore Srl"></div><div class="campo"><label>Costo d’acquisto (€)</label><input id="pr-costo-acquisto" type="text" inputmode="decimal" autocomplete="off" value="${p.costoAcquisto?Number(p.costoAcquisto).toFixed(2).replace('.',','):''}" placeholder="Es. 8,50"></div></div>`:''}
+  </div>
  `;
  document.getElementById('d-foot').innerHTML=`<button class="btn-ghost" onclick="chiudiDrawer()">Annulla</button><button class="btn-primary" id="pr-salva">💾 ${modifica?'Salva':'Aggiungi'}</button>`;
  d.classList.add('open');bg.classList.add('open');
@@ -1080,6 +1081,7 @@ function confermaElim(obj){
    const iS=salvati.findIndex(x=>x.codice===obj.codice);
    if(iS>=0){salvati.splice(iS,1);localStorage.setItem('ergo_prodotti',JSON.stringify(salvati))}
    chiudiDrawer();
+   window.assistentePersonale({testo:'<b>Prodotto eliminato da Supabase</b><br>La memoria locale è stata aggiornata.',emoji:'🗑️',colore:'#b91c1c',autoClose:true});
    const pc=document.getElementById('pc');if(pc&&view==='inventario')inv(pc);
   }catch(e){if(btn)btn.disabled=false;alert('❌ Eliminazione non completata su Supabase. Nessun dato locale è stato rimosso.');console.warn(e)}
  };
@@ -1179,11 +1181,7 @@ function lista(el,conReset){
   lista(el,false);
  });
  agganciaAggiungi(tutti);
- document.getElementById('lista-svuota').onclick=()=>{
-  if(!confirm('Vuoi svuotare tutta la lista?'))return;
-  listaAttrezzature=[];
-  lista(el);
- };
+ document.getElementById('lista-svuota').onclick=()=>{svuotaListaAttrezzature();};
  document.getElementById('lista-invia').onclick=()=>apriModaleInvioLista();
 }
 function rigaProdottoLista(p){
@@ -1400,7 +1398,7 @@ function eliminaUtente(username){
  document.getElementById('d-close').onclick=chiudiDrawer;
  bg.onclick=chiudiDrawer;
  document.getElementById('conf-del').onclick=()=>{
-  window.ergoSupabaseDeleteUser(username).then(()=>{delete UTENTI[username];chiudiDrawer();alert('✅ Utente eliminato da Supabase.');var ruoloPage=document.getElementById('pc');if(ruoloPage)ruoloPage._remoteUsersLoaded=false;ruoli(ruoloPage);}).catch(e=>{alert('Errore: utente non eliminato.');console.warn(e)});
+  window.ergoSupabaseDeleteUser(username).then(()=>{delete UTENTI[username];chiudiDrawer();window.assistentePersonale({testo:'<b>Utente eliminato da Supabase</b><br>La memoria locale è stata aggiornata.',emoji:'🗑️',colore:'#b91c1c',autoClose:true});var ruoloPage=document.getElementById('pc');if(ruoloPage)ruoloPage._remoteUsersLoaded=false;ruoli(ruoloPage);}).catch(e=>{alert('Errore: utente non eliminato.');console.warn(e)});
  };
 }
 /* ============================================================
@@ -2012,6 +2010,7 @@ function apriModaleNoleggio(){
  document.getElementById('d-eyebrow').textContent='Nuovo noleggio';
  document.getElementById('d-titolo').textContent='🚚 Crea Noleggio';
  document.getElementById('d-body').innerHTML=`
+  <div class="form-section form-section-blue"><div class="form-section-title">🚚 Dati noleggio</div>
   <div class="campo"><label>Titolo <span style="color:#dc2626">*</span></label><input id="nl-titolo" placeholder="Es. Noleggio tavoli Rossi"></div>
   <div class="campo-2"><div class="campo"><label>Data inizio</label><input id="nl-di" type="date" value="${oggi}"></div><div class="campo"><label>Ora inizio</label><input id="nl-oi" type="time" value="09:00"></div></div>
   <div class="campo-2"><div class="campo"><label>Data fine</label><input id="nl-df" type="date" value="${oggi}"></div><div class="campo"><label>Ora fine</label><input id="nl-of" type="time" value="18:00"></div></div>
@@ -2019,10 +2018,11 @@ function apriModaleNoleggio(){
   <div class="campo"><label>🌍 Città <span style="font-size:.7rem;font-weight:500;text-transform:none;color:#94a3b8;letter-spacing:0">(serve solo per il meteo)</span></label><input id="nl-citta" placeholder="Es. Catania"></div>
   <div class="campo-2"><div class="campo"><label>Referente <span style="color:#dc2626">*</span></label><input id="nl-ref"></div><div class="campo"><label>Telefono <span style="color:#dc2626">*</span></label><input id="nl-tel" type="tel"></div></div>
   <div class="campo"><label>Stato</label><select id="nl-stato" style="width:100%;padding:12px 14px;border:1.5px solid var(--line);border-radius:11px;font-size:.88rem;background:#fff"><option value="confermato">Confermato</option><option value="non confermato">Non confermato</option></select></div>
-  <div class="campo"><label>Note</label><textarea id="nl-note"></textarea></div>
+  <div class="campo"><label>Note</label><textarea id="nl-note"></textarea></div></div>
+  <div class="form-section form-section-amber"><div class="form-section-title">📎 Documenti del noleggio</div>
   ${vediBolla?`<div class="divisore-modale">💰 Bolla con prezzo</div><div class="campo"><input type="file" id="nl-f-bolla" multiple accept="image/*,.pdf"></div>`:''}
   <div class="divisore-modale">📄 DDT</div><div class="campo"><input type="file" id="nl-f-ddt" multiple accept="image/*,.pdf"></div>
-  <div class="divisore-modale">📎 Vario</div><div class="campo"><input type="file" id="nl-f-vario" multiple accept="image/*,.pdf"></div>
+  <div class="divisore-modale">📎 Vario</div><div class="campo"><input type="file" id="nl-f-vario" multiple accept="image/*,.pdf"></div></div>
  `;
  document.getElementById('d-foot').innerHTML=`<button class="btn-ghost" onclick="chiudiDrawer()">Annulla</button><button class="btn-primary" id="nl-salva">💾 Crea Noleggio</button>`;
  d.classList.add('open');bg.classList.add('open');
@@ -2492,6 +2492,23 @@ function eseguiInvioLista(){
 /* ============================================================
    MODALE: SCELTA EVENTO — con opzione "carica lista esistente"
    ============================================================ */
+async function svuotaListaAttrezzature(){
+ if(!confirm('Vuoi svuotare tutta la lista?'))return;
+ const ev=_eventoListaCorrente;
+ if(!ev){listaAttrezzature=[];lista(document.getElementById('pc'));return;}
+ const aggiornato={...ev,listaAttrezzature:[],allegatiTutti:(ev.allegatiTutti||[]).filter(a=>!(a&&a.nome&&a.nome.startsWith('Lista_Attrezzature_')))};
+ let salvati=[];try{salvati=JSON.parse(localStorage.getItem('ergo_eventi'))||[]}catch(e){salvati=[];}
+ const idx=salvati.findIndex(x=>x.id===ev.id);if(idx>=0)salvati[idx]=aggiornato;else salvati.push(aggiornato);
+ try{
+  if(!window.ergoSupabaseSyncEvents)throw new Error('SUPABASE_NON_DISPONIBILE');
+  await window.ergoSupabaseSyncEvents(salvati);
+  Object.assign(ev,aggiornato);localStorage.setItem('ergo_eventi',JSON.stringify(salvati));localStorage.removeItem('ergo_lista_'+ev.id);
+  _eventoListaCorrente=null;listaAttrezzature=[];
+  window.assistentePersonale({testo:'<b>Lista eliminata</b><br>La lista attrezzature e il PDF sono stati rimossi da Supabase.',emoji:'🗑️',colore:'#b91c1c',autoClose:true});
+  view='calendario';app();
+ }catch(e){alert('❌ Supabase non ha confermato la cancellazione. La lista è stata conservata.');console.warn('Cancellazione lista attrezzature fallita',e);}
+}
+
 function caricaListaDaEvento(idEvento){
  const chiave='ergo_lista_'+idEvento;
  try{
@@ -2982,7 +2999,7 @@ function eseguiInvioListaV4(){
  try{
   const pdfBlob=generaPdfListaNuovo(ev,listaAttrezzature);
   const reader=new FileReader();
-  reader.onload=function(){
+  reader.onload=async function(){
    const dataUrl=reader.result;
    const nomePdf='Lista_Attrezzature_'+(ev.titolo||'evento').replace(/\s+/g,'_')+'.pdf';
    if(!ev.allegatiTutti)ev.allegatiTutti=[];
@@ -2993,6 +3010,7 @@ function eseguiInvioListaV4(){
    try{salvati=JSON.parse(localStorage.getItem('ergo_eventi'))||[]}catch(e){}
    const idx=salvati.findIndex(e=>e.id===ev.id);
    if(idx>=0)salvati[idx]=ev;else salvati.push(ev);
+   try{if(!window.ergoSupabaseSyncEvents)throw new Error('SUPABASE_NON_DISPONIBILE');await window.ergoSupabaseSyncEvents(salvati);}catch(syncErr){console.error('Invio lista Supabase fallito',syncErr);alert('❌ Supabase non ha confermato il salvataggio della lista. Riprova.');btn.disabled=false;btn.textContent='📤 Genera e invia PDF';return;}
    localStorage.setItem('ergo_eventi',JSON.stringify(salvati));
    const nuovo={
     id:'nf-'+Date.now()+'-lista',
@@ -3009,7 +3027,7 @@ function eseguiInvioListaV4(){
    salvateN.unshift(nuovo);
    localStorage.setItem('ergo_notifiche',JSON.stringify(salvateN.slice(0,200)));
    chiudiDrawer();
-   alert('✅ PDF generato e inviato a "'+ev.titolo+'"!');
+   window.assistentePersonale({testo:'<b>Lista salvata su Supabase</b><br>PDF generato e inviato a <b>'+String(ev.titolo||'evento').replace(/[<>]/g,'')+'</b>.',emoji:'✅',colore:'#3e765e',autoClose:true});
    listaAttrezzature=[];
    lista(document.getElementById('pc'));
   };
@@ -3303,7 +3321,8 @@ function agganciaRimuoviAllegati(ev){
    if(confirm('Eliminare questo allegato?')){
     try{
      const rimosso=(ev[campo]||[])[idx];
-     const aggiornato={...ev,[campo]:(ev[campo]||[]).filter((_,i)=>i!==idx)};
+     const eLista=rimosso&&rimosso.nome&&rimosso.nome.startsWith('Lista_Attrezzature_');
+     const aggiornato={...ev,[campo]:(ev[campo]||[]).filter((_,i)=>i!==idx),...(eLista?{listaAttrezzature:[]}: {})};
      let salv=[];
      try{salv=JSON.parse(localStorage.getItem('ergo_eventi'))||[]}catch(e){}
      const id=salv.findIndex(x=>x.id===ev.id);
@@ -3312,8 +3331,10 @@ function agganciaRimuoviAllegati(ev){
      await window.ergoSupabaseSyncEvents(salv);
      if(rimosso&&rimosso.path&&window.ergoSupabaseRemoveAttachment)await window.ergoSupabaseRemoveAttachment(rimosso);
      Object.assign(ev,aggiornato);
+     if(eLista)localStorage.removeItem('ergo_lista_'+ev.id);
      localStorage.setItem('ergo_eventi',JSON.stringify(salv));
      /* Ricarica il modale per mostrare la lista aggiornata */
+     window.assistentePersonale({testo:'<b>Allegato eliminato da Supabase</b>'+(eLista?'<br>Anche la lista attrezzature è stata rimossa.':''),emoji:'🗑️',colore:'#b91c1c',autoClose:true});
      apriModaleModificaEvento(ev);
     }catch(e){alert('❌ Allegato non eliminato da Supabase.');console.warn(e)}
    }
@@ -3344,6 +3365,7 @@ function agganciaRimuoviAllegatiNoleggio(nl){
      if(rimosso&&rimosso.path&&window.ergoSupabaseRemoveAttachment)await window.ergoSupabaseRemoveAttachment(rimosso);
      Object.assign(nl,aggiornato);
      localStorage.setItem('ergo_noleggi',JSON.stringify(salv));
+     window.assistentePersonale({testo:'<b>Allegato eliminato da Supabase</b><br>Il noleggio è stato aggiornato.',emoji:'🗑️',colore:'#b91c1c',autoClose:true});
      apriModaleModificaNoleggio(nl);
     }catch(e){alert('❌ Allegato non eliminato da Supabase.');console.warn(e)}
    }
@@ -6436,22 +6458,17 @@ window.mostraPopupBenvenuto=function(){
  function assistentePopup(config){
   if(typeof user==='undefined'||!user)return;
   if(document.getElementById('assist-popup-attivo'))return;
-  var colore=config.colore||'#083278',nomePersona=user.nome||user.username||'';
-  var overlay=document.createElement('div');overlay.id='assist-popup-attivo';overlay.style.cssText='position:fixed;inset:0;z-index:999999;background:rgba(21,34,56,.34);display:grid;place-items:center;padding:20px;opacity:0;transition:opacity .2s';
-  var box=document.createElement('div');box.style.cssText='width:min(440px,100%);background:#fff;border:2px solid '+colore+';border-radius:18px;padding:22px;box-shadow:0 24px 70px rgba(21,34,56,.25);position:relative;transform:translateY(8px);transition:transform .2s';
-  var html='<button type="button" id="assist-popup-x" style="position:absolute;top:8px;right:10px;background:transparent;border:0;color:#94a3b8;font-size:1.1rem;cursor:pointer;padding:2px 6px">✕</button>';
-  html+='<div style="font-size:.78rem;font-weight:800;letter-spacing:.04em;color:'+colore+';margin-bottom:8px">'+nomePersona+'</div>';
-  if(config.emoji)html+='<div style="font-size:2rem;margin-bottom:8px">'+config.emoji+'</div>';
-  html+='<div style="font-size:.95rem;color:#152238;line-height:1.5;font-weight:600;margin-bottom:16px">'+config.testo+'</div>';
-  var bottoni=config.bottoni||[{label:'Ok, capito!',colore:colore,azione:null}];
-  html+='<div style="display:flex;gap:8px;flex-direction:column">';
-  bottoni.forEach(function(b,i){html+='<button type="button" class="assist-popup-btn-'+i+'" style="width:100%;padding:10px;background:'+(b.colore||colore)+';color:#fff;border:0;border-radius:9px;font-weight:700;font-size:.8rem;cursor:pointer">'+b.label+'</button>';});
-  html+='</div>';
-  box.innerHTML=html;overlay.appendChild(box);document.body.appendChild(overlay);
-  _t(function(){overlay.style.opacity='1';box.style.transform='translateY(0)'},20);
-  function chiudi(callback){overlay.style.opacity='0';box.style.transform='translateY(8px)';_t(function(){if(overlay.parentNode)overlay.parentNode.removeChild(overlay);if(callback)callback()},220)}
-  bottoni.forEach(function(b,i){var btn=box.querySelector('.assist-popup-btn-'+i);if(btn)btn.onclick=function(){chiudi(function(){if(b.azione)b.azione()})}});
-  box.querySelector('#assist-popup-x').onclick=function(){chiudi()};
+  var colore=config.colore||'#083278';
+  var overlay=document.createElement('div');overlay.id='assist-popup-attivo';overlay.className='ergo-confirm-overlay';
+  var box=document.createElement('div');box.className='ergo-confirm-card';box.style.setProperty('--confirm-color',colore);
+  var html='<button type="button" id="assist-popup-x" class="ergo-confirm-close" aria-label="Chiudi">×</button>';
+  html+='<div class="ergo-confirm-icon">'+(config.emoji||'✓')+'</div><div class="ergo-confirm-kicker">Confermato su Supabase</div>';
+  html+='<div class="ergo-confirm-title">'+(user.nome||user.username||'Gestionale')+'</div><div class="ergo-confirm-text">'+(config.testo||'Operazione completata.')+'</div>';
+  var bottoni=config.bottoni||[{label:'Ho capito',colore:colore,azione:null}];html+='<div class="ergo-confirm-actions">';
+  bottoni.forEach(function(b,i){html+='<button type="button" class="assist-popup-btn-'+i+' ergo-confirm-action" style="--action-color:'+(b.colore||colore)+'">'+b.label+'</button>';});html+='</div>';
+  box.innerHTML=html;overlay.appendChild(box);document.body.appendChild(overlay);_t(function(){overlay.classList.add('is-visible')},20);
+  function chiudi(callback){overlay.classList.remove('is-visible');_t(function(){if(overlay.parentNode)overlay.parentNode.removeChild(overlay);if(callback)callback()},220)}
+  bottoni.forEach(function(b,i){var btn=box.querySelector('.assist-popup-btn-'+i);if(btn)btn.onclick=function(){chiudi(function(){if(b.azione)b.azione()})}});box.querySelector('#assist-popup-x').onclick=function(){chiudi()};
   if(config.autoClose!==false)_t(function(){if(overlay.parentNode)chiudi()},25000);
  }
  window.assistentePersonalePopup=assistentePopup;
@@ -6852,7 +6869,7 @@ window.mostraPopupBenvenuto=function(){
       var loadRevision=localCollectionRevision;
       var token=sessionStorage.getItem('ergo_session_token')||'';
       if(!token) throw new Error('SESSIONE_ASSENTE');
-      try{if(window.ergoSupabaseGetAssistantMode)ergoAssistantMode=await window.ergoSupabaseGetAssistantMode();}catch(modeErr){console.warn('Modalità assistente globale non disponibile: uso popup',modeErr);ergoAssistantMode='popup';}
+      ergoAssistantMode='popup';
       var read=await sb.rpc('ergo_read_data',{p_token:token});
       if(read.error) throw read.error;
       var payload=read.data||{};
