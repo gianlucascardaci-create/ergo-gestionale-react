@@ -822,7 +822,9 @@ function confermaElimEnt(tipo,obj){
  document.getElementById('d-conf').onclick=async()=>{
   const btn=document.getElementById('d-conf');if(btn)btn.disabled=true;
   try{
-   if(window.ergoSupabaseDeleteEntity)await window.ergoSupabaseDeleteEntity(tipo,obj);
+   if(!window.ergoSupabaseDeleteEntity)throw new Error('SUPABASE_NON_DISPONIBILE');
+   const remoteResult=await window.ergoSupabaseDeleteEntity(tipo,obj);
+   if(!remoteResult||remoteResult.remote!==true)throw new Error('CANCELLAZIONE_SUPABASE_NON_CONFERMATA');
    if(tipo==='evento'){
     const idx=EVENTI.findIndex(e=>e.id===obj.id);
     if(idx>=0)EVENTI.splice(idx,1);
@@ -3295,12 +3297,15 @@ function agganciaRimuoviAllegati(ev){
    if(confirm('Eliminare questo allegato?')){
     try{
      const rimosso=(ev[campo]||[])[idx];
-     if(rimosso&&window.ergoSupabaseRemoveAttachment)await window.ergoSupabaseRemoveAttachment(rimosso);
-     ev[campo]=(ev[campo]||[]).filter((_,i)=>i!==idx);
+     const aggiornato={...ev,[campo]:(ev[campo]||[]).filter((_,i)=>i!==idx)};
      let salv=[];
      try{salv=JSON.parse(localStorage.getItem('ergo_eventi'))||[]}catch(e){}
      const id=salv.findIndex(x=>x.id===ev.id);
-     if(id>=0)salv[id]=ev;
+     if(id>=0)salv[id]=aggiornato;else throw new Error('EVENTO_NON_PRESENTE_LOCALMENTE');
+     if(!window.ergoSupabaseSyncEvents)throw new Error('SUPABASE_NON_DISPONIBILE');
+     await window.ergoSupabaseSyncEvents(salv);
+     if(rimosso&&rimosso.path&&window.ergoSupabaseRemoveAttachment)await window.ergoSupabaseRemoveAttachment(rimosso);
+     Object.assign(ev,aggiornato);
      localStorage.setItem('ergo_eventi',JSON.stringify(salv));
      /* Ricarica il modale per mostrare la lista aggiornata */
      apriModaleModificaEvento(ev);
@@ -3323,12 +3328,15 @@ function agganciaRimuoviAllegatiNoleggio(nl){
    if(confirm('Eliminare questo allegato?')){
     try{
      const rimosso=(nl[campo]||[])[idx];
-     if(rimosso&&window.ergoSupabaseRemoveAttachment)await window.ergoSupabaseRemoveAttachment(rimosso);
-     nl[campo]=(nl[campo]||[]).filter((_,i)=>i!==idx);
+     const aggiornato={...nl,[campo]:(nl[campo]||[]).filter((_,i)=>i!==idx)};
      let salv=[];
      try{salv=JSON.parse(localStorage.getItem('ergo_noleggi'))||[]}catch(e){}
      const id=salv.findIndex(x=>x.id===nl.id);
-     if(id>=0)salv[id]=nl;
+     if(id>=0)salv[id]=aggiornato;else throw new Error('NOLEGGIO_NON_PRESENTE_LOCALMENTE');
+     if(!window.ergoSupabaseSyncRentals)throw new Error('SUPABASE_NON_DISPONIBILE');
+     await window.ergoSupabaseSyncRentals(salv);
+     if(rimosso&&rimosso.path&&window.ergoSupabaseRemoveAttachment)await window.ergoSupabaseRemoveAttachment(rimosso);
+     Object.assign(nl,aggiornato);
      localStorage.setItem('ergo_noleggi',JSON.stringify(salv));
      apriModaleModificaNoleggio(nl);
     }catch(e){alert('❌ Allegato non eliminato da Supabase.');console.warn(e)}
@@ -6717,20 +6725,23 @@ window.mostraPopupBenvenuto=function(){
     var bucket=a.bucket||'allegati_noleggi';
     var r=await sb.storage.from(bucket).remove([a.path]);
     if(r.error)throw r.error;
-    return {remote:true};
-  };
-  window.ergoSupabaseDeleteEntity=async function(tipo,obj){
-    if(!sb||!obj)return {remote:false};
-    var lists=tipo==='prodotto'?[]:tipo==='evento'?['allegatiTutti','allegatiSala','allegatiCucina','allegatiMagazzino','allegatiPrivata']:['allegatiBolla','allegatiDDT','allegatiVario'];
-    var files=[];
-    lists.forEach(function(k){(obj[k]||[]).forEach(function(a){if(a&&a.path)files.push({bucket:a.bucket||'allegati_noleggi',path:a.path})})});
-    if(tipo==='prodotto'&&obj.foto_path)files.push({bucket:'immagini_prodotti',path:obj.foto_path});
+    /* Il record remoto è già cancellato: rimuoviamo anche i file Storage collegati.
+       Se Storage segnala un errore, il dato non resta visibile nell’app; propaghiamo
+       comunque l’errore per permettere un nuovo tentativo di pulizia. */
     for(const bucket of ['allegati_noleggi','immagini_prodotti']){
       var paths=files.filter(function(x){return x.bucket===bucket}).map(function(x){return x.path});
       if(paths.length){var removed=await sb.storage.from(bucket).remove(paths);if(removed.error)throw removed.error;}
     }
+    return {remote:true};
+  };
+  window.ergoSupabaseDeleteEntity=async function(tipo,obj){
+    if(!sb||!obj)return {remote:false};
     var token=sessionStorage.getItem('ergo_session_token')||'';
     if(!token)throw new Error('SESSIONE_ASSENTE');
+    var lists=tipo==='prodotto'?[]:tipo==='evento'?['allegatiTutti','allegatiSala','allegatiCucina','allegatiMagazzino','allegatiPrivata']:['allegatiBolla','allegatiDDT','allegatiVario'];
+    var files=[];
+    lists.forEach(function(k){(obj[k]||[]).forEach(function(a){if(a&&a.path)files.push({bucket:a.bucket||'allegati_noleggi',path:a.path})})});
+    if(tipo==='prodotto'&&obj.foto_path)files.push({bucket:'immagini_prodotti',path:obj.foto_path});
     var r;
     if(tipo==='prodotto'){
       r=await sb.rpc('ergo_delete_product',{p_token:token,p_id:(typeof obj.id==='number'||/^\d+$/.test(String(obj.id||'')))?Number(obj.id):null,p_code:obj.codice||null});
