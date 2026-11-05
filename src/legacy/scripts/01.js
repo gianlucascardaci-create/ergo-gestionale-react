@@ -4983,8 +4983,8 @@ document.addEventListener('click',function(e){
  /* Aggiorna classe attiva */
  btn.parentNode.querySelectorAll('button').forEach(function(b){b.classList.remove('active')});
  btn.classList.add('active');
- /* Salva filtro globalmente */
- window.calFiltro=filtro;
+ /* Salva il filtro nella variabile usata dalla funzione calendario */
+ calFiltro=filtro;
  /* Ricarica il calendario */
  var pc=document.getElementById('pc');
  if(pc&&typeof cal==='function'){
@@ -6410,6 +6410,7 @@ window.mostraPopupBenvenuto=function(){
   box.querySelector('#assist-popup-classic').onclick=function(){localStorage.setItem('ergo_assistant_mode','classic');chiudi()};
   if(config.autoClose!==false)_t(function(){if(overlay.parentNode)chiudi()},25000);
  }
+ window.assistentePersonalePopup=assistentePopup;
  window.assistentePersonale=function(config){
   var mode=localStorage.getItem('ergo_assistant_mode')||'popup';
   return mode==='classic'?window.assistentePersonaleClassico(config):assistentePopup(config);
@@ -6841,6 +6842,8 @@ window.mostraPopupBenvenuto=function(){
   /* Gli SVG di ruolo già presenti restano disponibili tramite fallback. */
   window.assistentePersonale = function(config){
     if(typeof user==='undefined'||!user) return;
+    var mode=localStorage.getItem('ergo_assistant_mode')||'popup';
+    if(mode==='popup'&&window.assistentePersonalePopup)return window.assistentePersonalePopup(config);
     var old=document.getElementById('assistente-attivo'); if(old) old.remove();
     var moodIcon=String(config.emoji||'').replace(/[<>]/g,'');
     var negative=config.negativo===true||config.espressione==='attenzione'||moodIcon.indexOf('⚠')>=0||moodIcon.indexOf('❌')>=0||/b91c1c|dc2626|991b1b/i.test(String(config.colore||''));
@@ -6859,12 +6862,13 @@ window.mostraPopupBenvenuto=function(){
     var wrap=document.createElement('div'); wrap.id='assistente-attivo'; wrap.className='assistente-vnext';
     var card=document.createElement('div'); card.className='assistente-card'; card.style.borderColor=color;
     var buttons=config.bottoni||[{label:'Va bene',colore:color}];
-    card.innerHTML='<button class="assistente-close" aria-label="Chiudi">×</button><div class="assistente-role" style="color:'+color+'">'+roleName+'</div><div class="assistente-text">'+(config.testo||'Sono qui per aiutarti.')+'</div><div class="assistente-actions">'+buttons.map(function(b,i){return '<button class="assistente-action" data-i="'+i+'" style="background:'+(b.colore||color)+'">'+b.label+'</button>';}).join('')+'</div>';
+    card.innerHTML='<button class="assistente-close" aria-label="Chiudi">×</button><div class="assistente-role" style="color:'+color+'">'+roleName+'</div><div class="assistente-text">'+(config.testo||'Sono qui per aiutarti.')+'</div><div class="assistente-actions">'+buttons.map(function(b,i){return '<button class="assistente-action" data-i="'+i+'" style="background:'+(b.colore||color)+'">'+b.label+'</button>';}).join('')+'</div><button type="button" class="assistente-modalita">Usa il popup</button>';
     var person=document.createElement('div'); person.className='assistente-person assistente-mood-'+mood; person.innerHTML=svg;
     wrap.appendChild(person); wrap.appendChild(card); document.body.appendChild(wrap);
     requestAnimationFrame(function(){wrap.classList.add('visibile');});
     function close(cb){wrap.classList.remove('visibile');wait(function(){if(wrap.parentNode)wrap.remove();if(cb)cb();},350);}
     card.querySelector('.assistente-close').onclick=function(){close();};
+    card.querySelector('.assistente-modalita').onclick=function(){localStorage.setItem('ergo_assistant_mode','popup');close();};
     card.querySelectorAll('.assistente-action').forEach(function(btn){btn.onclick=function(){var b=buttons[Number(btn.dataset.i)];close(function(){if(b.azione)b.azione();});};});
     if(config.autoClose!==false) wait(function(){if(wrap.parentNode)close();},Math.min(Number(config.durata)||10000,10000));
   };
