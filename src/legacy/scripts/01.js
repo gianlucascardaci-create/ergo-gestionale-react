@@ -1607,7 +1607,7 @@ function inv(el){
    <div class="inv-filtri">
    <div class="inv-search"><input id="inv-input-q" placeholder="Cerca nome, codice, categoria…" value="${invRicerca.replace(/"/g,'&quot;')}" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"><button type="button" id="inv-clear-q" class="inv-clear-q" aria-label="Cancella" ${invRicerca?'':'hidden'}>×</button></div>
     <select class="inv-select" id="inv-select-cat"><option value="Tutte">Tutte le categorie</option>${CATEGORIE_INV.map(c=>`<option value="${c}" ${invCategoria===c?'selected':''}>${c}</option>`).join('')}</select>
-    <select class="inv-select inv-select-stock" id="inv-select-stock"><option value="Tutte" ${invStato==='Tutte'?'selected':''}>Tutte le scorte</option><option value="quasi" ${invStato==='quasi'?'selected':''}>Quasi sotto scorta</option><option value="sotto" ${invStato==='sotto'?'selected':''}>Sotto scorta</option></select>
+    <select class="inv-select inv-select-stock" id="inv-select-stock" aria-label="Filtro scorta"><option value="Tutte" ${invStato==='Tutte'?'selected':''}>Filtra per scorta</option><option value="quasi" ${invStato==='quasi'?'selected':''}>Quasi sotto scorta</option><option value="sotto" ${invStato==='sotto'?'selected':''}>Sotto scorta</option></select>
    </div>
    ${isAdmin?'<button class="inv-add" id="inv-btn-nuovo">＋ Nuovo prodotto</button>':''}
   </div>
