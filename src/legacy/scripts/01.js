@@ -3226,6 +3226,7 @@ function apriModaleModificaNoleggio(nl){
  document.getElementById('d-eyebrow').textContent='Modifica noleggio';
  document.getElementById('d-titolo').textContent='✏️ '+nl.titolo;
  document.getElementById('d-body').innerHTML=`
+  <div class="form-section form-section-blue"><div class="form-section-title">🚚 Dati noleggio</div>
   <div class="campo"><label>Titolo <span style="color:#dc2626">*</span></label><input id="mn-titolo" value="${(nl.titolo||'').replace(/"/g,'&quot;')}"></div>
   <div class="campo-2"><div class="campo"><label>Data inizio</label><input id="mn-di" type="date" value="${dataIso}"></div><div class="campo"><label>Ora inizio</label><input id="mn-oi" type="time" value="${ora}"></div></div>
   <div class="campo-2"><div class="campo"><label>Data fine</label><input id="mn-df" type="date" value="${dataF}"></div><div class="campo"><label>Ora fine</label><input id="mn-of" type="time" value="${oraF}"></div></div>
@@ -3238,7 +3239,8 @@ function apriModaleModificaNoleggio(nl){
     <option value="non confermato" ${nl.stato!=='confermato'?'selected':''}>Non confermato</option>
    </select>
   </div>
-  <div class="campo"><label>Note</label><textarea id="mn-note">${(nl.note||'').replace(/</g,'&lt;')}</textarea></div>
+  <div class="campo"><label>Note</label><textarea id="mn-note">${(nl.note||'').replace(/</g,'&lt;')}</textarea></div></div>
+  <div class="form-section form-section-amber"><div class="form-section-title">📎 Documenti del noleggio</div>
   ${vediBolla?`
   <div class="divisore-modale">💰 Bolla con prezzo</div>
   <div class="campo">
@@ -3257,7 +3259,7 @@ function apriModaleModificaNoleggio(nl){
    ${listaAllegatiEsistenti(nl.allegatiVario||[],'mn-al-vario')}
    <label style="display:block;font-size:.7rem;font-weight:700;color:#083278;margin-top:10px">+ Aggiungi nuovi allegati</label>
    <input type="file" id="mn-f-vario" multiple accept="image/*,.pdf">
-  </div>
+  </div></div>
  `;
  document.getElementById('d-foot').innerHTML=`<button class="btn-ghost" onclick="chiudiDrawer()">Annulla</button><button class="btn-primary" id="mn-salva">💾 Salva modifiche</button>`;
  d.classList.add('open');bg.classList.add('open');
