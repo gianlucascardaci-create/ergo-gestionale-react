@@ -6322,7 +6322,7 @@ window.mostraPopupBenvenuto=function(){
  };
 
  /* Funzione che mostra il personaggio con messaggio E azioni opzionali */
- window.assistentePersonale=function(config){
+ window.assistentePersonaleClassico=function(config){
   /* config = { testo, tipo, emoji, colore, bottoni:[{label,colore,azione}] } */
   if(typeof user==='undefined'||!user)return;
   if(document.getElementById('assistente-attivo'))return;
@@ -6355,6 +6355,7 @@ window.mostraPopupBenvenuto=function(){
    html+='<button type="button" class="assist-btn-'+i+'" style="width:100%;padding:9px;background:'+(b.colore||colore)+';color:#fff;border:0;border-radius:9px;font-weight:700;font-size:.78rem;cursor:pointer">'+b.label+'</button>';
   });
   html+='</div>';
+  html+='<button type="button" id="assist-mode-popup" style="width:100%;margin-top:7px;padding:6px;background:transparent;color:#64748b;border:1px solid #e5e9f0;border-radius:8px;font-weight:700;font-size:.68rem;cursor:pointer">Usa il popup</button>';
   html+='<button type="button" id="assist-x" style="position:absolute;top:6px;right:6px;background:transparent;border:0;color:#94a3b8;font-size:1rem;cursor:pointer;padding:2px 6px">✕</button>';
   cartello.innerHTML=html;
 
@@ -6379,9 +6380,39 @@ window.mostraPopupBenvenuto=function(){
    };
   });
   document.getElementById('assist-x').onclick=function(){chiudi()};
+  document.getElementById('assist-mode-popup').onclick=function(){localStorage.setItem('ergo_assistant_mode','popup');chiudi()};
   if(config.autoClose!==false){
    _t(function(){if(wrap.parentNode)chiudi()},25000);
   }
+ };
+
+ /* Modalità popup reversibile: il popup usa gli stessi testi e gli stessi
+    bottoni dell'assistente classico. La scelta resta solo su questo browser. */
+ function assistentePopup(config){
+  if(typeof user==='undefined'||!user)return;
+  if(document.getElementById('assist-popup-attivo'))return;
+  var colore=config.colore||'#083278',nomeRuolo=(window.ergoAssistantIdentity&&window.ergoAssistantIdentity[user.ruolo]&&window.ergoAssistantIdentity[user.ruolo].label)||user.ruolo;
+  var overlay=document.createElement('div');overlay.id='assist-popup-attivo';overlay.style.cssText='position:fixed;inset:0;z-index:999999;background:rgba(21,34,56,.34);display:grid;place-items:center;padding:20px;opacity:0;transition:opacity .2s';
+  var box=document.createElement('div');box.style.cssText='width:min(440px,100%);background:#fff;border:2px solid '+colore+';border-radius:18px;padding:22px;box-shadow:0 24px 70px rgba(21,34,56,.25);position:relative;transform:translateY(8px);transition:transform .2s';
+  var html='<button type="button" id="assist-popup-x" style="position:absolute;top:8px;right:10px;background:transparent;border:0;color:#94a3b8;font-size:1.1rem;cursor:pointer;padding:2px 6px">✕</button>';
+  html+='<div style="font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:'+colore+';margin-bottom:8px">'+nomeRuolo+' · Assistente</div>';
+  if(config.emoji)html+='<div style="font-size:2rem;margin-bottom:8px">'+config.emoji+'</div>';
+  html+='<div style="font-size:.95rem;color:#152238;line-height:1.5;font-weight:600;margin-bottom:16px">'+config.testo+'</div>';
+  var bottoni=config.bottoni||[{label:'Ok, capito!',colore:colore,azione:null}];
+  html+='<div style="display:flex;gap:8px;flex-direction:column">';
+  bottoni.forEach(function(b,i){html+='<button type="button" class="assist-popup-btn-'+i+'" style="width:100%;padding:10px;background:'+(b.colore||colore)+';color:#fff;border:0;border-radius:9px;font-weight:700;font-size:.8rem;cursor:pointer">'+b.label+'</button>';});
+  html+='</div><button type="button" id="assist-popup-classic" style="width:100%;margin-top:10px;padding:7px;background:transparent;color:#64748b;border:1px solid #e5e9f0;border-radius:8px;font-weight:700;font-size:.7rem;cursor:pointer">Torna all’assistente classico</button>';
+  box.innerHTML=html;overlay.appendChild(box);document.body.appendChild(overlay);
+  _t(function(){overlay.style.opacity='1';box.style.transform='translateY(0)'},20);
+  function chiudi(callback){overlay.style.opacity='0';box.style.transform='translateY(8px)';_t(function(){if(overlay.parentNode)overlay.parentNode.removeChild(overlay);if(callback)callback()},220)}
+  bottoni.forEach(function(b,i){var btn=box.querySelector('.assist-popup-btn-'+i);if(btn)btn.onclick=function(){chiudi(function(){if(b.azione)b.azione()})}});
+  box.querySelector('#assist-popup-x').onclick=function(){chiudi()};
+  box.querySelector('#assist-popup-classic').onclick=function(){localStorage.setItem('ergo_assistant_mode','classic');chiudi()};
+  if(config.autoClose!==false)_t(function(){if(overlay.parentNode)chiudi()},25000);
+ }
+ window.assistentePersonale=function(config){
+  var mode=localStorage.getItem('ergo_assistant_mode')||'popup';
+  return mode==='classic'?window.assistentePersonaleClassico(config):assistentePopup(config);
  };
 
  /* === AGGANCIA CREAZIONE EVENTO === */
