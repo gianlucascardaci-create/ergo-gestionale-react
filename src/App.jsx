@@ -28,7 +28,7 @@ export default function App() {
 
     const script = document.createElement('script');
     script.type = 'text/javascript';
-    script.textContent = legacyScript;
+    script.textContent = `${legacyScript}\nif(window.ERGO_BOZZA_DEMO){user={username:'bozza-demo',ruolo:'Amministratore',nome:'Bozza Preventivi',email:'',iniziali:'BP'};view='preventivi';app();}`;
     document.body.appendChild(script);
 
     return () => script.remove();

@@ -1478,8 +1478,7 @@ caricaDaLocalStorage();
 
 const _qp=new URLSearchParams(location.search);
 const _qrToken=_qp.get('qr');
-if(_qrToken){R.innerHTML='<div class="qr-page"><div class="qr-errore"><div class="emo">⏳</div><h1>Caricamento scheda prodotto</h1><p>Sto recuperando i dati associati al QR code…</p></div></div>';}
-else if(window.ERGO_BOZZA_DEMO){user={username:'bozza-demo',ruolo:'Amministratore',nome:'Bozza Preventivi',email:'',iniziali:'BP'};view='preventivi';app();}
+if(_qrToken){R.innerHTML='<div class="qr-page"><div class="qr-errore"><div class="emo">⏳</div><h1>Caricamento scheda prodotto</h1><p>Sto recuperando i dati associati al QR code…</p></div></div>' ;}
 else{login();}
   /* === FIX CAMPI OSPITI/BAMBINI/STAFF === */
 function apriModaleEventoCampi(){
