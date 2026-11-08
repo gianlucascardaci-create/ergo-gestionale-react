@@ -6467,16 +6467,19 @@ window.mostraPopupBenvenuto=function(){
   }
  };
 
- /* Modalità popup reversibile: il popup usa gli stessi testi e gli stessi
-    bottoni dell'assistente classico. La scelta resta solo su questo browser. */
+ /* Modalità popup reversibile. Il popup ha una propria identità visiva e
+    non riutilizza i saluti o le frasi di presentazione dell'assistente. */
  function assistentePopup(config){
   if(typeof user==='undefined'||!user)return;
   if(document.getElementById('assist-popup-attivo'))return;
-  var colore=config.colore||'#083278';
+  var emoji=String(config.emoji||'');
+  var colore=(config.negativo===true||config.espressione==='attenzione'||emoji.indexOf('⚠')>=0||emoji.indexOf('❌')>=0)
+   ? '#b91c1c'
+   : (emoji.indexOf('✅')>=0||emoji.indexOf('🎉')>=0||config.tipo==='successo' ? '#3e765e' : '#083278');
   var overlay=document.createElement('div');overlay.id='assist-popup-attivo';overlay.className='ergo-confirm-overlay';
   var box=document.createElement('div');box.className='ergo-confirm-card';box.style.setProperty('--confirm-color',colore);
   var html='<button type="button" id="assist-popup-x" class="ergo-confirm-close" aria-label="Chiudi">×</button>';
-  html+='<div class="ergo-confirm-icon">'+(config.emoji||'✓')+'</div><div class="ergo-confirm-kicker">Confermato su Supabase</div>';
+  html+='<div class="ergo-confirm-icon">'+(config.emoji||'✓')+'</div><div class="ergo-confirm-kicker">'+(config.kicker||'Aggiornamento gestionale')+'</div>';
   html+='<div class="ergo-confirm-title">'+(user.nome||user.username||'Gestionale')+'</div><div class="ergo-confirm-text">'+(config.testo||'Operazione completata.')+'</div>';
   var bottoni=config.bottoni||[{label:'Ho capito',colore:colore,azione:null}];html+='<div class="ergo-confirm-actions">';
   bottoni.forEach(function(b,i){html+='<button type="button" class="assist-popup-btn-'+i+' ergo-confirm-action" style="--action-color:'+(b.colore||colore)+'">'+b.label+'</button>';});html+='</div>';
@@ -6984,22 +6987,29 @@ window.mostraPopupBenvenuto=function(){
       view='dashboard';filtroFeed='nuove';app();
       wait(function(){var feed=document.querySelector('.feed');if(feed)feed.scrollIntoView({behavior:'smooth',block:'start'});},450);
     };
-    /* Saluto variabile: il primo accesso del giorno presenta l'assistente;
-       ogni rientro successivo dello stesso utente usa Bentornato. */
+    /* Il saluto personale appartiene solo all'assistente classico.
+       Il popup usa invece un messaggio operativo neutro. */
     var oggiLocale=(function(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')})();
     var chiaveIngresso='ergo_assistente_ingresso_'+String(user.username||user.ruolo)+'_'+oggiLocale;
     var primoIngresso=localStorage.getItem(chiaveIngresso)!=='1';
     localStorage.setItem(chiaveIngresso,'1');
     var salutoIngresso=primoIngresso?(identita&&identita.welcome||'Piacere, sono il tuo assistente personale.'):'Bentornato, '+String(user.nome||'')+'!';
-    var testoBenvenuto='<b>'+salutoIngresso+'</b>';
+    var popupMode=(ergoAssistantMode||'popup')==='popup';
+    var testoBenvenuto=popupMode
+      ? '<b>'+ (notifiche.length?'Aggiornamenti disponibili':'Area di lavoro pronta') +'</b>'
+      : '<b>'+salutoIngresso+'</b>';
     if(notifiche.length){
-      testoBenvenuto+='<br><span style="display:inline-block;margin-top:7px;font-weight:800;color:#b91c1c">🔔 Hai '+notifiche.length+' '+(notifiche.length===1?'nuova notifica':'nuove notifiche')+'.</span><br><span style="font-weight:500">Premi il pulsante per vedere gli aggiornamenti recenti.</span>';
+      testoBenvenuto+=popupMode
+       ? '<br><span style="display:inline-block;margin-top:7px;font-weight:800;color:#b91c1c">🔔 Sono disponibili '+notifiche.length+' '+(notifiche.length===1?'aggiornamento':'aggiornamenti')+'.</span><br><span style="font-weight:500">Premi il pulsante per vedere gli aggiornamenti recenti.</span>'
+       : '<br><span style="display:inline-block;margin-top:7px;font-weight:800;color:#b91c1c">🔔 Hai '+notifiche.length+' '+(notifiche.length===1?'nuova notifica':'nuove notifiche')+'.</span><br><span style="font-weight:500">Premi il pulsante per vedere gli aggiornamenti recenti.</span>';
     }else{
-      testoBenvenuto+='<br><span style="display:inline-block;margin-top:7px;font-weight:600;color:#3e765e">✓ Nessuna nuova notifica.</span>';
+      testoBenvenuto+=popupMode
+       ? '<br><span style="display:inline-block;margin-top:7px;font-weight:600;color:#3e765e">✓ Nessun aggiornamento in sospeso.</span>'
+       : '<br><span style="display:inline-block;margin-top:7px;font-weight:600;color:#3e765e">✓ Nessuna nuova notifica.</span>';
     }
     window.assistentePersonale({
       testo:testoBenvenuto,
-      emoji:'👋',colore:'#083278',autoClose:true,durata:10000,
+      emoji:popupMode?(notifiche.length?'🔔':'✓'):'👋',kicker:popupMode?'STATO DEL GESTIONALE':undefined,colore:'#083278',autoClose:true,durata:10000,
       bottoni:[{label:notifiche.length?'🔔 Apri aggiornamenti recenti':'Inizia a lavorare',colore:'#083278',azione:notifiche.length?azioneAggiornamenti:function(){}}]
     });
   };
