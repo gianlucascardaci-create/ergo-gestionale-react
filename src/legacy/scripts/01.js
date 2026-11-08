@@ -1698,10 +1698,15 @@ function inv(el){
  };
  const correggiCategoriaRicerca=()=>{
   const q=invRicerca.trim();if(q.length<4)return;
-  const qNorm=normalizzaTesto(q);
-  /* La correzione automatica parte solo con il nome/codice completo:
-     "VE" e "VEN" non devono essere interpretati come prodotto finito. */
-  const trovati=tutti.filter(p=>[p.nome,p.codice].filter(Boolean).some(v=>normalizzaTesto(v)===qNorm));
+  const qNorm=normalizzaTesto(q).replace(/\s+/g,' ');
+  /* La correzione automatica parte solo con una parola completa del nome o
+     con il codice completo: "VE" e "VEN" non devono essere interpretati
+     come prodotto finito, mentre "VENERE" deve trovare "Sedia Venere". */
+  const trovati=tutti.filter(p=>{
+   const nome=normalizzaTesto(p.nome||'').replace(/\s+/g,' ');
+   const codice=normalizzaTesto(p.codice||'').replace(/\s+/g,' ');
+   return nome===qNorm||codice===qNorm||nome.split(' ').some(function(parola){return parola===qNorm});
+  });
   const categorie=[...new Set(trovati.flatMap(p=>String(p.categoria||'').split(',').map(c=>c.trim()).filter(Boolean)))];
   if(categorie.length!==1||invCategoria==='Tutte'||categorie[0].toUpperCase()===invCategoria.toUpperCase())return;
   const categoria=categorie[0];
