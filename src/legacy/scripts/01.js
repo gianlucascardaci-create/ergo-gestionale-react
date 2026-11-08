@@ -6305,11 +6305,29 @@ window.mostraPopupBenvenuto=function(){
    messaggio='Una piccola pausa con uno spuntino? Ne hai bisogno!';
    tipo='info';emoji='🍎';
   }
-  /* 19:00 - 20:30 → Fine giornata */
-  else if(ora===19||(ora===20&&min<30)){
+  /* 12:00 - 14:30 → Pranzo */
+  else if(ora===12||ora===13||(ora===14&&min<=30)){
+   chiave='pranzo';
+   messaggio='È ora di pranzo! Buon appetito 🍝';
+   tipo='pausa';emoji='🍝';
+  }
+  /* 15:00 - 16:00 → Caffè */
+  else if(ora>=15&&ora<16){
+   chiave='caffe';
+   messaggio='Un caffè veloce per riprendere la carica? ☕';
+   tipo='pausa';emoji='☕';
+  }
+  /* 19:00 - 19:30 → Fine giornata */
+  else if(ora===19&&min<30){
    chiave='fine_giornata';
    messaggio='Quasi fine giornata! Hai fatto un ottimo lavoro';
    tipo='info';emoji='⭐';
+  }
+  /* 19:30 - 20:30 → Cena */
+  else if((ora===19&&min>=30)||(ora===20&&min<30)){
+   chiave='cena';
+   messaggio='Buona cena! Goditi la serata 🌙';
+   tipo='pausa';emoji='🌙';
   }
   /* 20:30 - 22:00 → Rilassati */
   else if((ora===20&&min>=30)||ora===21){
