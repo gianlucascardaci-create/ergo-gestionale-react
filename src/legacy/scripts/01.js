@@ -6281,62 +6281,44 @@ window.mostraPopupBenvenuto=function(){
   var emoji='';
   var chiave='';
 
-  /* 5:00 - 6:00 → Sveglia presto */
-  if(ora>=5&&ora<6){
+ /* 5:00 - 7:00 → Sveglia presto */
+ if(ora>=5&&ora<7){
    chiave='sveglia_presto';
    messaggio='Cavolo, sei già sveglio! Buona giornata! ☕';
    tipo='buongiorno';emoji='🌅';
   }
-  /* 6:00 - 8:00 → Buona colazione */
-  else if(ora>=6&&ora<8){
+  /* 7:00 - 9:30 → Buona colazione */
+  else if(ora>=7&&(ora<9||(ora===9&&min<30))){
    chiave='colazione';
    messaggio='Buona colazione! Inizia la giornata con la carica giusta';
    tipo='buongiorno';emoji='🥐';
   }
-  /* 8:00 - 10:00 → Buongiorno */
-  else if(ora>=8&&ora<10){
+  /* 9:30 - 10:30 → Buongiorno */
+  else if((ora===9&&min>=30)||(ora===10&&min<30)){
    chiave='buongiorno';
    messaggio='Buongiorno! Pronto per una giornata produttiva?';
    tipo='buongiorno';emoji='☀️';
   }
-  /* 10:00 - 11:00 → Spuntino */
-  else if(ora>=10&&ora<11){
+  /* 10:30 - 11:30 → Spuntino */
+  else if((ora===10&&min>=30)||(ora===11&&min<30)){
    chiave='spuntino';
    messaggio='Una piccola pausa con uno spuntino? Ne hai bisogno!';
    tipo='info';emoji='🍎';
   }
-  /* 12:30 - 13:30 → Pranzo */
-  else if((ora===12)||(ora===13)||(ora===14&&min<=30)){
-   chiave='pranzo';
-   messaggio='È ora di pranzo! Buon appetito 🍝';
-   tipo='pausa';emoji='🍝';
-  }
-  /* 15:00 - 16:00 → Caffè */
-  else if(ora>=15&&ora<16){
-   chiave='caffe';
-   messaggio='Un caffè veloce per riprendere la carica? ☕';
-   tipo='pausa';emoji='☕';
-  }
-  /* 18:00 - 19:00 → Fine giornata */
-  else if(ora>=18&&ora<19){
+  /* 19:00 - 20:30 → Fine giornata */
+  else if(ora===19||(ora===20&&min<30)){
    chiave='fine_giornata';
    messaggio='Quasi fine giornata! Hai fatto un ottimo lavoro';
    tipo='info';emoji='⭐';
   }
-  /* 19:30 - 20:30 → Cena */
-  else if((ora===19&&min>=30)||(ora===20&&min<=30)){
-   chiave='cena';
-   messaggio='Buona cena! Goditi la serata 🌙';
-   tipo='pausa';emoji='🌙';
-  }
-  /* 21:00 - 23:00 → Rilassati */
-  else if(ora>=21&&ora<23){
+  /* 20:30 - 22:00 → Rilassati */
+  else if((ora===20&&min>=30)||ora===21){
    chiave='rilassati';
    messaggio='Ora puoi rilassarti. Il lavoro può aspettare! 🛋️';
    tipo='buonanotte';emoji='🛋️';
   }
-  /* 23:00 - 5:00 → Buonanotte */
-  else if(ora>=23||ora<5){
+  /* 22:00 - 5:00 → Buonanotte */
+  else if(ora>=22||ora<5){
    chiave='buonanotte';
    messaggio='È tardi, vai a dormire! Domani sarà un\'altra giornata';
    tipo='buonanotte';emoji='🌙';
