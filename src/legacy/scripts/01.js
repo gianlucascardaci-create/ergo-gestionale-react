@@ -1574,7 +1574,7 @@ function distanzaNomeProdotto(query,nome){
  return distanzaTesto(q,n);
 }
 function suggerisciProdottoInventario(query,tutti){
- const q=String(query||'').trim();if(q.length<3)return;
+ const q=String(query||'').trim();if(q.length<4)return;
  /* Se il termine digitato è già contenuto in un prodotto, non mostrare mai
     un suggerimento fuzzy per un altro prodotto: ad esempio "flute" vince su "blu". */
  if((tutti||[]).some(function(p){return testoProdottoEsatto(q,p)}))return;
@@ -1689,8 +1689,11 @@ function inv(el){
   }
  };
  const correggiCategoriaRicerca=()=>{
-  const q=invRicerca.trim();if(!q)return;
-  const trovati=tutti.filter(p=>testoProdottoEsatto(q,p));
+  const q=invRicerca.trim();if(q.length<4)return;
+  const qNorm=normalizzaTesto(q);
+  /* La correzione automatica parte solo con il nome/codice completo:
+     "VE" e "VEN" non devono essere interpretati come prodotto finito. */
+  const trovati=tutti.filter(p=>[p.nome,p.codice].filter(Boolean).some(v=>normalizzaTesto(v)===qNorm));
   const categorie=[...new Set(trovati.flatMap(p=>String(p.categoria||'').split(',').map(c=>c.trim()).filter(Boolean)))];
   if(categorie.length!==1||invCategoria==='Tutte'||categorie[0].toUpperCase()===invCategoria.toUpperCase())return;
   const categoria=categorie[0];
@@ -1703,11 +1706,17 @@ function inv(el){
   if(nuovaRicerca!==invRicerca)window._ultimoSuggerimentoInventario='';
   invRicerca=nuovaRicerca;
   const clearButton=document.getElementById('inv-clear-q');if(clearButton)clearButton.hidden=!invRicerca;
-  correggiCategoriaRicerca();
   invStatoPerUtente[statoKey]={ricerca:invRicerca,categoria:invCategoria,scorta:invStato,attivo:true};
   riRender();
   if(invRicercaTimer)clearTimeout(invRicercaTimer);
-  invRicercaTimer=setTimeout(function(){suggerisciProdottoInventario(invRicerca,tutti);},450);
+  const queryDopoPausa=invRicerca;
+  invRicercaTimer=setTimeout(function(){
+   if(queryDopoPausa!==invRicerca)return;
+   correggiCategoriaRicerca();
+   invStatoPerUtente[statoKey]={ricerca:invRicerca,categoria:invCategoria,scorta:invStato,attivo:true};
+   riRender();
+   suggerisciProdottoInventario(invRicerca,tutti);
+  },1000);
  });
  const sc=document.getElementById('inv-select-cat');
  if(sc)sc.addEventListener('change',e=>{
