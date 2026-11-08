@@ -1574,7 +1574,15 @@ function distanzaNomeProdotto(query,nome){
  return distanzaTesto(q,n);
 }
 function suggerisciProdottoInventario(query,tutti){
- const q=String(query||'').trim();if(q.length<4)return;
+ const q=String(query||'').trim();if(q.length<3)return;
+ const qPrefix=normalizzaTesto(q).replace(/\s+/g,'');
+ /* Non interrompere la digitazione con prefissi evidenti come VE o VEN;
+    una sigla/svista di tre caratteri come BLE deve invece poter attivare
+    la ricerca intelligente (es. BLE → BLU). */
+ if(q.length<4&&(tutti||[]).some(function(p){
+  const nome=normalizzaTesto(p&&p.nome||'').replace(/\s+/g,'');
+  return nome&&nome.indexOf(qPrefix)===0;
+ }))return;
  /* Se il termine digitato è già contenuto in un prodotto, non mostrare mai
     un suggerimento fuzzy per un altro prodotto: ad esempio "flute" vince su "blu". */
  if((tutti||[]).some(function(p){return testoProdottoEsatto(q,p)}))return;
