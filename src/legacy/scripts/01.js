@@ -396,7 +396,7 @@ function app(){
  if(assistantModeButton)assistantModeButton.onclick=cambiaModalitaAssistente;
  document.getElementById('out').onclick=()=>{cancellaSessionePersistente();user=null;login()};
  const pc=document.getElementById('pc');
- if(view==='dashboard'){dash(pc);pc.classList.remove('dash-anim');void pc.offsetWidth;pc.classList.add('dash-anim');wait(function(){if(pc)pc.classList.remove('dash-anim')},7200);}
+ if(view==='dashboard'){dash(pc);pc.classList.remove('dash-anim');void pc.offsetWidth;pc.classList.add('dash-anim');window.setTimeout(function(){if(pc)pc.classList.remove('dash-anim')},7200);}
  else if(view==='inventario')inv(pc);
  else if(view==='calendario')cal(pc);
  else if(view==='ruoli')ruoli(pc);
