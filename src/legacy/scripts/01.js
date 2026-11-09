@@ -1729,7 +1729,7 @@ function inv(el){
    invStatoPerUtente[statoKey]={ricerca:invRicerca,categoria:invCategoria,scorta:invStato,attivo:true};
    riRender();
    suggerisciProdottoInventario(invRicerca,tutti);
-  },450);
+  },150);
  });
  const sc=document.getElementById('inv-select-cat');
  if(sc)sc.addEventListener('change',e=>{
